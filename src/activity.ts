@@ -66,13 +66,13 @@ export class Activity {
     ];
 
     app: App;
-    utils: Utils;
 
     constructor() {
         this.app = window.customJS.app;
-        this.utils = window.customJS.Utils;
         console.log("loaded Templates");
     }
+
+    utils = (): Utils => window.customJS.Utils;
 
     /**
      * Counts the tags within the specified date range.
@@ -87,7 +87,7 @@ export class Activity {
         const count = keys.map(() => 0);
         const prefix = 'me/✅/';
 
-        const tags = await this.utils.tagsForDates(begin, end)
+        const tags = await this.utils().tagsForDates(begin, end)
         tags.filter(t => t.startsWith(prefix))
             .forEach(tag => {
                 const value = tag.slice(prefix.length);

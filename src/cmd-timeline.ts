@@ -9,17 +9,17 @@ type EventsByYear = { [key: number]: CalEvent[] };
 export class Timeline {
     RENDER_TIMELINE = /([\s\S]*?<!--TIMELINE BEGIN-->)[\s\S]*?(<!--TIMELINE END-->[\s\S]*?)/i;
     app: App;
-    utils: Utils;
-    campaign: Campaign;
-    event_codes: string[];
+
 
     constructor() {  // Constructor
         this.app = window.customJS.app;
-        this.utils = window.customJS.Utils;
-        this.campaign = window.customJS.Campaign;
-        this.event_codes = this.campaign.EVENT_CODES;
         console.log("loaded Timeline renderer");
     }
+
+    campaign = (): Campaign => window.customJS.Campaign;
+    event_codes = (): string[] => this.campaign().EVENT_CODES;
+    utils = (): Utils => window.customJS.Utils;
+
 
     async invoke() {
         console.log("Render timelines");
@@ -130,7 +130,7 @@ export class Timeline {
     groupByEmoji = (API: CalendarAPI, events: CalEvent[]): EventsByString => {
         const emoji = events.reduce((acc: EventsByString, event) => {
             // for each event
-            this.event_codes.forEach(e => {
+            this.event_codes().forEach(e => {
                 // for each emoji
                 if (event.name.contains(e)) {
                     acc[e] = acc[e] || [];
@@ -139,6 +139,7 @@ export class Timeline {
             });
             return acc;
         }, {});
+
         Object.values(emoji).forEach(events => {
             events.sort(API.compareEvents);
         });

@@ -23,13 +23,13 @@ export class AllTasks {
     ];
 
     app: App;
-    utils: Utils;
 
     constructor() {
         this.app = window.customJS.app;
-        this.utils = window.customJS.Utils;
         console.log("loaded AllTasks");
     }
+
+    utils = (): Utils => window.customJS.Utils;
 
     /**
      * Find all "Tasks" sections in the specified paths.
@@ -58,8 +58,8 @@ export class AllTasks {
                 const priority = ap.filePriority(cacheInfo.file);
                 const status = ap.fileStatus(cacheInfo.file);
                 const role = ap.fileRole(cacheInfo.file);
-                const title = this.utils.fileTitle(cacheInfo.file);
-                const linkPath = this.utils.markdownLinkPath(cacheInfo.file, cacheInfo.taskHeading.heading);
+                const title = this.utils().fileTitle(cacheInfo.file);
+                const linkPath = this.utils().markdownLinkPath(cacheInfo.file, cacheInfo.taskHeading.heading);
                 console.log("task section", title, linkPath, cacheInfo);
                 return `\n#### <span class="project-status">[${status}&nbsp;${priority}&nbsp;${role}](${linkPath})</span> ${title}\n\n![invisible-embed](${linkPath})\n`;
             })

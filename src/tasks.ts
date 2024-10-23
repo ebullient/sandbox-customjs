@@ -2,7 +2,6 @@ import {
     App,
     TFile,
 } from "obsidian";
-import moment from "moment";
 import { EngineAPI } from "./@types/jsengine.types";
 import { Utils } from "./_utils";
 
@@ -22,13 +21,13 @@ export class Tasks {
     ]
 
     app: App;
-    utils: Utils;
 
     constructor() {
         this.app = window.customJS.app;
-        this.utils = window.customJS.Utils;
         console.log("loaded Tasks");
     }
+
+    utils = (): Utils => window.customJS.Utils;
 
     /**
      * Retrieve tasks from the current active file.
@@ -95,7 +94,7 @@ export class Tasks {
                             : false;
                     })
                     .forEach(task => {
-                        const link = this.utils.markdownLink(task.file);
+                        const link = this.utils().markdownLink(task.file);
                         list.push(`- *${link}*: ${task.text}`);
                     });
             }

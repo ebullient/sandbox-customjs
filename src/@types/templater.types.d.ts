@@ -1,4 +1,4 @@
-import { TFile } from "obsidian";
+import { TFile, TFolder } from "obsidian";
 
 export type ItemToString<T> = (item: T) => string;
 
@@ -17,6 +17,16 @@ export interface TemplaterFile {
     content: string;
 
     /**
+     * Creates a new file using a specified template or with a specified content.
+     * @param {TFile | string} template: Either the template used for the new file content, or the file content as a string.
+     *  If it is the template to use, you retrieve it with tp.file.find_tfile(TEMPLATENAME).
+     * @param {string} filename: The filename of the new file, defaults to "Untitled".
+     * @param {boolean} open_new: Whether to open or not the newly created file. Warning: if you use this option, since commands are executed asynchronously, the file can be opened first and then other commands are appended to that new file and not the previous file.
+     * @param {TFolder | string} folder: The folder to put the new file in, defaults to Obsidian's default location. If you want the file to appear in a different folder, specify it with "PATH/TO/FOLDERNAME" or app.vault.getAbstractFileByPath("PATH/TO/FOLDERNAME").
+     */
+    create_new(template: TFile | string, filename: string, open_new?: boolean, folder?: TFolder | string): Promise<void>;
+
+    /**
      *
      * @param filename: The filename we want to search and resolve as a TFile.
      */
@@ -30,10 +40,24 @@ export interface TemplaterFile {
     folder(absolute?: boolean): string;
 
     /**
+     * Moves the file to the desired vault location.
+     * @param {string} new_path: The new vault relative path of the file, without the file extension.
+     *  Note: the new path needs to include the folder and the filename, e.g. "/Notes/MyNote".
+     * @param {TFile} file_to_move: The file to move, defaults to the current file.
+     */
+    move(new_path: string, file_to_move?: TFile): Promise<void>;
+
+    /**
      * @param relative If true, return the relative path to the vault root.
      * @returns The path to the file.
      */
     path(relative?: boolean): string;
+
+    /**
+     * Renames the file (keeps the same file extension).
+     * @param {string} new_title The new file title.
+     */
+    rename(new_title: string): Promise<void>;
 
     /**
      * Retrieves the file's title (name without the extension).

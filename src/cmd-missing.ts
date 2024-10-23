@@ -1,4 +1,3 @@
-import moment from "moment";
 import { RenderFn, Utils } from "./_utils";
 import { App, LinkCache, TFile } from "obsidian";
 
@@ -8,7 +7,6 @@ export class Missing {
     RENDER_MISSING = /([\s\S]*?<!--MISSING BEGIN-->)[\s\S]*?(<!--MISSING END-->[\s\S]*?)/i;
 
     app: App;
-    utils: Utils;
 
     targetFile = "assets/no-sync/missing.md";
 
@@ -34,9 +32,10 @@ export class Missing {
 
     constructor() {
         this.app = window.customJS.app;
-        this.utils = window.customJS.Utils;
         console.log("loaded Missing");
     }
+
+    utils = (): Utils => window.customJS.Utils;
 
     /**
      * Find all missing references and update the target file with the results.
@@ -165,7 +164,7 @@ export class Missing {
         fileMap: FileReferences): Promise<void> => {
 
         const now = window.moment();
-        const cleanLink = this.utils.cleanLinkTarget(lc);
+        const cleanLink = this.utils().cleanLinkTarget(lc);
         const target = cleanLink.link;
 
         let tgtFile = source;

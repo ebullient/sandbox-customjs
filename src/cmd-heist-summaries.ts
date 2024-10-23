@@ -1,5 +1,6 @@
 import { RenderFn, Utils } from "./_utils";
 import { App, CachedMetadata, TFile } from "obsidian";
+import { Campaign } from "./campaign";
 
 interface FileContent {
     file: TFile;
@@ -11,7 +12,6 @@ export class HeistSummaries {
     SUMMARIES = /([\s\S]*?<!--indexOf SUMMARIES-->)[\s\S]*?(<!--indexOf END SUMMARIES-->[\s\S]*?)/i;
 
     app: App;
-    utils: Utils;
 
     targetFile = "heist/all-summaries.md";
 
@@ -20,9 +20,9 @@ export class HeistSummaries {
         console.log("loaded HeistSummary renderer");
     }
 
-    async invoke() {
-        const { Campaign } = await window.cJS();
+    campaign = (): Campaign => window.customJS.Campaign;
 
+    async invoke() {
         const allSummaries = this.app.vault.getFileByPath(this.targetFile);
         if (!allSummaries) {
             console.log(`${this.targetFile} file not found`);
@@ -68,7 +68,7 @@ export class HeistSummaries {
                     txt = txt.replace(/%%.*?%%/, '').trim();
                 }
                 result.push(`\n## [${d.file.name}](${d.file.path})\n`);
-                result.push(txt.replace(Campaign.eventRegexp, (match, p1, p2) => this.summaryEventSpan([match, p1, p2])));
+                result.push(txt.replace(this.campaign().eventRegexp, (match, p1, p2) => this.summaryEventSpan([match, p1, p2])));
                 result.push('\n');
             }
             return result.join('\n');

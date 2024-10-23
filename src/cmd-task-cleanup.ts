@@ -1,5 +1,4 @@
 import { Moment } from "moment";
-import moment from "moment";
 import { Utils } from "./_utils";
 import { App, HeadingCache, TFile } from "obsidian";
 
@@ -12,11 +11,9 @@ export class TaskCleanup {
     list = new RegExp(/^[\s>]*- .*$/);
 
     app: App;
-    utils: Utils;
 
     constructor() {  // Constructor
         this.app = window.customJS.app;
-        this.utils = window.customJS.Utils;
         console.log("loaded TaskCleanup");
     }
 

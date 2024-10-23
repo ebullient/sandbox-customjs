@@ -1,7 +1,19 @@
 // Note: Partial DiceRoller API
 
+import { Component } from "obsidian";
+
 export interface DiceRoller {
-    parseDice(formula: string, source: string): Promise<{ result: string, roller: unknown }>;
+    getRoller(raw: string, source?: string, options?: unknown): BasicRoller | null
+    parseDice(formula: string, source: string): Promise<RollResult>;
+}
+
+export interface RollResult {
+    result: string;
+    roller: BasicRoller;
+}
+
+export interface BasicRoller extends Component {
+    roll(): Promise<unknown>;
 }
 
 declare global {

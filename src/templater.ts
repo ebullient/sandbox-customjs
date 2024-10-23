@@ -3,7 +3,6 @@ import {
     TFolder,
 } from "obsidian";
 import { Utils } from "./_utils";
-import moment from "moment";
 import { Templater } from "./@types/templater.types";
 
 interface LineInfo {
@@ -19,13 +18,13 @@ export class Templates {
     dated = /^.*?(\d{4}-\d{2}-\d{2}).*$/;
 
     app: App;
-    utils: Utils;
 
     constructor() {
         this.app = window.customJS.app;
-        this.utils = window.customJS.Utils;
         console.log("loaded Templates");
     }
+
+    utils = (): Utils => window.customJS.Utils;
 
     /**
      * Add text to a specified section in a file.
@@ -57,7 +56,7 @@ export class Templates {
      * @returns {Promise<string>} The chosen file path.
      */
     chooseFile = async (tp: Templater): Promise<string> =>  {
-        const files = this.utils.filePaths();
+        const files = this.utils().filePaths();
         return await tp.system.suggester(files, files);
     }
 
@@ -68,7 +67,7 @@ export class Templates {
      * @returns {Promise<string>} The chosen folder path or a user-entered folder path.
      */
     chooseFolder = async (tp: Templater, folder: string): Promise<string> => {
-        const folders = this.utils.foldersByCondition(folder,
+        const folders = this.utils().foldersByCondition(folder,
             (tfolder: TFolder) =>!tfolder.path.startsWith("assets"))
             .map(f => f.path);
 
@@ -94,8 +93,8 @@ export class Templates {
     createConversation = async (tp: Templater) => {
         let result = "";
         const day = window.moment(tp.file.title).format("YYYY-MM-DD");
-        const regex = this.utils.segmentFilterRegex("chronicles/conversations");
-        const files = this.utils.filesWithPath(regex)
+        const regex = this.utils().segmentFilterRegex("chronicles/conversations");
+        const files = this.utils().filesWithPath(regex)
             .map(x => x.path);
 
         const choice = await tp.system.suggester(files, files);

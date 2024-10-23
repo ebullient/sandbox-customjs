@@ -16,6 +16,8 @@ export type FileGroupByFn = (a: TFile) => string;
 export type FolderFilterFn = (a: TFolder) => boolean;
 export type RenderFn = () => string;
 
+export type SegmentFn = (tag: string) => string;
+
 interface CleanLink {
     link: string;
     text?: string;
@@ -26,6 +28,7 @@ export class Utils {
     taskPattern: RegExp = /^([\s>]*- )\[(.)\] (.*)$/;
     completedPattern: RegExp = /.*\((\d{4}-\d{2}-\d{2})\)\s*$/;
     dailyNotePattern: RegExp = /^(\d{4}-\d{2}-\d{2}).md$/;
+    lastSegment: SegmentFn = x => x.slice(x.lastIndexOf('/') + 1)
 
     pathConditionPatterns: RegExp[] = [
         /^\[.*?\]\((.*?\.md)\)$/,       // markdown link
@@ -77,7 +80,7 @@ export class Utils {
      * @param {string|Array<string>} conditions
      * @returns {FileFilterFn} Function to apply to evaluate conditions
      */
-    createConditionFilter = (conditions: string | string[]): FileFilterFn => {
+    createFileConditionFilter = (conditions: string | string[]): FileFilterFn => {
         if (!Array.isArray(conditions)) {
             conditions = [conditions];
         }
@@ -173,30 +176,37 @@ export class Utils {
     fileTitle = (tfile: TFile): string => {
         const cache = this.app.metadataCache.getFileCache(tfile);
         const aliases = cache?.frontmatter?.aliases;
-        return aliases ? aliases[0] : tfile.name.replace('.md', '');
+       const alias = aliases ? aliases[0] : tfile.name.replace('.md', '');
+        if (typeof alias === 'string') {
+            return alias;
+        } else {
+            return tfile.name.replace('.md', '');
+        }
     }
 
     /**
      * Retrieves a list of all files that have links to the target file.
      * @param {TFile} targetFile The target file to match.
+     * @param {boolean} includeCurrent True if the current file should be included in the list (default: false).
      * @returns {TFile[]} A list of all files that have links to the target file.
      * @see filesMatchingCondition
      * @see filterByLinkToFile
      */
-    filesLinkedToFile = (targetFile: TFile): TFile[] => {
-        return this.filesMatchingCondition((tfile: TFile) => this.filterByLinkToFile(tfile, targetFile));
+    filesLinkedToFile = (targetFile: TFile, includeCurrent: boolean = false): TFile[] => {
+        return this.filesMatchingCondition((tfile: TFile) => this.filterByLinkToFile(tfile, targetFile), includeCurrent);
     }
 
     /**
      * Retrieves a list of all markdown files (excluding the current file) that match the provided filter function.
      * @param {FileFilterFn} fn Filter function that accepts TFile as a parameter.
      *      Should return true if the condition is met, and false if not (standard JS array filter behavior).
+     * @param {boolean} includeCurrent True if the current file should be included in the list (default: false).
      * @returns {TFile[]} A list of all markdown files (excluding the current file) that match the provided filter function.
      */
-    filesMatchingCondition = (fn: FileFilterFn): TFile[] => {
+    filesMatchingCondition = (fn: FileFilterFn, includeCurrent: boolean = false): TFile[] => {
         const current = this.app.workspace.getActiveFile();
         return this.app.vault.getMarkdownFiles()
-            .filter(tfile => tfile !== current)
+            .filter(tfile => includeCurrent || tfile !== current)
             .filter(tfile => fn(tfile))
             .sort(this.sortTFile);
     }
@@ -206,24 +216,26 @@ export class Utils {
      * @param {string | string[]} conditions Either a string or an array of strings.
      *      By default, the array will act as an OR.
      *      The first element of the array can change that behavior (AND|OR).
+     * @param {boolean} includeCurrent True if the current file should be included in the list (default: false).
      * @returns {TFile[]} A list of all files satisfyng specified conditions
-     * @see createConditionFilter
+     * @see createFileConditionFilter
      * @see filesMatchingCondition
      */
-    filesWithConditions = (conditions: string | string[]): TFile[] => {
-        const conditionsFilter = this.createConditionFilter(conditions);
-        return this.filesMatchingCondition((tfile: TFile) => conditionsFilter(tfile));
+    filesWithConditions = (conditions: string | string[], includeCurrent: boolean = false): TFile[] => {
+        const conditionsFilter = this.createFileConditionFilter(conditions);
+        return this.filesMatchingCondition((tfile: TFile) => conditionsFilter(tfile), includeCurrent);
     }
 
     /**
      * Retrieves a list of all files whose path matches the provided path pattern.
      * @param {RegExp} pathPattern The pattern to match against the file path.
+     * @param {boolean} includeCurrent True if the current file should be included in the list (default: false).
      * @returns {TFile[]} A list of all files whose path matches the provided path pattern.
      * @see filesMatchingCondition
      * @see filterByPath
      */
-    filesWithPath = (pathPattern: RegExp): TFile[] => {
-        return this.filesMatchingCondition((tfile: TFile) => this.filterByPath(tfile, pathPattern));
+    filesWithPath = (pathPattern: RegExp, includeCurrent: boolean = false): TFile[] => {
+        return this.filesMatchingCondition((tfile: TFile) => this.filterByPath(tfile, pathPattern), includeCurrent);
     }
 
     /**
@@ -261,7 +273,7 @@ export class Utils {
      */
     filterByLinksToFiles = (tfile: TFile, targetFiles: TFile[], all: boolean = false): boolean => {
         const fileCache = this.app.metadataCache.getFileCache(tfile);
-        if (!fileCache?.links) {
+        if (!fileCache?.links || !targetFiles || targetFiles.length === 0) {
             return false;
         }
 
@@ -427,10 +439,11 @@ export class Utils {
      * Creates a markdown list of files with the specified tag.
      * @param {EngineAPI} engine The engine to create markdown.
      * @param {RegExp} pathPattern A pattern that accepted paths should match.
+     * @param {boolean} includeCurrent True if the current file should be included in the list (default: false).
      * @returns {string} A markdown list of files.
      * @see filesWithPath
      */
-    listFilesWithPath = (engine: EngineAPI, pathPattern: RegExp) => {
+    listFilesWithPath = (engine: EngineAPI, pathPattern: RegExp, includeCurrent: boolean = false): string => {
         const files = this.filesWithPath(pathPattern);
         return engine.markdown.create(files
             .map(f => this.fileListItem(f))
@@ -630,7 +643,7 @@ export class Utils {
         const sort1 = this.frontmatter(a).sort || '';
         const sort2 = this.frontmatter(b).sort || '';
         const n1 = sort1 + this.fileTitle(a).toLowerCase();
-        const n2 = sort2 + this.fileTitle(a).toLowerCase();
+        const n2 = sort2 + this.fileTitle(b).toLowerCase();
         return n1.localeCompare(n2);
     }
 
@@ -642,7 +655,7 @@ export class Utils {
      * @param {Moment} end The ending date (inclusive).
      * @returns {Array} A list of tags found in daily notes for the date range.
      */
-    tagsForDates = async (begin: Moment, end: Moment) => {
+    tagsForDates = async (begin: Moment, end: Moment): Promise<string[]> => {
         return this.app.vault.getMarkdownFiles()
             .filter((f) => f.path.includes("chronicles") && f.name.match(/^\d{4}-\d{2}-\d{2}\.md$/))
             .filter((f) => {
@@ -660,7 +673,7 @@ export class Utils {
      * @returns Regular expression to match nested/segmented tags
      * @see segmentFilterRegex
      */
-    tagFilterRegex = (tag: string) => {
+    tagFilterRegex = (tag: string): RegExp => {
         const cleanedTag = this.removeLeadingHashtag(tag);
         return this.segmentFilterRegex(cleanedTag);
     }

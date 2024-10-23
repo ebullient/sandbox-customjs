@@ -5,6 +5,7 @@ import {
 } from "obsidian";
 import { Utils } from "./_utils";
 import { Templater } from "./@types/templater.types";
+import { RollResult } from "./@types/diceroller.types";
 
 interface Date {
     year: number;
@@ -31,8 +32,11 @@ interface HarptosDay {
 interface PrevNext {
     prev?: string;
     prevFile?: string;
+    prevName?: string;
     next?: string;
     nextFile?: string;
+    nextName?: string;
+    tag?: string;
 }
 
 export class Campaign {
@@ -47,13 +51,13 @@ export class Campaign {
     eventRegexp = /(<span[^>]*>)([\s\S]*?)<\/span>/g;
 
     app: App;
-    utils: Utils;
 
     constructor() {  // Constructor
         this.app = window.customJS.app;
-        this.utils = window.customJS.Utils;
         console.log("loaded Campaign");
     }
+
+    utils = (): Utils => window.customJS.Utils;
 
     /**
      * Prompt to select a target folder from a list of potential folders
@@ -61,7 +65,7 @@ export class Campaign {
      * the specified folder (specify "/" or "" for the vault root)
      */
     chooseFolder = async (tp: Templater, folderPath: string): Promise<string> => {
-        const folders = this.utils.foldersByCondition(folderPath,
+        const folders = this.utils().foldersByCondition(folderPath,
             (tfolder: TFolder) => this.chooseFolderFilter(tfolder.path))
             .map(f => f.path);
 
@@ -118,7 +122,7 @@ export class Campaign {
         const filter = '#' + prefix;
 
         // tags for all files, not current file
-        const values = this.utils.allTags()
+        const values = this.utils().allTags()
             .filter(tag => tag.startsWith(filter))
             .sort();
 
@@ -159,26 +163,38 @@ export class Campaign {
     /**
      * Find the last file in a filtered list of files
      * @param {Templater} tp The templater object
-     * @returns {string} The name of the last file in the current folder
+     * @returns {TFile | null} The name of the last file in the current folder
      * @see prevNextFilter
      */
-    lastFile = async (tp: Templater): Promise<string> => {
-        const folder = tp.file.folder(true);
+    lastFile = async (tp: Templater, path: string = ''): Promise<TFile | null> => {
+        const folder = path ? path : tp.file.folder(true);
 
-        const pathRegexp = this.utils.segmentFilterRegex(folder);
-        const fileList = this.utils.filesWithPath(pathRegexp)
-            .filter(f => this.prevNextFilter(f))
-            .map(f => f.path);
-
-        // replace the common root of the path
-        return fileList[-1].replace(`${folder}/`, "");
+        const pathRegexp = this.utils().segmentFilterRegex(folder);
+        const fileList = this.utils().filesWithPath(pathRegexp, true)
+            .filter(f => this.prevNextFilter(f));
+        return fileList.length > 0 ? fileList[fileList.length - 1] : null;
     }
 
-    nextSessionPrefix = async (tp: Templater) => {
-        const lastFileName = await this.lastFile(tp);
-        const suffix = lastFileName.replace(/^(\d+).*$/g, "$1");
-        const next = parseInt(suffix) + 1;
-        return `${next}`.padStart(3, '0') + '-';
+    nextSession = async (tp: Templater, padSize: number = 3, path: string = ''): Promise<PrevNext> => {
+        const lastFile = await this.lastFile(tp, path);
+        if (!lastFile) {
+            return {
+                next: '1',
+                nextFile: '001-',
+            };
+        }
+        const session = lastFile.name.replace(/^(\d+).*$/g, "$1");
+        const next = parseInt(session) + 1;
+        const nextPrefix = `${next}`.padStart(padSize, '0') ;
+        return {
+            next: nextPrefix,
+            nextName: nextPrefix + '-',
+            nextFile: `${lastFile.parent.path}/${nextPrefix}-.md`,
+            prev: session,
+            prevName: lastFile.name.replace('.md', ''),
+            prevFile: lastFile.path,
+            tag: this.folderToTag(lastFile.parent.path)
+        };
     }
 
     /**
@@ -195,29 +211,29 @@ export class Campaign {
      */
     prevNext = async (tp: Templater): Promise<PrevNext> => {
         const folder = tp.file.folder(true);
-        const filename = tp.file.title;
+        const filename = tp.file.title + '.md';
 
         // remove files that don't match the filter from the list
-        const pathRegexp = this.utils.segmentFilterRegex(folder);
-        const fileList = this.utils.filesWithPath(pathRegexp)
-            .filter(f => this.prevNextFilter(f))
-            .map(f => f.path);
+        const pathRegexp = this.utils().segmentFilterRegex(folder);
+        const fileList = this.utils().filesWithPath(pathRegexp, true)
+            .filter(f => this.prevNextFilter(f));
+        console.log(fileList);
 
         const result: PrevNext = {};
         for (let i = 0; i < fileList.length; i++) {
-            if (fileList[i].contains(filename)) {
-                const pos = fileList[i].lastIndexOf('/') + 1;
+            if (fileList[i].name == filename) {
                 if (i > 0) {
-                    result.prevFile = fileList[i - 1].substring(pos);
-                    result.prev = `[← previous](${fileList[i - 1].substring(pos)})`;
+                    result.prevFile = fileList[i - 1].path;
+                    result.prev = `[← previous](${fileList[i - 1].path})`;
                 }
                 if (i < fileList.length - 1) {
-                    result.nextFile = fileList[i + 1].substring(pos);
-                    result.next = `[next →](${fileList[i + 1].substring(pos)})`;
+                    result.nextFile = fileList[i + 1].path;
+                    result.next = `[next →](${fileList[i + 1].path})`;
                 }
                 break;
             }
         }
+        console.log("prevNext", filename, result);
         // result: { prev?: .., next?: ... }
         return result;
     }
@@ -229,10 +245,9 @@ export class Campaign {
      * @return {boolean} true to include file, false to exclude it
      */
     prevNextFilter = (file: TFile): boolean => {
-        const filename = file.name.replace('.md', '');
-        return !this.utils.isFolderNote(file)
-            && !filename.contains('Untitled')
-            && !filename.contains('encounter'); // encounter log
+        return !this.utils().isFolderNote(file)
+            && !file.name.contains('Untitled')
+            && !file.name.contains('encounter'); // encounter log
     }
 
     /**
@@ -247,16 +262,22 @@ export class Campaign {
     }
 
     tableRoll = async (lookup: string): Promise<string> => {
-        const dice = window.DiceRoller;
-        const re = /`dice:(.+?)`/;
-        let match;
-        let diceResult = await dice.parseDice(lookup, '');
-        let result = diceResult.result;
-        while ((match = re.exec(result)) !== null) {
-            diceResult = await dice.parseDice(match[1], '');
-            result = result.replace(match[0], diceResult.result);
-        }
-        return result;
+        const current = this.app.workspace.getActiveFile();
+        const diceRoller = window.DiceRoller;
+        const re = /dice: (\[\]\(.*?\))/g;
+
+        let match = re.exec(lookup);
+        let result: RollResult = null;
+        let input: string;
+
+        do {
+            input = match ? match[1] : lookup;
+            result = await diceRoller.parseDice(input, current ? current.path : '');
+            match = re.exec(result.result);
+            console.log("tableRoll", input, result.result, match);
+        } while(match != null);
+
+        return result.result;
     }
 
     /**
@@ -264,44 +285,44 @@ export class Campaign {
      * e.g. "Pretty Name" to pretty-name (lower-kebab / slugified)
      */
     toFileName = (name: string): string => {
-        return this.utils.lowerKebab(name);
+        return this.utils().lowerKebab(name);
     }
 
     // --- Campaign-specific functions
 
     // Resolve table roll from template
     faire = async (type: string): Promise<string> => {
-        return this.tableRoll(`[](heist/waterdeep/places/sea-maidens-faire.md#^${type})`);
+        return await this.tableRoll(`dice: [](heist/waterdeep/places/sea-maidens-faire.md#^${type})`);
     }
 
     // Resolve table roll from template
     mood = async (): Promise<string> => {
-        return this.tableRoll("[](assets/tables/mood-tables.md#^mood-table)");
+        return await this.tableRoll("dice: [](assets/tables/mood-tables.md#^mood-table)");
     }
 
     // Resolve table roll from template
     news = async (): Promise<string> => {
-        const paper = await this.tableRoll(`[](heist/tables/news.md#^papers)`);
-        const news = await this.tableRoll(`[](heist/tables/news.md#^news)`);
+        const paper = await this.tableRoll(`dice: [](heist/tables/news.md#^papers)`);
+        const news = await this.tableRoll(`dice: [](heist/tables/news.md#^news)`);
         return `${paper} ${news}`;
     }
     thread = async (): Promise<string> => {
-        const paper = await this.tableRoll(`[](heist/tables/news.md#^papers)`);
-        const news = await this.tableRoll(`[](heist/tables/news.md#^thread)`);
+        const paper = await this.tableRoll(`dice: [](heist/tables/news.md#^papers)`);
+        const news = await this.tableRoll(`dice: [](heist/tables/news.md#^thread)`);
         return `${paper} ${news}`;
     }
     reviews = async (): Promise<string> => {
-        const paper = await this.tableRoll(`[](heist/tables/news.md#^papers)`);
-        const news = await this.tableRoll(`[](heist/tables/news.md#^reviews)`);
+        const paper = await this.tableRoll(`dice: [](heist/tables/news.md#^papers)`);
+        const news = await this.tableRoll(`dice: [](heist/tables/news.md#^reviews)`);
         return `${paper} ${news}`;
     }
     rumors = async (): Promise<string> => {
-        return this.tableRoll(`[](heist/tables/rumors.md#^rumors)`);
+        return await this.tableRoll(`dice: [](heist/tables/rumors.md#^rumors)`);
     }
 
     // Resolve table roll from template
     tavern = async (type: string): Promise<string> => {
-        let result = await this.tableRoll(`[](heist/tables/trollskull-manor-tables.md#^${type})`);
+        let result = await this.tableRoll(`dice: [](heist/tables/trollskull-manor-tables.md#^${type})`);
         if (type == 'visiting-patrons') {
             result = result.replace(/,? ?\(\d+\) /g, '\n    - ')
         }
@@ -318,7 +339,7 @@ export class Campaign {
 
     // Resolve table roll from template
     weather = async (season: string): Promise<string> => {
-        return await this.tableRoll(`[](heist/tables/waterdeep-weather.md#^${season})`);
+        return await this.tableRoll(`dice: [](heist/tables/waterdeep-weather.md#^${season})`);
     }
 
     eventSpan = (match: string[], suffix: string = '') => {
@@ -568,8 +589,8 @@ export class Campaign {
         const folder = tp.file.folder(true);
         console.log("Looking for files in %s", folder);
 
-        const pathRegexp = this.utils.segmentFilterRegex(folder);
-        const files = this.utils.filesWithPath(pathRegexp)
+        const pathRegexp = this.utils().segmentFilterRegex(folder);
+        const files = this.utils().filesWithPath(pathRegexp)
             .filter(f => f.name.match(/^.*\d{4}-[^-]+-.*/))
             .map(f => f.path);
 

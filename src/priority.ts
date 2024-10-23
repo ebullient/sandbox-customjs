@@ -9,7 +9,6 @@ import { Templater } from "./@types/templater.types";
 
 export class AreaPriority {
     app: App;
-    utils: Utils;
 
     urgent = ['yes', 'no'];
     important = ['yes', 'no'];
@@ -44,7 +43,6 @@ export class AreaPriority {
 
     constructor() {
         this.app = window.customJS.app;
-        this.utils = window.customJS.Utils;
 
         const urgent = '\u23f0'; // ⏰
         const important = '!!'; // ‼️
@@ -57,6 +55,8 @@ export class AreaPriority {
 
         console.log("loaded AreaPriority");
     }
+
+    utils = (): Utils => window.customJS.Utils;
 
     /**
      * Create a markdown list of all projects matching the specified conditions.
@@ -76,7 +76,7 @@ export class AreaPriority {
     allProjects = (engine: EngineAPI, archived: boolean, orOther: Conditions = '') => {
         const list = this.priorityFilesMatchingCondition(
             (tfile: TFile) => this.isProject(tfile) && this.isArchived(tfile, archived))
-            .map((tfile: TFile) => `- ${this.showPriority(tfile)}${this.showStatus(tfile)}${this.showRole(tfile)} ${this.utils.markdownLink(tfile)}`);
+            .map((tfile: TFile) => `- ${this.showPriority(tfile)}${this.showStatus(tfile)}${this.showRole(tfile)} ${this.utils().markdownLink(tfile)}`);
 
         return engine.markdown.create(list.join("\n"));
     }
@@ -125,7 +125,7 @@ export class AreaPriority {
      * @see utils.frontmatter
      */
     filePriority = (tfile: TFile): string => {
-        const fm = this.utils.frontmatter(tfile);
+        const fm = this.utils().frontmatter(tfile);
         return this.priorityVisual[this.priority(fm)];
     }
 
@@ -137,7 +137,7 @@ export class AreaPriority {
      * @see utils.frontmatter
      */
     fileRole = (tfile: TFile): string => {
-        const fm = this.utils.frontmatter(tfile);
+        const fm = this.utils().frontmatter(tfile);
         return fm.role
             ? this.roleVisual[fm.role]
             : this.unknown;
@@ -151,7 +151,7 @@ export class AreaPriority {
      * @see utils.frontmatter
      */
     fileStatus = (tfile: TFile): string => {
-        const fm = this.utils.frontmatter(tfile);
+        const fm = this.utils().frontmatter(tfile);
         if (fm.status && fm.status.match(/(completed|closed|done)/)) {
             fm.status = 'complete';
         }
@@ -176,7 +176,7 @@ export class AreaPriority {
      * @returns {boolean} True if the file is an area, false otherwise.
      */
     isArea = (tfile: TFile): boolean => {
-        const type = this.utils.frontmatter(tfile).type;
+        const type = this.utils().frontmatter(tfile).type;
         return type && type === "area";
     }
 
@@ -186,7 +186,7 @@ export class AreaPriority {
      * @returns {boolean} True if the file is a project, false otherwise.
      */
     isProject = (tfile: TFile): boolean => {
-        const type = this.utils.frontmatter(tfile).type;
+        const type = this.utils().frontmatter(tfile).type;
         return type && type.match(/(project|quest)/);
     }
 
@@ -196,7 +196,7 @@ export class AreaPriority {
      * @returns {boolean} True if the file is a project or area, false otherwise.
      */
     isProjectArea = (tfile: TFile): boolean => {
-        const type = this.utils.frontmatter(tfile).type;
+        const type = this.utils().frontmatter(tfile).type;
         return type && type.match(/(project|quest|area)/);
     }
 
@@ -211,15 +211,15 @@ export class AreaPriority {
      */
     otherRelatedItemsIndex = (engine: EngineAPI, conditions: Conditions) => {
         const current = this.app.workspace.getActiveFile();
-        const pathRegex = this.utils.segmentFilterRegex(current.parent.path);
-        const compiledConditions = this.utils.createConditionFilter(conditions);
+        const pathRegex = this.utils().segmentFilterRegex(current.parent.path);
+        const compiledConditions = this.utils().createFileConditionFilter(conditions);
 
-        const list = this.utils.filesMatchingCondition((tfile: TFile) => {
+        const list = this.utils().filesMatchingCondition((tfile: TFile) => {
             return this.isProjectArea(tfile)
                 ? false
-                : (this.utils.filterByPath(tfile, pathRegex) || compiledConditions(tfile));
+                : (this.utils().filterByPath(tfile, pathRegex) || compiledConditions(tfile));
         });
-        return this.utils.index(engine, list);
+        return this.utils().index(engine, list);
     }
 
     /**
@@ -299,16 +299,16 @@ export class AreaPriority {
      */
     relatedAreasList = (engine: EngineAPI, archived: boolean, conditions: Conditions = '') => {
         const current = this.app.workspace.getActiveFile();
-        const pathRegex = this.utils.segmentFilterRegex(current.parent.path);
-        const compiledConditions = this.utils.createConditionFilter(conditions);
+        const pathRegex = this.utils().segmentFilterRegex(current.parent.path);
+        const compiledConditions = this.utils().createFileConditionFilter(conditions);
 
         const list = this.priorityFilesMatchingCondition((tfile: TFile) => {
             const areaIncluded = this.isArea(tfile) && this.isArchived(tfile, archived)
-            const inFolder = this.utils.filterByPath(tfile, pathRegex);
+            const inFolder = this.utils().filterByPath(tfile, pathRegex);
             return conditions
                 ? areaIncluded && (inFolder || compiledConditions(tfile))
                 : areaIncluded && inFolder;
-        }).map((tfile: TFile) => `- ${this.showRole(tfile)} ${this.utils.markdownLink(tfile)}`);
+        }).map((tfile: TFile) => `- ${this.showRole(tfile)} ${this.utils().markdownLink(tfile)}`);
 
         return engine.markdown.create(list.join("\n"));
     }
@@ -365,16 +365,16 @@ export class AreaPriority {
      */
     relatedProjectsList = (engine: EngineAPI, archived: boolean, conditions: Conditions = '') => {
         const current = this.app.workspace.getActiveFile();
-        const pathRegex = this.utils.segmentFilterRegex(current.parent.path);
-        const compiledConditions = this.utils.createConditionFilter(conditions);
+        const pathRegex = this.utils().segmentFilterRegex(current.parent.path);
+        const compiledConditions = this.utils().createFileConditionFilter(conditions);
 
         const list = this.priorityFilesMatchingCondition((tfile: TFile) => {
             const projectIncluded = this.isProject(tfile) && this.isArchived(tfile, archived)
-            const inFolder = this.utils.filterByPath(tfile, pathRegex);
+            const inFolder = this.utils().filterByPath(tfile, pathRegex);
             return conditions
                 ? projectIncluded && (inFolder || compiledConditions(tfile))
                 : projectIncluded && inFolder;
-        }).map((tfile: TFile) => `- ${this.showPriority(tfile)}${this.showStatus(tfile)}${this.showRole(tfile)} ${this.utils.markdownLink(tfile)}`);
+        }).map((tfile: TFile) => `- ${this.showPriority(tfile)}${this.showStatus(tfile)}${this.showRole(tfile)} ${this.utils().markdownLink(tfile)}`);
 
         return engine.markdown.create(list.join("\n"));
     }
@@ -386,7 +386,7 @@ export class AreaPriority {
      * @see priorityVisual
      */
     showPriority = (tfile: TFile): string => {
-        const fm = this.utils.frontmatter(tfile);
+        const fm = this.utils().frontmatter(tfile);
         return `<span class="ap-priority">${this.priorityVisual[this.priority(fm)]}</span>`
     }
 
@@ -397,7 +397,7 @@ export class AreaPriority {
      * @see roleVisual
      */
     showRole = (tfile: TFile): string => {
-        const fm = this.utils.frontmatter(tfile);
+        const fm = this.utils().frontmatter(tfile);
         const role = fm.role
             ? this.roleVisual[fm.role]
             : this.unknown;
@@ -411,7 +411,7 @@ export class AreaPriority {
      * @see statusVisual
      */
     showStatus = (tfile: TFile): string => {
-        const fm = this.utils.frontmatter(tfile);
+        const fm = this.utils().frontmatter(tfile);
         if (fm.status && fm.status.match(/(completed|closed|done)/)) {
             fm.status = 'complete';
         }
@@ -433,8 +433,8 @@ export class AreaPriority {
      * @see testPriority
      */
     sortProjects = (tfile1: TFile, tfile2: TFile): number => {
-        const fm1 = this.utils.frontmatter(tfile1);
-        const fm2 = this.utils.frontmatter(tfile2);
+        const fm1 = this.utils().frontmatter(tfile1);
+        const fm2 = this.utils().frontmatter(tfile2);
         return this.testPriority(fm1, fm2,
             () => this.test(fm1, fm2, this.status, 'status',
                 () => this.test(fm1, fm2, this.role, 'role',
