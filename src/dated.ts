@@ -79,7 +79,7 @@ export class Dated {
 
     constructor() {
         this.app = window.customJS.app;
-        this.birthdayFile = this.app.vault.getFileByPath("/assets/birthdays.json");
+        this.birthdayFile = this.app.vault.getFileByPath("assets/birthdays.json");
     }
 
     /**
@@ -305,6 +305,7 @@ return await Tasks.thisWeekTasks(engine);`
      */
     yearly = async (filename: string): Promise<YearInfo> => {
         const dateString = filename.replace('.md', '') + '-01-01';
+        console.log(this.birthdayFile, dateString);
 
         const date = window.moment(dateString);
         const year = date.format("YYYY");
@@ -325,9 +326,9 @@ return await Tasks.thisWeekTasks(engine);`
             value.forEach(v => {
                 if (v.year) {
                     const diff = Number(year) - Number(v.year);
-                    list += `- ${v.date}: ${v.text} (${diff})\n`;
+                    list += `> - ${v.date}: ${v.text} (${diff})\n`;
                 } else {
-                    list += `- ${v.date}: ${v.text}\n`;
+                    list += `> - ${v.date}: ${v.text}\n`;
                 }
             });
             birthdays[MM] = list;
@@ -337,7 +338,7 @@ return await Tasks.thisWeekTasks(engine);`
         const yearByWeek =
             `js-engine
 const { Utils } = await window.cJS();
-return Utils.listFilesWithPath(engine, /chronicles\/${year}\/${year}-\d{2}-\d{2}_week\.md/);`
+return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\d{2}_week\\.md/);`
         /* eslint-enable */
 
         return {

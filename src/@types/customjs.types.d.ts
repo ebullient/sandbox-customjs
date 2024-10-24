@@ -3,6 +3,7 @@ import { AreaPriority } from 'src/priority';
 import { Campaign } from 'src/campaign';
 import { Timeline } from 'src/cmd-timeline';
 import { Utils } from 'src/_utils';
+import { Reference } from 'src/reference';
 
 // Note: Partial CustomJS API
 
@@ -13,6 +14,7 @@ export type CustomJSType = {
   [scriptName: string]: unknown;
   AreaPriority: AreaPriority;
   Campaign: Campaign;
+  Reference: Reference;
   Timeline: Timeline;
   Utils: Utils;
 };

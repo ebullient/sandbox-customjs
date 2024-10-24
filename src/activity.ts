@@ -50,14 +50,15 @@ interface RadarChartOptions {
 
 export class Activity {
     activities: Record<string, string[]> = {
-        '✨': ['✨', '🍀'],
+        '✨': ['✨', '🍀', '☘️'],
         '🔴': ['🔴'],
         '🔵': ['🔵'],
         '💚': ['🟢', '🏊', '💃'],
-        '💦': ['✨', '🍀', '💧'],
+        '💦': ['✨', '🍀', '💧', '☘️'],
     };
 
     colors = [
+        '236,201,134',
         '92,122,98',
         '62,125,121',
         '69,117,174',
@@ -91,8 +92,9 @@ export class Activity {
         tags.filter(t => t.startsWith(prefix))
             .forEach(tag => {
                 const value = tag.slice(prefix.length);
+                console.log(begin.format('MM-DD'), 'checking', tag, value,);
                 keys.forEach((key, i) => {
-                    if (this.activities[keys[i]].includes(value)) {
+                    if (this.activities[key].includes(value)) {
                         count[i]++;
                     }
                 })
@@ -236,6 +238,7 @@ export class Activity {
         const prev48 = window.moment(monday).subtract(48, 'weeks');
 
         const dataWeek = await this.countTags(monday, window.moment(monday).day(7));
+        console.log('this week', dataWeek);
         const lastWeek = await this.countTags(lastMonday, window.moment(lastMonday).day(7));
         const last4 = await this.countTags(prev4, monday);
         const last12 = await this.countTags(prev12, monday);

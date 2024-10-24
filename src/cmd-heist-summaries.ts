@@ -1,4 +1,4 @@
-import { RenderFn, Utils } from "./_utils";
+import { RenderFn } from "./_utils";
 import { App, CachedMetadata, TFile } from "obsidian";
 import { Campaign } from "./campaign";
 

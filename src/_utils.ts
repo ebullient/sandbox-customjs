@@ -336,7 +336,7 @@ export class Utils {
         const current = this.app.workspace.getActiveFile();
         const path = current.parent.path;
         const list = this.filesWithPath(new RegExp(`^${path}`));
-        return this.index(engine, list);
+        return this.index(engine, list, path);
     }
 
     /**
@@ -400,7 +400,7 @@ export class Utils {
      * @param {Array} fileList An array of TFiles to list.
      * @returns {string} A markdown list of files grouped by parent path
      */
-    index = (engine: EngineAPI, fileList: TFile[]): string => {
+    index = (engine: EngineAPI, fileList: TFile[], leadingPath: string = ''): string => {
         const groups = this.groupBy(fileList, (tfile: TFile) => tfile.parent.path);
         const keys = Object.keys(groups).sort();
         const result: string[] = [];
@@ -415,7 +415,10 @@ export class Utils {
                     }
                     return this.sortTFile(a, b);
                 });
-            result.push(`\n**${key}**\n`);
+            const trim = key.replace(leadingPath, '');
+            if (trim) {
+                result.push(`\n**${key}**\n`);
+            }
             for (const v of value) {
                 const note = this.isFolderNote(v) ? ' <small>(index)</small>' : '';
                 result.push(`- ${this.markdownLink(v)}${note}`);

@@ -162,7 +162,7 @@ export class Reference {
         }
     }
 
-    itemsForTag = (engine: EngineAPI, tag: Tags, type: string, scoped = false) => {
+    itemsForTagRaw = (tag: Tags, type: string, scoped = false): string[] => {
         const tagRegexes = this.tagToRegexes(tag);
         const items: string[] = [];
 
@@ -206,6 +206,11 @@ export class Reference {
             });
 
         items.sort(this.sortMarkdownLinks);
+        return items;
+    }
+
+    itemsForTag = (engine: EngineAPI, tag: Tags, type: string, scoped = false) => {
+        const items = this.itemsForTagRaw(tag, type, scoped);
         return engine.markdown.create(items.join("\n"));
     }
 
@@ -255,6 +260,8 @@ export class Reference {
                 return !!tags.find(t => t && (t.startsWith('type/location') || t.startsWith('type/area')));
             case 'npc':
                 return !!tags.find(t => t && t.startsWith('type/npc'));
+            case 'pc':
+                return !!tags.find(t => t && t.startsWith('type/pc'));
         }
         // exclude all pages that don't match conditions above
         return false;
