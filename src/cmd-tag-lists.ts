@@ -1,4 +1,4 @@
-import { App, CachedMetadata, TFile } from "obsidian";
+import { App } from "obsidian";
 import { Reference } from "./reference";
 
 export class TagLists {

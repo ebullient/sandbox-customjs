@@ -334,12 +334,10 @@ return await Tasks.thisWeekTasks(engine);`
             birthdays[MM] = list;
         }
 
-        /* eslint-disable */
         const yearByWeek =
             `js-engine
 const { Utils } = await window.cJS();
 return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\d{2}_week\\.md/);`
-        /* eslint-enable */
 
         return {
             year,
