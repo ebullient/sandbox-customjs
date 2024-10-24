@@ -92,7 +92,7 @@ export class Activity {
         tags.filter(t => t.startsWith(prefix))
             .forEach(tag => {
                 const value = tag.slice(prefix.length);
-                console.log(begin.format('MM-DD'), 'checking', tag, value,);
+                // console.log(begin.format('MM-DD'), 'checking', tag, value,);
                 keys.forEach((key, i) => {
                     if (this.activities[key].includes(value)) {
                         count[i]++;
