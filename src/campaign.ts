@@ -59,6 +59,8 @@ export class Campaign {
 
     utils = (): Utils => window.customJS.Utils;
 
+    allTags = (): string[] => this.utils().allTags();
+
     /**
      * Prompt to select a target folder from a list of potential folders
      * for a new file from a filtered list of subfolders of
@@ -114,17 +116,20 @@ export class Campaign {
      * and will include '--' to indicate none. If no value is chosen,
      * it will return the provided default value.
      * @param {Templater} tp The templater object
+     * @param {string[]} allTags All tags in the vault
      * @param {string} prefix The prefix to filter tags by
      * @param {string} defaultValue The default value to use if no value is chosen
      * @returns {string} The chosen tag
      */
-    chooseTag = async (tp: Templater, prefix: string, defaultValue: string = undefined): Promise<string> => {
-        const filter = '#' + prefix;
+    chooseTag = async (tp: Templater, allTags: string[] = [], prefix: string, defaultValue: string = undefined): Promise<string> => {
+        const filter = prefix;
 
         // tags for all files, not current file
-        const values = this.utils().allTags()
+        const values = allTags
             .filter(tag => tag.startsWith(filter))
             .sort();
+
+        console.log("chooseTag", filter, defaultValue, values);
 
         values.unshift('--'); // add to the beginning
 
@@ -145,8 +150,8 @@ export class Campaign {
      * @param {string} prefix The prefix to filter tags by
      * @returns {string} The chosen tag or an empty string
      */
-    chooseTagOrEmpty = async (tp: Templater, prefix: string): Promise<string> => {
-        const result = await this.chooseTag(tp, prefix, '--');
+    chooseTagOrEmpty = async (tp: Templater, allTags: string[] = [], prefix: string): Promise<string> => {
+        const result = await this.chooseTag(tp, allTags, prefix, '--');
         if (result && result != '--') {
             return result;
         }

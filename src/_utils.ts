@@ -44,9 +44,12 @@ export class Utils {
     }
 
     allTags = (): string[] => {
-        return this.app.vault.getMarkdownFiles()
+        const allTags = new Set<string>();
+        this.app.vault.getMarkdownFiles()
             .flatMap(f => this.fileTags(f) || [])
-            .map(tag => this.removeLeadingHashtag(tag));
+            .map(tag => this.removeLeadingHashtag(tag))
+            .forEach(tag => allTags.add(tag));
+        return [...allTags];
     }
 
     /**
@@ -152,20 +155,20 @@ export class Utils {
         if (!cache) {
             return [];
         }
-        const tags: Set<string> = new Set();
+        const tags = [];
         if (cache.tags) {
             cache.tags
                 .filter(x => x != null || typeof x === 'string')
                 .map(x => this.removeLeadingHashtag(x.tag))
-                .forEach(x => tags.add(x));
+                .forEach(x => tags.push(x));
         }
         if (cache.frontmatter?.tags) {
             cache.frontmatter.tags
                 .filter((x: unknown) => x != null || typeof x === 'string')
                 .map((x: string) => this.removeLeadingHashtag(x))
-                .forEach((x: string) => tags.add(x));
+                .forEach((x: string) => tags.push(x));
         }
-        return [...tags];
+        return tags;
     }
 
     /**
