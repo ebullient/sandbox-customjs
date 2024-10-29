@@ -99,6 +99,9 @@ export class Tasks {
                     });
             }
         }
+        if (list.length === 0) {
+            list.push(`- No tasks found for ${begin.format("YYYY-MM-DD")} to ${end.format("YYYY-MM-DD")}`);
+        }
         return engine.markdown.create(list.join("\n"));
     }
 }
