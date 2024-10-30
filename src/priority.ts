@@ -256,7 +256,7 @@ export class AreaPriority {
      * @returns {string} A markdown list of related areas matching the specified conditions.
      * @see relatedAreasList
      */
-    relatedAreas = (engine: EngineAPI, conditions: Conditions = '') => {
+    relatedAreas = (engine: EngineAPI, conditions: Conditions = ''): string => {
         const current = this.app.workspace.getActiveFile();
         return this.relatedAreasList(engine, current.path.contains("archives"), conditions);
     }
