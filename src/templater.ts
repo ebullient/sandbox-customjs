@@ -16,6 +16,8 @@ export class Templates {
     headerPush = ['Section', 'Log item', 'Tasks item'];
     itemPush = ['Log item', 'Tasks item'];
     dated = /^.*?(\d{4}-\d{2}-\d{2}).*$/;
+    completedPattern = /.*\((\d{4}-\d{2}-\d{2})\)\s*$/;
+    dailyNotePattern = /(\d{4}-\d{2}-\d{2})\.md/;
 
     app: App;
 
@@ -90,7 +92,7 @@ export class Templates {
      * @param {Templater} tp The templater plugin instance.
      * @returns {Promise<string>} The markdown content for the conversation entry.
      */
-    createConversation = async (tp: Templater) => {
+    createConversation = async (tp: Templater): Promise<string> => {
         let result = "";
         const day = window.moment(tp.file.title).format("YYYY-MM-DD");
         const regex = this.utils().segmentFilterRegex("chronicles/conversations");
@@ -128,7 +130,7 @@ export class Templates {
     /**
      * Find the current line in the active file and extract relevant information.
      * @param {Templater} tp The templater plugin instance.
-     * @returns {Promise<Object>} An object containing the title, path, heading, and text of the current line.
+     * @returns {Promise<LineInfo>} An object containing the title, path, heading, and text of the current line.
      */
     findLine = async (tp: Templater): Promise<LineInfo> => {
         let line = undefined;
@@ -136,9 +138,7 @@ export class Templates {
         const split = tp.file.content.split("\n");
         const file = tp.file.find_tfile(tp.file.title);
         const fileCache = this.app.metadataCache.getFileCache(file);
-        const title = fileCache.frontmatter && fileCache.frontmatter.aliases
-                ? fileCache.frontmatter.aliases[0]
-                : file.basename;
+        const title = this.utils().fileTitle(file);
 
         const view = this.app.workspace.getActiveViewOfType(window.customJS.obsidian.MarkdownView);
         if (view) {
@@ -148,14 +148,18 @@ export class Templates {
 
         let heading = undefined;
         let text = undefined;
+
         if (line && line.match(/^\s*- .*/)) {
+            // Extract text from a task item
             text = line.replace(/^\s*- (?:\[.\] )?(.*)/, "$1").trim();
         } else {
             if (!line || !line.startsWith('#')) {
+                // No line, or the line isn't a heading: Find the first h2 heading in the file
                 const headings = fileCache.headings
                     .filter(x => x.level == 2);
                 line = split[headings[0]?.position.start.line];
             }
+            // Extract text from a heading
             heading = line.replace(/#+ /, "").trim();
         }
 
@@ -177,8 +181,10 @@ export class Templates {
         if (choice) {
             const lineInfo = await this.findLine(tp);
             if (lineInfo.heading) {
+                // pushing header references
                 await this.doPushHeader(tp, choice, lineInfo);
             } else {
+                // pushing tasks or log items
                 await this.doPushText(tp, choice, lineInfo);
             }
         }
@@ -189,9 +195,7 @@ export class Templates {
      * - Templater prompt with suggester to choose the kind of text to push (Section, Log item, Tasks item)
      * @param {Templater} tp The templater plugin instance.
      * @param {string} choice The file path to push the header to.
-     * @param {string} title The title of the header.
-     * @param {string} heading The heading text.
-     * @param {string} path The path of the file containing the heading.
+     * @param {LineInfo} line information about the line being pushed
      * @returns {Promise<void>}
      */
     doPushHeader = async (tp: Templater, choice: string, line: LineInfo): Promise<void> => {
@@ -223,11 +227,14 @@ export class Templates {
                 await this.app.vault.process(file, (content) => {
                     const split = content.split("\n");
                     if (headings && headings[0]) {
+                        // insert in front of first h2 heading
                         split.splice(headings[0].position.start.line, 0, addThis);
                     } else {
+                        // no other headings, just create the new section
                         split.push("");
                         split.push(addThis);
                     }
+                    // rejoin the file content
                     return split.join("\n");
                 });
                 break;
@@ -239,11 +246,14 @@ export class Templates {
                 break;
             }
             default: { // Log section
-                const isDaily = choice.match(this.dated);
+                const toDaily = this.dated.test(choice);
+                const fromDaily = this.dated.test(line.path);
                 const isWeekly = choice.endsWith("_week.md");
 
-                const task = !isDaily || isWeekly ? '[x] ' : '';
-                const completed = task ? ` (${date})` : '';
+                // daily log sections are not tasks.
+                const task = !toDaily || isWeekly ? '[x] ' : '';
+                // add completion date to tasks if they are not from a daily note (which implies a completed date)
+                const completed = task && !fromDaily ? ` (${date})` : '';
 
                 const addThis = `- ${task}[${linkText}](${line.path}#${anchor})${lineText}${completed}`;
                 this.addToSection(tp, choice, addThis);
@@ -256,15 +266,13 @@ export class Templates {
      * Push text to a specified file.
      * @param {Templater} tp The templater plugin instance.
      * @param {string} choice The file path to push the text to.
-     * @param {string} title The title of the text.
-     * @param {string} path The path of the file containing the text.
-     * @param {string} text The text to push.
+     * @param {LineInfo} line information about the line being pushed
      * @returns {Promise<void>}
      */
     doPushText = async (tp: Templater, choice: string, line: LineInfo): Promise<void> => {
         const type = await tp.system.suggester(this.itemPush, this.itemPush);
-        const fromDaily = line.path.match(this.dated);
-        const isDaily = choice.match(this.dated);
+        const fromDaily = this.dated.test(line.path);
+        const isDaily = this.dated.test(choice);
         const lineDate = line.text.match(this.dated);
         const pretty = line.path.contains("conversations") ? `**${line.title}**` : `_${line.title}_`;
         const date = lineDate

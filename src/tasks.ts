@@ -14,7 +14,7 @@ interface FileTasks {
 export class Tasks {
     taskPattern = /^([\s>]*- )\[(.)\] (.*)$/;
     completedPattern = /\((\d{4}-\d{2}-\d{2})\)/;
-    dailyNotePattern = /^(\d{4}-\d{2}-\d{2}).md$/;
+    dailyNotePattern = /(\d{4}-\d{2}-\d{2})\.md/;
     taskPaths = [
         'demesne',
         'quests'
@@ -88,7 +88,10 @@ export class Tasks {
                 tasks
                     .filter(task => task.mark.match(/[x-]/))
                     .filter(task => {
-                        const completed = this.completedPattern.exec(task.text);
+                        let completed = this.completedPattern.exec(task.text);
+                        if (!completed) {
+                            completed = this.dailyNotePattern.exec(task.text);
+                        }
                         return completed
                             ? window.moment(completed[1]).isBetween(begin, end)
                             : false;

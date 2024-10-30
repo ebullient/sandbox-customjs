@@ -4,10 +4,12 @@ import { App, HeadingCache, TFile } from "obsidian";
 
 
 export class TaskCleanup {
-    anyTaskMark = new RegExp(/^([\s>]*- )(\[(?:x|-)\]) (.*) \((\d{4}-\d{2}-\d{2})\)\s*$/);
-    dailyNote = /^(\d{4}-\d{2}-\d{2}).md$/;
-    done = new RegExp(/^[\s>]*- (✔️|〰️) .*$/);
-    list = new RegExp(/^[\s>]*- .*$/);
+    taskPattern = /^([\s>]*- )\[(.)\] (.*)$/;
+    completedPattern = /\((\d{4}-\d{2}-\d{2})\)/;
+    dailyNotePattern = /(\d{4}-\d{2}-\d{2})\.md/;
+
+    done = /^[\s>]*- (✔️|〰️) .*$/;
+    list = /^[\s>]*- .*$/;
 
     app: App;
 
@@ -29,7 +31,7 @@ export class TaskCleanup {
         // Map each file to the result of a cached read
         const promises = this.app.vault.getMarkdownFiles()
             .map((file) => {
-                if (file.name.match(this.dailyNote) || file.path.startsWith("assets")) {
+                if (file.name.match(this.dailyNotePattern) || file.path.startsWith("assets")) {
                     return () => true;
                 }
                 const fileCache = this.app.metadataCache.getFileCache(file);
@@ -67,15 +69,21 @@ export class TaskCleanup {
                     if (split[i].match(this.done)) {
                         break;
                     }
-                    const taskMatch = this.anyTaskMark.exec(split[i]);
+                    const taskMatch = this.taskPattern.exec(split[i]);
                     if (taskMatch) {
+                        let completedMatch = this.completedPattern.exec(taskMatch[3]);
+                        if (!completedMatch) {
+                            // get date from daily note reference
+                            completedMatch = this.dailyNotePattern.exec(taskMatch[3]);
+                        }
                         const mark = taskMatch[2];
-                        const completed = window.moment(taskMatch[4]);
-                        if (completed.isBefore(monthMoment)) {
+                        const completed = completedMatch ? window.moment(completedMatch[1]) : null;
+
+                        if (completed && completed.isBefore(monthMoment)) {
                             if (mark == "[x]") {
-                                split[i] = `${taskMatch[1]} ✔️ ${taskMatch[3]} (${taskMatch[4]})`;
+                                split[i] = `${taskMatch[1]} ✔️ ${taskMatch[3]}`;
                             } else {
-                                split[i] = `${taskMatch[1]} 〰️ ~~${taskMatch[3]} (${taskMatch[4]})~~`;
+                                split[i] = `${taskMatch[1]} 〰️ ~~${taskMatch[3]}~~`;
                             }
                         }
                     }
