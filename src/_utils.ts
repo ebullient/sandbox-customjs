@@ -179,7 +179,7 @@ export class Utils {
     fileTitle = (tfile: TFile): string => {
         const cache = this.app.metadataCache.getFileCache(tfile);
         const aliases = cache?.frontmatter?.aliases;
-       const alias = aliases ? aliases[0] : tfile.name.replace('.md', '');
+        const alias = aliases ? aliases[0] : tfile.name.replace('.md', '');
         if (typeof alias === 'string') {
             return alias;
         } else {
