@@ -204,7 +204,7 @@ export class Templates {
         const interesting = line.heading.replace(/\s*\d{4}-\d{2}-\d{2}\s*/, '');
         const pretty = line.path.contains("conversations") ? `**${line.title}**` : `_${line.title}_`;
         const linkText = line.path == choice ? '⤴' : `${pretty}`;
-        const lineText = interesting ? `: ${interesting}` : '';
+        const lineText = interesting ? interesting : '';
 
         console.log("PUSH HEADER", line, date, interesting, linkText, lineText);
 
@@ -241,7 +241,7 @@ export class Templates {
             }
             case 'Tasks item': {
                 // Create a new task
-                const addThis = `- [ ] [${linkText}](${line.path}#${anchor})${lineText}\n`;
+                const addThis = `- [ ] [${linkText}](${line.path}#${anchor}): ${lineText}\n`;
                 this.addToSection(tp, choice, addThis, 'Tasks');
                 break;
             }
@@ -252,10 +252,17 @@ export class Templates {
 
                 // daily log sections are not tasks.
                 const task = !toDaily || isWeekly ? '[x] ' : '';
-                // add completion date to tasks if they are not from a daily note (which implies a completed date)
-                const completed = task && !fromDaily ? ` (${date})` : '';
+                // add completion date to tasks
+                // if from a daily note, link to it at the end of the line (just like a completion date)
+                // otherwise, add the note link as a prefix
+                const prefix = fromDaily
+                        ? ''
+                        : `[${linkText}](${line.path}#${anchor}): `;
+                const completed = task
+                        ? (fromDaily ? `([${linkText}](${line.path}#${anchor}))` : ` (${date})`)
+                        : '';
 
-                const addThis = `- ${task}[${linkText}](${line.path}#${anchor})${lineText}${completed}`;
+                const addThis = `- ${task}${prefix}${lineText}${completed}`;
                 this.addToSection(tp, choice, addThis);
                 break;
             }
