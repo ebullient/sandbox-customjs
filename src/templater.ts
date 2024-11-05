@@ -263,6 +263,7 @@ export class Templates {
                         : '';
 
                 const addThis = `- ${task}${prefix}${lineText}${completed}`;
+                console.log('doPushHeader: Log', addThis)
                 this.addToSection(tp, choice, addThis);
                 break;
             }
@@ -278,13 +279,15 @@ export class Templates {
      */
     doPushText = async (tp: Templater, choice: string, line: LineInfo): Promise<void> => {
         const type = await tp.system.suggester(this.itemPush, this.itemPush);
-        const fromDaily = this.dated.test(line.path);
-        const isDaily = this.dated.test(choice);
+        const fromDaily = this.dated.exec(line.path);
+        const isDaily = this.dated.exec(choice);
         const lineDate = line.text.match(this.dated);
         const pretty = line.path.contains("conversations") ? `**${line.title}**` : `_${line.title}_`;
+
         const date = lineDate
                 ? lineDate[1]
                 : (fromDaily ? fromDaily[1] : window.moment().format('YYYY-MM-DD'));
+
         console.log("PUSH TEXT", `"${line.path}"`, `"${line.text}"`, `"${date}"`);
 
         switch (type) {
@@ -295,10 +298,14 @@ export class Templates {
                 break;
             }
             default: { // Log section
-                const from = isDaily ? '' : `[${pretty}](${line.path}): `;
                 const isWeekly = choice.endsWith("_week.md");
                 const task = (!isDaily || isWeekly) ? '[x] ' : '';
-                const completed = task && !lineDate ? ` (${date})` : '';
+                //const completed = task && !lineDate ? ` (${date})` : '';
+                const from = fromDaily ? '' : `[${pretty}](${line.path}): `;
+                const completed = task
+                        ? (fromDaily ? ` ([${pretty}](${line.path}))` : ` (${date})`)
+                        : '';
+
                 const addThis = `- ${task}${from}${line.text}${completed}`;
                 this.addToSection(tp, choice, addThis);
                 break;
