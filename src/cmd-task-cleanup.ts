@@ -80,7 +80,7 @@ export class TaskCleanup {
                         const completed = completedMatch ? window.moment(completedMatch[1]) : null;
 
                         if (completed && completed.isBefore(monthMoment)) {
-                            if (mark == "[x]") {
+                            if (mark == "x") {
                                 split[i] = `${taskMatch[1]} ✔️ ${taskMatch[3]}`;
                             } else {
                                 split[i] = `${taskMatch[1]} 〰️ ~~${taskMatch[3]}~~`;
