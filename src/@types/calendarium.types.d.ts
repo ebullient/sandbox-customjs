@@ -1,5 +1,5 @@
 export interface Calendarium {
-    getAPI(calendarName?: string): CalendarAPI
+    getAPI(calendarName?: string): CalendarAPI;
 }
 
 export interface CalendarAPI {
@@ -49,10 +49,10 @@ export type UndatedCalDate = {
 };
 
 export enum EventType {
-    Date = 'Date',
-    Recurring = 'Recurring',
-    Range = 'Range',
-    Undated = 'Undated',
+    Date = "Date",
+    Recurring = "Recurring",
+    Range = "Range",
+    Undated = "Undated",
 }
 
 export type TimeSpan = {
@@ -66,7 +66,7 @@ export enum TimeSpanType {
     LeapDay = "leapday",
     Month = "month",
     IntercalaryMonth = "intercalary",
-    Year = "year"
+    Year = "year",
 }
 
 export type EventLikeType = TimeSpanType | EventType;
@@ -115,7 +115,6 @@ export type RangedCalEventInfo = {
     date: RecurringCalEventDate;
 };
 export type RecurringCalEvent = BaseCalEvent & RangedCalEventInfo;
-
 
 declare global {
     interface Window {

@@ -1,4 +1,4 @@
-import { TFile, TFolder } from "obsidian";
+import type { TFile, TFolder } from "obsidian";
 
 export type ItemToString<T> = (item: T) => string;
 
@@ -24,7 +24,12 @@ export interface TemplaterFile {
      * @param {boolean} open_new: Whether to open or not the newly created file. Warning: if you use this option, since commands are executed asynchronously, the file can be opened first and then other commands are appended to that new file and not the previous file.
      * @param {TFolder | string} folder: The folder to put the new file in, defaults to Obsidian's default location. If you want the file to appear in a different folder, specify it with "PATH/TO/FOLDERNAME" or app.vault.getAbstractFileByPath("PATH/TO/FOLDERNAME").
      */
-    create_new(template: TFile | string, filename: string, open_new?: boolean, folder?: TFolder | string): Promise<void>;
+    create_new(
+        template: TFile | string,
+        filename: string,
+        open_new?: boolean,
+        folder?: TFolder | string,
+    ): Promise<void>;
 
     /**
      *
@@ -75,10 +80,12 @@ export interface TemplaterSystem {
      * @param multiline If set to true, the input field will be a multiline textarea.
      *      Defaults to false.
      */
-    prompt(prompt_text?: string,
+    prompt(
+        prompt_text?: string,
         default_value?: string,
         throw_on_cancel?: boolean,
-        multiline?: boolean): Promise<string>;
+        multiline?: boolean,
+    ): Promise<string>;
 
     /**
      * Spawns a prompt modal with a suggester and returns the user's input.
@@ -93,9 +100,11 @@ export interface TemplaterSystem {
      * @returns The selected item
      * @template T
      */
-    suggester<T>(text_items: string[] | ItemToString<T>,
-            items: T[],
-            throw_on_cancel?: boolean,
-            placeholder?: string,
-            limit?: number): Promise<string>;
+    suggester<T>(
+        text_items: string[] | ItemToString<T>,
+        items: T[],
+        throw_on_cancel?: boolean,
+        placeholder?: string,
+        limit?: number,
+    ): Promise<string>;
 }

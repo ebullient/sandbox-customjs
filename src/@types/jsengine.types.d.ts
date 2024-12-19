@@ -12,5 +12,4 @@ export interface MarkdownAPI {
 export interface MarkdownBuilder {
     createTable(arg0: string[], arg1: string[][]): unknown;
     createHeading(arg0: number, arg1: string): unknown;
-
 }

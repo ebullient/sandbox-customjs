@@ -1,12 +1,13 @@
-import { Moment } from "moment";
-import {
+import type { Moment } from "moment";
+import type {
     App,
     FrontMatterCache,
     LinkCache,
+    TagCache,
     TFile,
     TFolder,
 } from "obsidian";
-import { EngineAPI } from "./@types/jsengine.types";
+import type { EngineAPI } from "./@types/jsengine.types";
 
 export type CompareFn = () => number;
 export type Conditions = string | string[];
@@ -28,13 +29,13 @@ export class Utils {
     taskPattern: RegExp = /^([\s>]*- )\[(.)\] (.*)$/;
     completedPattern: RegExp = /.*\((\d{4}-\d{2}-\d{2})\)\s*$/;
     dailyNotePattern: RegExp = /^(\d{4}-\d{2}-\d{2}).md$/;
-    lastSegment: SegmentFn = x => x.slice(x.lastIndexOf('/') + 1)
+    lastSegment: SegmentFn = (x) => x.slice(x.lastIndexOf("/") + 1);
 
     pathConditionPatterns: RegExp[] = [
-        /^\[.*?\]\((.*?\.md)\)$/,       // markdown link
+        /^\[.*?\]\((.*?\.md)\)$/, // markdown link
         /^\[\[(.*?)\|?([^\]]*)??\]\]$/, // wikilink
-        /^(.*?\.md)$/                   // file path
-    ]
+        /^(.*?\.md)$/, // file path
+    ];
 
     app: App;
 
@@ -44,13 +45,18 @@ export class Utils {
     }
 
     allTags = (): string[] => {
+        // use a set to avoid duplicates
         const allTags = new Set<string>();
-        this.app.vault.getMarkdownFiles()
-            .flatMap(f => this.fileTags(f) || [])
-            .map(tag => this.removeLeadingHashtag(tag))
-            .forEach(tag => allTags.add(tag));
+
+        for (const f of this.app.vault.getMarkdownFiles()) {
+            const tags = this.fileTags(f);
+            for (const t of tags) {
+                allTags.add(t);
+            }
+        }
+
         return [...allTags];
-    }
+    };
 
     /**
      * Cleans a link reference by removing the title and extracting the anchor.
@@ -65,15 +71,23 @@ export class Utils {
             link = link.substring(0, titlePos);
         }
         // extract anchor and decode spaces: vaultPath#anchor -> anchor and vaultPath
-        const anchorPos = link.indexOf('#');
-        const anchor = (anchorPos < 0 ? '' : link.substring(anchorPos + 1).replace(/%20/g, ' ').trim());
-        link = (anchorPos < 0 ? link : link.substring(0, anchorPos)).replace(/%20/g, ' ').trim();
+        const anchorPos = link.indexOf("#");
+        const anchor =
+            anchorPos < 0
+                ? ""
+                : link
+                      .substring(anchorPos + 1)
+                      .replace(/%20/g, " ")
+                      .trim();
+        link = (anchorPos < 0 ? link : link.substring(0, anchorPos))
+            .replace(/%20/g, " ")
+            .trim();
         return {
             text: linkRef.displayText,
             anchor,
-            link
-        }
-    }
+            link,
+        };
+    };
 
     /**
      * Create a filter function to evaluate a list of conditions
@@ -83,7 +97,10 @@ export class Utils {
      * @param {string|Array<string>} conditions
      * @returns {FileFilterFn} Function to apply to evaluate conditions
      */
-    createFileConditionFilter = (conditions: string | string[]): FileFilterFn => {
+    createFileConditionFilter = (
+        inputConditions: string | string[],
+    ): FileFilterFn => {
+        let conditions = inputConditions;
         if (!Array.isArray(conditions)) {
             conditions = [conditions];
         }
@@ -97,34 +114,45 @@ export class Utils {
         const tags: string[] = [];
         const paths: string[] = [];
 
-        conditions
-            .filter(x => x) // truthy valus only
-            .forEach(o => o.startsWith('#')
-                ? tags.push(o)
-                : paths.push(o));
+        for (const c of conditions) {
+            if (!c) {
+                // if this ends up being empty, skip it
+                continue;
+            }
+            if (c.startsWith("#")) {
+                tags.push(c);
+            } else {
+                paths.push(c);
+            }
+        }
 
         const files = paths
-            ? paths.map(p => this.stringConditionToTFile(p))
+            ? paths.map((p) => this.stringConditionToTFile(p))
             : [];
 
         return (tfile: TFile) => {
-            const tagMatch = tags.length > 0
-                ? this.filterByTag(tfile, tags, logic === "AND")
-                : false;
+            const tagMatch =
+                tags.length > 0
+                    ? this.filterByTag(tfile, tags, logic === "AND")
+                    : false;
 
-            const fileMatch = files.length > 0
-                ? this.filterByLinksToFiles(tfile, files, logic === "AND")
-                : false;
+            const fileMatch =
+                files.length > 0
+                    ? this.filterByLinksToFiles(tfile, files, logic === "AND")
+                    : false;
 
             if (logic === "AND") {
                 // all conditions must be true
-                return (tags.length === 0 || tagMatch) && (files.length === 0 || fileMatch);
-            } else {
-                // Default: any condition can be true
-                return tagMatch || fileMatch;
+                return (
+                    (tags.length === 0 || tagMatch) &&
+                    (files.length === 0 || fileMatch)
+                );
             }
-        }
-    }
+
+            // Default: any condition can be true
+            return tagMatch || fileMatch;
+        };
+    };
 
     /**
      * Generates a markdown list item with a markdown-style link for the given file.
@@ -133,16 +161,15 @@ export class Utils {
      */
     fileListItem = (tfile: TFile): string => {
         return `- ${this.markdownLink(tfile)}`;
-    }
+    };
 
     /**
      * Retrieves a list of file paths for all Markdown files in the vault (used for prompts).
      * @returns {string[]} A list of file paths for all Markdown files in the vault.
      */
     filePaths = (): string[] => {
-        return this.app.vault.getMarkdownFiles()
-            .map(x => x.path);
-    }
+        return this.app.vault.getMarkdownFiles().map((x) => x.path);
+    };
 
     /**
      * Retrieves all tags found in the frontmatter and body of the file without the leading hash.
@@ -156,20 +183,29 @@ export class Utils {
             return [];
         }
         const tags = [];
+
+        const normalizeTag = (t: TagCache | string) => {
+            if (t != null) {
+                if (typeof t === "string") {
+                    tags.push(this.removeLeadingHashtag(t));
+                } else {
+                    tags.push(this.removeLeadingHashtag(t.tag));
+                }
+            }
+        };
+
         if (cache.tags) {
-            cache.tags
-                .filter(x => x != null || typeof x === 'string')
-                .map(x => this.removeLeadingHashtag(x.tag))
-                .forEach(x => tags.push(x));
+            for (const t of cache.tags) {
+                normalizeTag(t);
+            }
         }
         if (cache.frontmatter?.tags) {
-            cache.frontmatter.tags
-                .filter((x: unknown) => x != null || typeof x === 'string')
-                .map((x: string) => this.removeLeadingHashtag(x))
-                .forEach((x: string) => tags.push(x));
+            for (const t of cache.frontmatter.tags) {
+                normalizeTag(t);
+            }
         }
         return tags;
-    }
+    };
 
     /**
      * Generates a title using either the first alias or the file name (without the .md extension).
@@ -179,13 +215,12 @@ export class Utils {
     fileTitle = (tfile: TFile): string => {
         const cache = this.app.metadataCache.getFileCache(tfile);
         const aliases = cache?.frontmatter?.aliases;
-        const alias = aliases ? aliases[0] : tfile.name.replace('.md', '');
-        if (typeof alias === 'string') {
+        const alias = aliases ? aliases[0] : tfile.name.replace(".md", "");
+        if (typeof alias === "string") {
             return alias;
-        } else {
-            return tfile.name.replace('.md', '');
         }
-    }
+        return tfile.name.replace(".md", "");
+    };
 
     /**
      * Retrieves a list of all files that have links to the target file.
@@ -195,9 +230,15 @@ export class Utils {
      * @see filesMatchingCondition
      * @see filterByLinkToFile
      */
-    filesLinkedToFile = (targetFile: TFile, includeCurrent: boolean = false): TFile[] => {
-        return this.filesMatchingCondition((tfile: TFile) => this.filterByLinkToFile(tfile, targetFile), includeCurrent);
-    }
+    filesLinkedToFile = (
+        targetFile: TFile,
+        includeCurrent = false,
+    ): TFile[] => {
+        return this.filesMatchingCondition(
+            (tfile: TFile) => this.filterByLinkToFile(tfile, targetFile),
+            includeCurrent,
+        );
+    };
 
     /**
      * Retrieves a list of all markdown files (excluding the current file) that match the provided filter function.
@@ -206,13 +247,17 @@ export class Utils {
      * @param {boolean} includeCurrent True if the current file should be included in the list (default: false).
      * @returns {TFile[]} A list of all markdown files (excluding the current file) that match the provided filter function.
      */
-    filesMatchingCondition = (fn: FileFilterFn, includeCurrent: boolean = false): TFile[] => {
+    filesMatchingCondition = (
+        fn: FileFilterFn,
+        includeCurrent = false,
+    ): TFile[] => {
         const current = this.app.workspace.getActiveFile();
-        return this.app.vault.getMarkdownFiles()
-            .filter(tfile => includeCurrent || tfile !== current)
-            .filter(tfile => fn(tfile))
+        return this.app.vault
+            .getMarkdownFiles()
+            .filter((tfile) => includeCurrent || tfile !== current)
+            .filter((tfile) => fn(tfile))
             .sort(this.sortTFile);
-    }
+    };
 
     /**
      * Retrieves a list of all files with the specified tag.
@@ -224,10 +269,16 @@ export class Utils {
      * @see createFileConditionFilter
      * @see filesMatchingCondition
      */
-    filesWithConditions = (conditions: string | string[], includeCurrent: boolean = false): TFile[] => {
+    filesWithConditions = (
+        conditions: string | string[],
+        includeCurrent = false,
+    ): TFile[] => {
         const conditionsFilter = this.createFileConditionFilter(conditions);
-        return this.filesMatchingCondition((tfile: TFile) => conditionsFilter(tfile), includeCurrent);
-    }
+        return this.filesMatchingCondition(
+            (tfile: TFile) => conditionsFilter(tfile),
+            includeCurrent,
+        );
+    };
 
     /**
      * Retrieves a list of all files whose path matches the provided path pattern.
@@ -237,9 +288,12 @@ export class Utils {
      * @see filesMatchingCondition
      * @see filterByPath
      */
-    filesWithPath = (pathPattern: RegExp, includeCurrent: boolean = false): TFile[] => {
-        return this.filesMatchingCondition((tfile: TFile) => this.filterByPath(tfile, pathPattern), includeCurrent);
-    }
+    filesWithPath = (pathPattern: RegExp, includeCurrent = false): TFile[] => {
+        return this.filesMatchingCondition(
+            (tfile: TFile) => this.filterByPath(tfile, pathPattern),
+            includeCurrent,
+        );
+    };
 
     /**
      * Checks if the file has a link to the target file.
@@ -258,13 +312,16 @@ export class Utils {
         }
 
         return fileCache.links
-            .filter(link => !link.link.match(/^(http|mailto|view-source)/))
-            .map(link => this.cleanLinkTarget(link))
-            .some(cleanedLink => {
-                const linkTarget = this.pathToFile(cleanedLink.link, tfile.path);
+            .filter((link) => !link.link.match(/^(http|mailto|view-source)/))
+            .map((link) => this.cleanLinkTarget(link))
+            .some((cleanedLink) => {
+                const linkTarget = this.pathToFile(
+                    cleanedLink.link,
+                    tfile.path,
+                );
                 return targetFile.path === linkTarget?.path;
             });
-    }
+    };
 
     /**
      * Checks if the file has a link to one of the target files.
@@ -274,21 +331,31 @@ export class Utils {
      *      false (default) if links to any of the files should be present (OR).
      * @returns {boolean} True if the file has a link to one of the target files.
      */
-    filterByLinksToFiles = (tfile: TFile, targetFiles: TFile[], all: boolean = false): boolean => {
+    filterByLinksToFiles = (
+        tfile: TFile,
+        targetFiles: TFile[],
+        all = false,
+    ): boolean => {
         const fileCache = this.app.metadataCache.getFileCache(tfile);
         if (!fileCache?.links || !targetFiles || targetFiles.length === 0) {
             return false;
         }
 
         const links = fileCache.links
-            .filter(link => !link.link.match(/^(http|mailto|view-source)/))
-            .map(link => this.cleanLinkTarget(link)) // remove titles and anchor references
-            .map(cleanedLink => this.pathToFile(cleanedLink.link, tfile.path));
+            .filter((link) => !link.link.match(/^(http|mailto|view-source)/))
+            .map((link) => this.cleanLinkTarget(link)) // remove titles and anchor references
+            .map((cleanedLink) =>
+                this.pathToFile(cleanedLink.link, tfile.path),
+            );
 
         return all
-            ? targetFiles.every(t => links.some(linkTarget => t.path === linkTarget?.path))
-            : targetFiles.some(t => links.some(linkTarget => t.path === linkTarget?.path));
-    }
+            ? targetFiles.every((t) =>
+                  links.some((linkTarget) => t.path === linkTarget?.path),
+              )
+            : targetFiles.some((t) =>
+                  links.some((linkTarget) => t.path === linkTarget?.path),
+              );
+    };
 
     /**
      * Checks if the file path matches the pattern.
@@ -298,7 +365,7 @@ export class Utils {
      */
     filterByPath = (tfile: TFile, pathPattern: RegExp): boolean => {
         return pathPattern.test(tfile.path);
-    }
+    };
 
     /**
      * Checks if the required tags are present.
@@ -308,7 +375,11 @@ export class Utils {
      *      false (default) if any of the tags should be present (OR).
      * @returns {boolean} True if the required tags are present.
      */
-    filterByTag = (tfile: TFile, tag: string | string[], all: boolean = false): boolean => {
+    filterByTag = (
+        tfile: TFile,
+        tag: string | string[],
+        all = false,
+    ): boolean => {
         const fileTags = this.fileTags(tfile);
 
         // for an array, use the "all" parameter
@@ -316,17 +387,21 @@ export class Utils {
             const tagRegexes = tag.map(this.tagFilterRegex);
             if (all) {
                 // AND: Every tag should be present in fileTags
-                return tagRegexes.every(regex => fileTags.some(ftag => regex.test(ftag)));
-            } else {
-                // OR: At least one tag should be present in fileTags
-                return tagRegexes.some(regex => fileTags.some(ftag => regex.test(ftag)));
+                return tagRegexes.every((regex) =>
+                    fileTags.some((ftag) => regex.test(ftag)),
+                );
             }
+
+            // OR: At least one tag should be present in fileTags
+            return tagRegexes.some((regex) =>
+                fileTags.some((ftag) => regex.test(ftag)),
+            );
         }
 
         // single string: return true if tag is present
         const tagRegex = this.tagFilterRegex(tag);
-        return fileTags.some(ftag => tagRegex.test(ftag));
-    }
+        return fileTags.some((ftag) => tagRegex.test(ftag));
+    };
 
     /**
      * Creates a markdown list of all files contained within the current folder grouped by subdirectory.
@@ -340,7 +415,7 @@ export class Utils {
         const path = current.parent.path;
         const list = this.filesWithPath(new RegExp(`^${path}`));
         return this.index(engine, list, path);
-    }
+    };
 
     /**
      * Retrieve a list of folders that are children of the provided
@@ -351,20 +426,25 @@ export class Utils {
      * @returns {TFolder[]} A list of all folders contained within the provided folder
      *      that match the given conditions.
      */
-    foldersByCondition = (folder: string = '', fn: FolderFilterFn = (_: TFolder) => true): TFolder[] => {
+    foldersByCondition = (
+        folder = "",
+        fn: FolderFilterFn = (_: TFolder) => true,
+    ): TFolder[] => {
         let folders = [];
         if (!folder || folder === "/") {
-            folders = this.app.vault.getAllFolders(true)
-                .filter(tfolder => fn(tfolder));
+            folders = this.app.vault
+                .getAllFolders(true)
+                .filter((tfolder) => fn(tfolder));
         } else {
             const pathFilter = this.segmentFilterRegex(folder);
-            folders = this.app.vault.getAllFolders(false)
-                .filter(tfolder => pathFilter.test(tfolder.path))
-                .filter(tfolder => fn(tfolder));
+            folders = this.app.vault
+                .getAllFolders(false)
+                .filter((tfolder) => pathFilter.test(tfolder.path))
+                .filter((tfolder) => fn(tfolder));
         }
 
         return folders.sort((a, b) => a.path.localeCompare(b.path));
-    }
+    };
 
     /**
      * Retrieves the frontmatter of a file.
@@ -374,7 +454,7 @@ export class Utils {
     frontmatter = (tfile: TFile): FrontMatterCache => {
         const cache = this.app.metadataCache.getFileCache(tfile);
         return cache?.frontmatter || {};
-    }
+    };
 
     /**
      * Groups elements in a collection by the specified condition.
@@ -382,20 +462,26 @@ export class Utils {
      * @param {FileGroupByFn} fn The function that defines keys for an object.
      * @returns {Object} An object with keys generated by the function and array values that match the key.
      */
-    groupBy = (collection: TFile[], fn: FileGroupByFn): Record<string, TFile[]> => collection
-        .reduce((accumulator: Record<string, TFile[]>, currentElement, index) => {
-            // Determine the key for the current element using the provided function
-            const key = fn(currentElement);
+    groupBy = (
+        collection: TFile[],
+        fn: FileGroupByFn,
+    ): Record<string, TFile[]> =>
+        collection.reduce(
+            (accumulator: Record<string, TFile[]>, currentElement, index) => {
+                // Determine the key for the current element using the provided function
+                const key = fn(currentElement);
 
-            // Initialize the array for this key if it doesn't exist
-            if (!accumulator[key]) {
-                accumulator[key] = [];
-            }
-            // Push the current element into the array for this key
-            accumulator[key].push(currentElement);
-            // Return the accumulator for the next iteration
-            return accumulator;
-        }, {});
+                // Initialize the array for this key if it doesn't exist
+                if (!accumulator[key]) {
+                    accumulator[key] = [];
+                }
+                // Push the current element into the array for this key
+                accumulator[key].push(currentElement);
+                // Return the accumulator for the next iteration
+                return accumulator;
+            },
+            {},
+        );
 
     /**
      * Groups files by parent path, and then creates a simple sorted list of the files in each group.
@@ -403,32 +489,40 @@ export class Utils {
      * @param {Array} fileList An array of TFiles to list.
      * @returns {string} A markdown list of files grouped by parent path
      */
-    index = (engine: EngineAPI, fileList: TFile[], leadingPath: string = ''): string => {
-        const groups = this.groupBy(fileList, (tfile: TFile) => tfile.parent.path);
+    index = (
+        engine: EngineAPI,
+        fileList: TFile[],
+        leadingPath = "",
+    ): string => {
+        const groups = this.groupBy(
+            fileList,
+            (tfile: TFile) => tfile.parent.path,
+        );
         const keys = Object.keys(groups).sort();
         const result: string[] = [];
         for (const key of keys) {
-            const value = groups[key]
-                .sort((a, b) => {
-                    if (this.isFolderNote(a)) {
-                        return -1;
-                    }
-                    if (this.isFolderNote(b)) {
-                        return 1;
-                    }
-                    return this.sortTFile(a, b);
-                });
-            const trim = key.replace(leadingPath, '');
+            const value = groups[key].sort((a, b) => {
+                if (this.isFolderNote(a)) {
+                    return -1;
+                }
+                if (this.isFolderNote(b)) {
+                    return 1;
+                }
+                return this.sortTFile(a, b);
+            });
+            const trim = key.replace(leadingPath, "");
             if (trim) {
                 result.push(`\n**${key}**\n`);
             }
             for (const v of value) {
-                const note = this.isFolderNote(v) ? ' <small>(index)</small>' : '';
+                const note = this.isFolderNote(v)
+                    ? " <small>(index)</small>"
+                    : "";
                 result.push(`- ${this.markdownLink(v)}${note}`);
             }
         }
         return engine.markdown.create(result.join("\n"));
-    }
+    };
 
     /**
      * Checks if the file is a folder note (same name as parent folder or README.md).
@@ -437,9 +531,11 @@ export class Utils {
      */
     isFolderNote = (tfile: TFile): boolean => {
         // allow for GH-style README.md folder notes, too
-        return tfile.path === `${tfile.parent.path}/${tfile.parent.name}.md`
-            || tfile.path === `${tfile.parent.path}/README.md`;
-    }
+        return (
+            tfile.path === `${tfile.parent.path}/${tfile.parent.name}.md` ||
+            tfile.path === `${tfile.parent.path}/README.md`
+        );
+    };
 
     /**
      * Creates a markdown list of files with the specified tag.
@@ -449,12 +545,16 @@ export class Utils {
      * @returns {string} A markdown list of files.
      * @see filesWithPath
      */
-    listFilesWithPath = (engine: EngineAPI, pathPattern: RegExp, includeCurrent: boolean = false): string => {
+    listFilesWithPath = (
+        engine: EngineAPI,
+        pathPattern: RegExp,
+        includeCurrent = false,
+    ): string => {
         const files = this.filesWithPath(pathPattern);
-        return engine.markdown.create(files
-            .map(f => this.fileListItem(f))
-            .join("\n"));
-    }
+        return engine.markdown.create(
+            files.map((f) => this.fileListItem(f)).join("\n"),
+        );
+    };
 
     /**
      * Creates a markdown list of files that link to the current file.
@@ -466,10 +566,10 @@ export class Utils {
     listInboundLinks = (engine: EngineAPI): string => {
         const current = this.app.workspace.getActiveFile();
         const files = this.filesLinkedToFile(current);
-        return engine.markdown.create(files
-            .map(f => this.fileListItem(f))
-            .join("\n"));
-    }
+        return engine.markdown.create(
+            files.map((f) => this.fileListItem(f)).join("\n"),
+        );
+    };
 
     /**
      * Converts a name to lower kebab case.
@@ -478,11 +578,11 @@ export class Utils {
      */
     lowerKebab = (name: string): string => {
         return (name || "")
-            .replace(/([a-z])([A-Z])/g, '$1-$2') // separate on camelCase
-            .replace(/[\s_]+/g, '-')         // replace all spaces and low dash
-            .replace(/[^0-9a-zA-Z_-]/g, '') // strip other things
-            .toLowerCase();                  // convert to lower case
-    }
+            .replace(/([a-z])([A-Z])/g, "$1-$2") // separate on camelCase
+            .replace(/[\s_]+/g, "-") // replace all spaces and low dash
+            .replace(/[^0-9a-zA-Z_-]/g, "") // strip other things
+            .toLowerCase(); // convert to lower case
+    };
 
     /**
      * Generates a markdown link to the file.
@@ -493,10 +593,11 @@ export class Utils {
      * @see markdownLinkPath
      * @see fileTitle
      */
-    markdownLink = (tfile: TFile, displayText: string = '', anchor: string = ''): string => {
+    markdownLink = (tfile: TFile, text = "", anchor = ""): string => {
+        let displayText = text;
         displayText = displayText || this.fileTitle(tfile);
         return `[${displayText}](/${this.markdownLinkPath(tfile, anchor)})`;
-    }
+    };
 
     /**
      * Generates a path with spaces replaced by %20.
@@ -504,10 +605,10 @@ export class Utils {
      * @param {string} anchor An optional anchor to append to the path.
      * @returns {string} The path with spaces replaced by %20.
      */
-    markdownLinkPath = (tfile: TFile, anchor: string = ''): string => {
-        anchor = anchor ? '#' + anchor : '';
-        return (tfile.path + anchor).replace(/ /g, '%20');
-    }
+    markdownLinkPath = (tfile: TFile, anchor = ""): string => {
+        const hashAnchor = anchor ? `#${anchor}` : "";
+        return (tfile.path + hashAnchor).replace(/ /g, "%20");
+    };
 
     /**
      * Generates a markdown list item with the first path segment as a small prefix followed by a markdown link to the file.
@@ -517,7 +618,7 @@ export class Utils {
      */
     markdownListItem = (displayText: string, link: string): string => {
         return `- [${displayText}](${link})`;
-    }
+    };
 
     /**
      * Try to resolve the file for the given path
@@ -528,7 +629,7 @@ export class Utils {
      */
     pathToFile = (path: string, startPath: string): TFile | null => {
         return this.app.metadataCache.getFirstLinkpathDest(path, startPath);
-    }
+    };
 
     /**
      * Removes the leading # from a string if present.
@@ -536,13 +637,11 @@ export class Utils {
      * @returns {string} The string with the leading # removed, if it was present.
      */
     removeLeadingHashtag = (str: string): string => {
-        if (typeof str !== 'string') {
-            return str
+        if (typeof str !== "string") {
+            return str;
         }
-        return str.charAt(0) === "#"
-            ? str.substring(1)
-            : str;
-    }
+        return str.charAt(0) === "#" ? str.substring(1) : str;
+    };
 
     /**
      * Generates a markdown list item with the first path segment as a small prefix followed by a markdown link to the file.
@@ -550,9 +649,9 @@ export class Utils {
      * @returns {string} A markdown list item with the first path segment as a small prefix followed by a markdown link to the file.
      */
     scopedFileListItem = (tfile: TFile): string => {
-        const s1 = tfile.path.split('/')[0];
+        const s1 = tfile.path.split("/")[0];
         return `- <small>(${s1})</small> ${this.markdownLink(tfile)}`;
-    }
+    };
 
     /**
      * Creates a markdown list of files with the specified conditions.
@@ -562,12 +661,15 @@ export class Utils {
      * @see filesWithConditions
      * @see scopedFileListItem
      */
-    scopedFilesWithConditions = (engine: EngineAPI, conditions: string | string[]): string => {
+    scopedFilesWithConditions = (
+        engine: EngineAPI,
+        conditions: string | string[],
+    ): string => {
         const files = this.filesWithConditions(conditions);
-        return engine.markdown.create(files
-            .map(f => this.scopedFileListItem(f))
-            .join("\n"));
-    }
+        return engine.markdown.create(
+            files.map((f) => this.scopedFileListItem(f)).join("\n"),
+        );
+    };
 
     /**
      * Generates a markdown list item with small scope text
@@ -576,9 +678,13 @@ export class Utils {
      * @param {string} link Link target
      * @returns {string} A markdown list item with small text indicating the scope
      */
-    scopedListItem = (scope: string, displayText: string, link: string): string => {
+    scopedListItem = (
+        scope: string,
+        displayText: string,
+        link: string,
+    ): string => {
         return `- <small>(${scope})</small> [${displayText}](${link})`;
-    }
+    };
 
     /**
      * Create a regex to match a string by segments.
@@ -588,7 +694,7 @@ export class Utils {
      */
     segmentFilterRegex = (str: string): RegExp => {
         return new RegExp(`^${str}(\\/|$)`);
-    }
+    };
 
     /**
      * String condition describing a target file:
@@ -609,14 +715,22 @@ export class Utils {
             if (match) {
                 const result = this.pathToFile(match[1], current.path);
                 if (result == null) {
-                    console.error("Unable to find file used in condition", str, match[1], "from", current.path);
+                    console.error(
+                        "Unable to find file used in condition",
+                        str,
+                        match[1],
+                        "from",
+                        current.path,
+                    );
                 }
                 return result;
             }
         }
-        console.error(`Unknown condition (not a markdown link, wiki link, or markdown file path): ${str}`);
+        console.error(
+            `Unknown condition (not a markdown link, wiki link, or markdown file path): ${str}`,
+        );
         return undefined;
-    }
+    };
 
     /**
      * Compares the first segment of the path; if those are equal then compares by file name.
@@ -629,14 +743,12 @@ export class Utils {
      * @returns {number} A negative number if `a` should come before `b`, a positive number if `a` should come after `b`, or 0 if they are considered equal.
      */
     sortTFile = (a: TFile, b: TFile): number => {
-        const p1 = a.path.split('/')[0].toLowerCase();
-        const p2 = b.path.split('/')[0].toLowerCase();
+        const p1 = a.path.split("/")[0].toLowerCase();
+        const p2 = b.path.split("/")[0].toLowerCase();
         const p = p1.localeCompare(p2);
 
-        return p === 0
-            ? this.sortTFileByName(a, b)
-            : p;
-    }
+        return p === 0 ? this.sortTFileByName(a, b) : p;
+    };
 
     /**
      * Compares by file name.
@@ -646,12 +758,12 @@ export class Utils {
      * @returns {number} A negative number if `a` should come before `b`, a positive number if `a` should come after `b`, or 0 if they are considered equal.
      */
     sortTFileByName = (a: TFile, b: TFile): number => {
-        const sort1 = this.frontmatter(a).sort || '';
-        const sort2 = this.frontmatter(b).sort || '';
+        const sort1 = this.frontmatter(a).sort || "";
+        const sort2 = this.frontmatter(b).sort || "";
         const n1 = sort1 + this.fileTitle(a).toLowerCase();
         const n2 = sort2 + this.fileTitle(b).toLowerCase();
         return n1.localeCompare(n2);
-    }
+    };
 
     /**
      * Looks for daily notes within the chronicles directory.
@@ -662,16 +774,24 @@ export class Utils {
      * @returns {Array} A list of tags found in daily notes for the date range.
      */
     tagsForDates = async (begin: Moment, end: Moment): Promise<string[]> => {
-        return this.app.vault.getMarkdownFiles()
-            .filter((f) => f.path.includes("chronicles") && f.name.match(/^\d{4}-\d{2}-\d{2}\.md$/))
+        return this.app.vault
+            .getMarkdownFiles()
+            .filter(
+                (f) =>
+                    f.path.includes("chronicles") &&
+                    f.name.match(/^\d{4}-\d{2}-\d{2}\.md$/),
+            )
             .filter((f) => {
-                const day = window.moment(f.name.replace('.md', ''));
-                return day.isSameOrAfter(begin, 'day') && day.isSameOrBefore(end, 'day');
+                const day = window.moment(f.name.replace(".md", ""));
+                return (
+                    day.isSameOrAfter(begin, "day") &&
+                    day.isSameOrBefore(end, "day")
+                );
             })
-            .flatMap(element => {
+            .flatMap((element) => {
                 return this.fileTags(element);
             });
-    }
+    };
 
     /**
      * Create a filter matching nested tags
@@ -682,5 +802,5 @@ export class Utils {
     tagFilterRegex = (tag: string): RegExp => {
         const cleanedTag = this.removeLeadingHashtag(tag);
         return this.segmentFilterRegex(cleanedTag);
-    }
+    };
 }

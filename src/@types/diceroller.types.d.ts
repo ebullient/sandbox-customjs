@@ -1,9 +1,13 @@
 // Note: Partial DiceRoller API
 
-import { Component } from "obsidian";
+import type { Component } from "obsidian";
 
 export interface DiceRoller {
-    getRoller(raw: string, source?: string, options?: unknown): BasicRoller | null
+    getRoller(
+        raw: string,
+        source?: string,
+        options?: unknown,
+    ): BasicRoller | null;
     parseDice(formula: string, source: string): Promise<RollResult>;
 }
 

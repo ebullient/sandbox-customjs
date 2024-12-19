@@ -1,10 +1,11 @@
-import { RenderFn, Utils } from "./_utils";
-import { App, LinkCache, TFile } from "obsidian";
+import type { RenderFn, Utils } from "./_utils";
+import type { App, LinkCache, TFile } from "obsidian";
 
 type FileReferences = Record<string, number>;
 
 export class Missing {
-    RENDER_MISSING = /([\s\S]*?<!--MISSING BEGIN-->)[\s\S]*?(<!--MISSING END-->[\s\S]*?)/i;
+    RENDER_MISSING =
+        /([\s\S]*?<!--MISSING BEGIN-->)[\s\S]*?(<!--MISSING END-->[\s\S]*?)/i;
 
     app: App;
 
@@ -23,12 +24,10 @@ export class Missing {
         "assets/Readit.bib",
         "assets/birthdays.json",
         "quests/obsidian-theme-plugins/ebullientworks-theme/links.md",
-        "quests/obsidian-theme-plugins/ebullientworks-theme/obsidian-theme-test.md"
+        "quests/obsidian-theme-plugins/ebullientworks-theme/obsidian-theme-test.md",
     ];
 
-    ignoreAnchors = [
-        "callout", "portrait"
-    ]
+    ignoreAnchors = ["callout", "portrait"];
 
     constructor() {
         this.app = window.customJS.app;
@@ -53,20 +52,25 @@ export class Missing {
         // ignore templates and other assets
         const fileMap: FileReferences = {};
 
-        this.app.vault.getFiles()
-            .filter(x => !x.path.endsWith('.canvas'))
-            .filter(x => !x.path.endsWith('.md'))
-            .filter(x => !this.ignoreFiles.includes(x.path))
-            .filter(x => !x.path.contains('assets/regex'))
-            .filter(x => !x.path.contains('assets/templates'))
-            .filter(x => !x.path.contains('assets/customjs'))
-            .forEach((f) => {
-                fileMap[f.path] = 1;
-            });
+        for (const file of this.app.vault.getFiles()) {
+            if (
+                file.path.endsWith(".canvas") ||
+                file.path.endsWith(".md") ||
+                this.ignoreFiles.includes(file.path) ||
+                file.path.contains("assets/regex") ||
+                file.path.contains("assets/templates") ||
+                file.path.contains("assets/customjs")
+            ) {
+                fileMap[file.path] = 0;
+            } else {
+                fileMap[file.path] = 1;
+            }
+        }
 
         // Find all markdown files that are not in the ignore list
-        const files = this.app.vault.getMarkdownFiles()
-            .filter(x => !this.ignoreFiles.includes(x.path));
+        const files = this.app.vault
+            .getMarkdownFiles()
+            .filter((x) => !this.ignoreFiles.includes(x.path));
 
         console.log("Finding lost things: reading files");
 
@@ -75,39 +79,62 @@ export class Missing {
         const rows: string[][] = [];
 
         // read all the files and extract the text
-        const promises = files.map(file => this.app.vault.cachedRead(file)
-            .then((txt) => this.findReferences(txt, file, leaflet, rows, anchors, fileMap)));
+        const promises = files.map((file) =>
+            this.app.vault
+                .cachedRead(file)
+                .then((txt) =>
+                    this.findReferences(
+                        txt,
+                        file,
+                        leaflet,
+                        rows,
+                        anchors,
+                        fileMap,
+                    ),
+                ),
+        );
         await Promise.all(promises);
 
         console.log("Finding lost things: writing result");
         await this.renderMissing(missing, () => {
-            const result = ['\n'];
-            result.push('## Missing reference\n');
-            result.push(this.renderTable(['Source', 'Target'], rows));
-            result.push('\n');
+            const result = ["\n"];
+            result.push("## Missing reference\n");
+            result.push(this.renderTable(["Source", "Target"], rows));
+            result.push("\n");
 
-            result.push('## Missing heading or block reference');
-            result.push(this.renderTable(['Source', 'Anchor', 'Target'], anchors));
-            result.push('\n');
+            result.push("## Missing heading or block reference");
+            result.push(
+                this.renderTable(["Source", "Anchor", "Target"], anchors),
+            );
+            result.push("\n");
 
-            result.push('## Missing leaflet reference\n');
-            result.push(this.renderTable(['Leaflet Source', 'Missing'], leaflet));
-            result.push('\n');
+            result.push("## Missing leaflet reference\n");
+            result.push(
+                this.renderTable(["Leaflet Source", "Missing"], leaflet),
+            );
+            result.push("\n");
 
-            result.push('## Unreferenced Things\n');
-            const keys = Object.keys(fileMap).sort();
-            keys.filter(x => fileMap[x] != 0)
-                .filter(x => !x.endsWith('.md'))
-                .filter(x => {
-                    if (x.contains('excalidraw')) {
-                        const file = this.app.metadataCache.getFirstLinkpathDest(x.replace(/\.(svg|png)/, '.md'), x);
+            result.push("## Unreferenced Things\n");
+            const keys = Object.keys(fileMap)
+                .filter((x) => fileMap[x] !== 0)
+                .filter((x) => !x.endsWith(".md"))
+                .filter((x) => {
+                    if (x.contains("excalidraw")) {
+                        const file =
+                            this.app.metadataCache.getFirstLinkpathDest(
+                                x.replace(/\.(svg|png)/, ".md"),
+                                x,
+                            );
                         // only excalidraw images where drawing is MIA
                         return file == null;
                     }
                     return true;
-                }).forEach(x => result.push('- ' + this.pathToMdLink(x)));
-
-            return result.join('\n');
+                })
+                .sort();
+            for (const x of keys) {
+                result.push(`- ${this.pathToMdLink(x)}`);
+            }
+            return result.join("\n");
         });
         console.log("Finding lost things: Done! 🫶 ");
     }
@@ -121,24 +148,35 @@ export class Missing {
      * @param {Array} anchors The array to store missing anchor references.
      * @param {FileReferences} fileMap The map of files to update.
      */
-    findReferences = (txt: string, file: TFile,
-        leaflet: string[][], rows: string[][], anchors: string[][],
-        fileMap: FileReferences) => {
-
+    findReferences = (
+        txt: string,
+        file: TFile,
+        leaflet: string[][],
+        rows: string[][],
+        anchors: string[][],
+        fileMap: FileReferences,
+    ) => {
         const fileCache = this.app.metadataCache.getFileCache(file);
 
         if (fileCache.embeds) {
-            fileCache.embeds.forEach(x => this.findLink(file, x, rows, anchors, fileMap));
+            for (const x of fileCache.embeds) {
+                this.findLink(file, x, rows, anchors, fileMap);
+            }
         }
         if (fileCache.links) {
-            fileCache.links.forEach(x => this.findLink(file, x, rows, anchors, fileMap));
+            for (const x of fileCache.links) {
+                this.findLink(file, x, rows, anchors, fileMap);
+            }
         }
 
-        if (txt.contains('```leaflet')) {
+        if (txt.contains("```leaflet")) {
             // find all lines matching "image: (path to image)" and extract the image name
-            [...txt.matchAll(/image: (.*)/g)].forEach((x) => {
+            for (const x of txt.matchAll(/image: (.*)/g)) {
                 const imgName = x[1];
-                const tgtFile = this.app.metadataCache.getFirstLinkpathDest(imgName, file.path);
+                const tgtFile = this.app.metadataCache.getFirstLinkpathDest(
+                    imgName,
+                    file.path,
+                );
                 if (tgtFile == null) {
                     // The image this leaflet needs is missing
                     leaflet.push([this.pathToMdLink(file.path), imgName]);
@@ -146,9 +184,9 @@ export class Missing {
                     // We found the image,
                     fileMap[tgtFile.path] = 0;
                 }
-            });
+            }
         }
-    }
+    };
 
     /**
      * Finds a link in the file and updates the file map.
@@ -159,10 +197,13 @@ export class Missing {
      * @param {Object} fileMap The map of files to update.
      * @returns {Promise<void>}
      */
-    findLink = async (source: TFile, lc: LinkCache,
-        rows: string[][], anchors: string[][],
-        fileMap: FileReferences): Promise<void> => {
-
+    findLink = async (
+        source: TFile,
+        lc: LinkCache,
+        rows: string[][],
+        anchors: string[][],
+        fileMap: FileReferences,
+    ): Promise<void> => {
         const now = window.moment();
         const cleanLink = this.utils().cleanLinkTarget(lc);
         const target = cleanLink.link;
@@ -172,10 +213,12 @@ export class Missing {
             // If we have a target file (not an internal anchor/block reference)
 
             // ignore external links and ignored files
-            if (target.startsWith('http')
-                || target.startsWith('mailto')
-                || target.startsWith('view-source')
-                || this.ignoreFiles.includes(target)) {
+            if (
+                target.startsWith("http") ||
+                target.startsWith("mailto") ||
+                target.startsWith("view-source") ||
+                this.ignoreFiles.includes(target)
+            ) {
                 return;
             }
 
@@ -203,7 +246,10 @@ export class Missing {
             }
 
             // find the target file
-            tgtFile = this.app.metadataCache.getFirstLinkpathDest(target, source.path);
+            tgtFile = this.app.metadataCache.getFirstLinkpathDest(
+                target,
+                source.path,
+            );
             if (tgtFile == null) {
                 console.debug(source.path, " has lost ", target);
                 rows.push([this.pathToMdLink(source.path), target]);
@@ -219,33 +265,65 @@ export class Missing {
                 return;
             }
             const tgtFileCache = this.app.metadataCache.getFileCache(tgtFile);
-            if (!tgtFileCache) { // unlikely...
-                anchors.push([this.pathToMdLink(source.path), `--`, 'missing cache']);
-            } else if (anchor.startsWith('^')) {
+            if (!tgtFileCache) {
+                // unlikely...
+                anchors.push([
+                    this.pathToMdLink(source.path),
+                    "--",
+                    "missing cache",
+                ]);
+            } else if (anchor.startsWith("^")) {
                 const blockref = anchor.substring(1);
-                const tgtBlock = tgtFileCache.blocks ? tgtFileCache.blocks[blockref] : '';
+                const tgtBlock = tgtFileCache.blocks
+                    ? tgtFileCache.blocks[blockref]
+                    : "";
                 if (!tgtBlock) {
-                    console.log("MISSING:", `${tgtFile.path}#${anchor}`, "referenced from", source.path, tgtFileCache.blocks);
-                    anchors.push([this.pathToMdLink(source.path), '#' + anchor, target]);
+                    console.log(
+                        "MISSING:",
+                        `${tgtFile.path}#${anchor}`,
+                        "referenced from",
+                        source.path,
+                        tgtFileCache.blocks,
+                    );
+                    anchors.push([
+                        this.pathToMdLink(source.path),
+                        `#${anchor}`,
+                        target,
+                    ]);
                 }
             } else {
                 const lower = cleanLink.anchor.toLowerCase();
                 const tgtHeading = tgtFileCache.headings
-                    ? tgtFileCache.headings.find(x => lower == x.heading.toLowerCase()
-                        .replace(/[?:]/g, '')
-                        .replace('#', ' '))
-                    : '';
+                    ? tgtFileCache.headings.find(
+                          (x) =>
+                              lower ===
+                              x.heading
+                                  .toLowerCase()
+                                  .replace(/[?:]/g, "")
+                                  .replace("#", " "),
+                      )
+                    : "";
                 if (!tgtHeading) {
-                    console.log("MISSING:", `${tgtFile.path}#${anchor}`, "referenced from", source.path, tgtFileCache.headings);
-                    anchors.push([this.pathToMdLink(source.path), '#' + anchor, target]);
+                    console.log(
+                        "MISSING:",
+                        `${tgtFile.path}#${anchor}`,
+                        "referenced from",
+                        source.path,
+                        tgtFileCache.headings,
+                    );
+                    anchors.push([
+                        this.pathToMdLink(source.path),
+                        `#${anchor}`,
+                        target,
+                    ]);
                 }
             }
         }
-    }
+    };
 
     pathToMdLink = (path: string): string => {
-        return `[${path}](${path.replace(/ /g, '%20')})`;
-    }
+        return `[${path}](${path.replace(/ /g, "%20")})`;
+    };
 
     /**
      * Render the missing references in the specified file.
@@ -254,7 +332,8 @@ export class Missing {
      * @returns {Promise<void>}
      */
     renderMissing = async (file: TFile, renderer: RenderFn): Promise<void> => {
-        await this.app.vault.process(file, (source) => {
+        await this.app.vault.process(file, (src) => {
+            let source = src;
             const match = this.RENDER_MISSING.exec(source);
             if (match) {
                 source = match[1];
@@ -263,7 +342,7 @@ export class Missing {
             }
             return source;
         });
-    }
+    };
 
     /**
      * Create a markdown table with the specified headers and rows.
@@ -272,26 +351,26 @@ export class Missing {
      * @returns {string} A markdown table with the specified headers and rows.
      */
     renderTable = (headers: string[], rows: string[][]): string => {
-        let result = '';
-        result += '|';
-        headers.forEach((h) => {
-            result += ` ${h} |`;
-        });
-        result += '\n';
+        let result = "";
+        result += "|";
+        for (const th of headers) {
+            result += ` ${th} |`;
+        }
+        result += "\n";
 
-        result += '|';
-        headers.forEach(() => {
-            result += ' --- |';
-        });
-        result += '\n';
+        result += "|";
+        for (const _ of headers) {
+            result += " --- |";
+        }
+        result += "\n";
 
-        rows.forEach((r) => {
-            result += '|';
-            r.forEach((c) => {
-                result += ` ${c} |`;
-            });
-            result += '\n';
-        });
+        for (const tr of rows) {
+            result += "|";
+            for (const td of tr) {
+                result += ` ${td} |`;
+            }
+            result += "\n";
+        }
         return result;
-    }
+    };
 }

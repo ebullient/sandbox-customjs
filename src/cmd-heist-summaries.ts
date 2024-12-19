@@ -1,6 +1,6 @@
-import { RenderFn } from "./_utils";
-import { App, CachedMetadata, TFile } from "obsidian";
-import { Campaign } from "./campaign";
+import type { RenderFn } from "./_utils";
+import type { App, CachedMetadata, TFile } from "obsidian";
+import type { Campaign } from "./campaign";
 
 interface FileContent {
     file: TFile;
@@ -9,13 +9,15 @@ interface FileContent {
 }
 
 export class HeistSummaries {
-    SUMMARIES = /([\s\S]*?<!--indexOf SUMMARIES-->)[\s\S]*?(<!--indexOf END SUMMARIES-->[\s\S]*?)/i;
+    SUMMARIES =
+        /([\s\S]*?<!--indexOf SUMMARIES-->)[\s\S]*?(<!--indexOf END SUMMARIES-->[\s\S]*?)/i;
 
     app: App;
 
     targetFile = "heist/all-summaries.md";
 
-    constructor() {  // Constructor
+    constructor() {
+        // Constructor
         this.app = window.customJS.app;
         console.log("loaded HeistSummary renderer");
     }
@@ -29,29 +31,34 @@ export class HeistSummaries {
             return;
         }
 
-        const files = this.app.vault.getMarkdownFiles()
-            .filter(t => t.path.startsWith("heist/sessions")
-                && !t.path.contains("sessions.md")
-                && !t.path.includes("encounter"))
+        const files = this.app.vault
+            .getMarkdownFiles()
+            .filter(
+                (t) =>
+                    t.path.startsWith("heist/sessions") &&
+                    !t.path.contains("sessions.md") &&
+                    !t.path.includes("encounter"),
+            )
             .sort((a, b) => a.path.localeCompare(b.path));
 
-        const promises: Promise<FileContent>[] = files
-            .map(file => this.app.vault.cachedRead(file)
-                .then(txt => {
-                    return {
-                        file: file,
-                        cache: this.app.metadataCache.getFileCache(file),
-                        text: txt
-                    };
-                })
-            );
+        const promises: Promise<FileContent>[] = files.map((file) =>
+            this.app.vault.cachedRead(file).then((txt) => {
+                return {
+                    file: file,
+                    cache: this.app.metadataCache.getFileCache(file),
+                    text: txt,
+                };
+            }),
+        );
 
         const data: FileContent[] = await Promise.all(promises);
 
         await this.renderSummaries(allSummaries, () => {
-            const result = ['\n'];
+            const result = ["\n"];
             for (const d of data) {
-                const summary = d.cache.headings.find((h) => h.heading === "Summary");
+                const summary = d.cache.headings.find(
+                    (h) => h.heading === "Summary",
+                );
                 const blockHeadingIndex = d.cache.headings.indexOf(summary);
                 let txt = d.text;
 
@@ -65,18 +72,26 @@ export class HeistSummaries {
                 }
                 if (endNum - start > 30) {
                     txt = txt.slice(start, endNum);
-                    txt = txt.replace(/%%.*?%%/, '').trim();
+                    txt = txt.replace(/%%.*?%%/, "").trim();
                 }
                 result.push(`\n## [${d.file.name}](${d.file.path})\n`);
-                result.push(txt.replace(this.campaign().eventRegexp, (match, p1, p2) => this.summaryEventSpan([match, p1, p2])));
-                result.push('\n');
+                result.push(
+                    txt.replace(this.campaign().eventRegexp, (match, p1, p2) =>
+                        this.summaryEventSpan([match, p1, p2]),
+                    ),
+                );
+                result.push("\n");
             }
-            return result.join('\n');
+            return result.join("\n");
         });
     }
 
-    renderSummaries = async (file: TFile, renderer: RenderFn): Promise<void> => {
-        await this.app.vault.process(file, (source) => {
+    renderSummaries = async (
+        file: TFile,
+        renderer: RenderFn,
+    ): Promise<void> => {
+        await this.app.vault.process(file, (src) => {
+            let source = src;
             const match = this.SUMMARIES.exec(source);
             if (match) {
                 source = match[1];
@@ -85,24 +100,24 @@ export class HeistSummaries {
             }
             return source;
         });
-    }
+    };
 
-    summaryEventSpan = (match: string[], suffix: string = ''): string => {
+    summaryEventSpan = (match: string[], suffix = ""): string => {
         const text = match[1];
-        const date = text.replace(/.*data-date=['"](.*?)-\d{2}['"].*/g, '$1');
+        const date = text.replace(/.*data-date=['"](.*?)-\d{2}['"].*/g, "$1");
 
         let name = text.contains('data-name="')
-            ? text.replace(/.*data-name="(.*?)".*/g, '$1')
-            : text.replace(/.*data-name='(.*?)'.*/g, '$1');
-        if (!name.endsWith('.') && !name.endsWith('!')) {
-            name += '.';
+            ? text.replace(/.*data-name="(.*?)".*/g, "$1")
+            : text.replace(/.*data-name='(.*?)'.*/g, "$1");
+        if (!name.endsWith(".") && !name.endsWith("!")) {
+            name += ".";
         }
 
         let data = match[2].trim();
-        if (data.length > 0 && !data.endsWith('.') && !data.endsWith('!')) {
-            data += '.';
+        if (data.length > 0 && !data.endsWith(".") && !data.endsWith("!")) {
+            data += ".";
         }
 
         return `\`${date}\` *${name}* ${data} ${suffix}`;
-    }
+    };
 }
