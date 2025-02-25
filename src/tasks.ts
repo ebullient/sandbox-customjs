@@ -63,7 +63,7 @@ export class Tasks {
      */
     thisWeekTasks = async (engine: EngineAPI): Promise<string> => {
         const tfile = this.app.workspace.getActiveFile();
-        const titledate = tfile.name.replace("_week.md", "");
+        const titledate = tfile.name.replace(".md", "").replace("_week", "");
         const begin = window.moment(titledate).day(1).add(-1, "d");
         const end = window.moment(begin).add(7, "d");
         console.log(
