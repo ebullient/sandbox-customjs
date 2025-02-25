@@ -186,6 +186,7 @@ export class Dated {
         const thisMonthFile = this.monthlyFile(dates.monday);
         const lastWeekFile = this.weeklyFile(dates.lastMonday);
         const lastMonthFile = this.monthlyFile(dates.lastMonday);
+        const lastMonth = dates.lastMonday.format("MMMM");
         let monthlyReflection = "";
         let upcoming = `> ![Upcoming](${this.yearlyFile(dates.monday)}#${dates.monday.format("MMMM")})\n`;
 
@@ -203,13 +204,17 @@ export class Dated {
         if (dates.monday.month() !== dates.nextMonday.month()) {
             header += `, [${dates.nextMonday.format("MMMM")}](${this.monthlyFile(dates.nextMonday)})`;
             upcoming += `\n> ![Upcoming](${dates.nextMonday.format("YYYY")}.md#${dates.nextMonday.format("MMMM")})`;
+            const thisMonth = dates.nextMonday.format("MMMM");
+            console.log(thisMonth, lastMonth);
             monthlyReflection =
-                `- [ ] [Reflect on last month](${lastMonthFile})\n` +
-                `- [ ] [Goals for this month](${this.monthlyFile(dates.nextMonday)})`;
+                `- [ ] [Reflect on ${lastMonth}](${lastMonthFile})\n` +
+                `- [ ] [Goals for ${thisMonth}](${this.monthlyFile(dates.nextMonday)})`;
         } else if (dates.monday.month() !== dates.lastMonday.month()) {
+            const thisMonth = dates.monday.format("MMMM");
+            console.log(thisMonth, lastMonth);
             monthlyReflection =
-                `- [ ] [Reflect on last month](${lastMonthFile})\n` +
-                `- [ ] [Goals for this month](${thisMonthFile})`;
+                `- [ ] [Reflect on ${lastMonth}](${lastMonthFile})\n` +
+                `- [ ] [Goals for ${thisMonth}](${thisMonthFile})`;
         }
 
         const log =
