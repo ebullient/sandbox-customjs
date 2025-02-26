@@ -112,6 +112,10 @@ export class Dated {
             nextMonday: window.moment(theMonday).add(1, "week"),
         };
     };
+    
+    dateOfWeek = (monday: Moment, dayOfWeek: number): string => {
+        return window.moment(monday).day(dayOfWeek).format("YYYY-MM-DD");
+    };
 
     /**
      * Create the file path for a specific day of the week.
@@ -218,19 +222,19 @@ export class Dated {
         }
 
         const log =
-            `### Log ${this.dayOfWeekFile(dates.monday, 1)}\n` +
+            `### Log ${this.dateOfWeek(dates.monday, 1)}\n` +
             `![invisible-embed](${this.dayOfWeekFile(dates.monday, 1)}#Log)\n\n` +
-            `### Log ${this.dayOfWeekFile(dates.monday, 2)}\n` +
+            `### Log ${this.dateOfWeek(dates.monday, 2)}\n` +
             `![invisible-embed](${this.dayOfWeekFile(dates.monday, 2)}#Log)\n\n` +
-            `### Log ${this.dayOfWeekFile(dates.monday, 3)}\n` +
+            `### Log ${this.dateOfWeek(dates.monday, 3)}\n` +
             `![invisible-embed](${this.dayOfWeekFile(dates.monday, 3)}#Log)\n\n` +
-            `### Log ${this.dayOfWeekFile(dates.monday, 4)}\n` +
+            `### Log ${this.dateOfWeek(dates.monday, 4)}\n` +
             `![invisible-embed](${this.dayOfWeekFile(dates.monday, 4)}#Log)\n\n` +
-            `### Log ${this.dayOfWeekFile(dates.monday, 5)}\n` +
+            `### Log ${this.dateOfWeek(dates.monday, 5)}\n` +
             `![invisible-embed](${this.dayOfWeekFile(dates.monday, 5)}#Log)\n\n` +
-            `### Log ${this.dayOfWeekFile(dates.monday, 6)}\n` +
+            `### Log ${this.dateOfWeek(dates.monday, 6)}\n` +
             `![invisible-embed](${this.dayOfWeekFile(dates.monday, 6)}#Log)\n\n` +
-            `### Log ${this.dayOfWeekFile(dates.monday, 7)}\n` +
+            `### Log ${this.dateOfWeek(dates.monday, 7)}\n` +
             `![invisible-embed](${this.dayOfWeekFile(dates.monday, 7)}#Log)\n\n`;
 
         const weeklyProjects = `js-engine
