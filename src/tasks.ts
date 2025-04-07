@@ -45,6 +45,7 @@ export class Tasks {
             for (const l of split) {
                 const taskMatch = this.taskPattern.exec(l);
                 if (taskMatch) {
+                    console.log(taskMatch);
                     tasks.push({
                         file: tfile,
                         mark: taskMatch[2],
@@ -76,7 +77,10 @@ export class Tasks {
         const files = this.app.vault.getMarkdownFiles();
         const list: string[] = [];
         for (const file of files) {
-            if (this.taskPaths.some((x) => file.path.contains(x))) {
+            if (file.path.includes("archive") || file.path.includes("-test")) {
+                continue;
+            }
+            if (this.taskPaths.some((x) => file.path.includes(x))) {
                 const tasks = await this.fileTasks(file);
                 for (const task of tasks) {
                     if (task.mark.match(/[x-]/)) {
@@ -84,10 +88,14 @@ export class Tasks {
                         if (!completed) {
                             completed = this.dailyNotePattern.exec(task.text);
                         }
+
                         if (
                             completed &&
-                            window.moment(completed[1]).isBetween(begin, end)
+                            window
+                                .moment(completed[1])
+                                .isBetween(begin, end, "day", "[]")
                         ) {
+                            console.log(file.path, completed);
                             const link = this.utils().markdownLink(task.file);
                             list.push(`- *${link}*: ${task.text}`);
                         }
