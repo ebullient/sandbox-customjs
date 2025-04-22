@@ -43,6 +43,12 @@ interface RadarChartOptions {
                 grid: {
                     color: string;
                 };
+                ticks: {
+                    showLabelBackdrop: boolean;
+                    color: string;
+                    z: number;
+                    padding: number;
+                };
             };
         };
     };
@@ -58,11 +64,11 @@ export class Activity {
     };
 
     colors = [
-        "236,201,134",
-        "92,122,98",
-        "62,125,121",
-        "69,117,174",
-        "142,103,135",
+        "236,201,134", // this week
+        "230,133,132", // last week
+        "142,103,135", // 4 weeks
+        "69,117,174", // 12
+        "158,190,188", // 48
         "167,92,112",
     ];
 
@@ -148,6 +154,12 @@ export class Activity {
                         grid: {
                             color: "#898989",
                         },
+                        ticks: {
+                            showLabelBackdrop: false,
+                            color: "#a0a0a0",
+                            z: 10,
+                            padding: 10,
+                        },
                     },
                 },
             },
@@ -157,7 +169,7 @@ export class Activity {
             chartOptions.data.datasets.push({
                 label: dataset.label,
                 data: dataset.data,
-                backgroundColor: `rgba(${this.colors[i]}, 0.1)`,
+                backgroundColor: "transparent",
                 borderColor: `rgb(${this.colors[i]})`,
                 borderWidth: 2,
             });
