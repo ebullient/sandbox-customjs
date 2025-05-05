@@ -242,6 +242,9 @@ export class Reference {
             }
         }
 
+        if (!items) {
+            return ["None"];
+        }
         items.sort(this.sortMarkdownLinks);
         return items;
     };
