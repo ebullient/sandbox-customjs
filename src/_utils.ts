@@ -250,13 +250,14 @@ export class Utils {
     filesMatchingCondition = (
         fn: FileFilterFn,
         includeCurrent = false,
+        sort: FileCompareFn = this.sortTFile,
     ): TFile[] => {
         const current = this.app.workspace.getActiveFile();
         return this.app.vault
             .getMarkdownFiles()
             .filter((tfile) => includeCurrent || tfile !== current)
             .filter((tfile) => fn(tfile))
-            .sort(this.sortTFile);
+            .sort(sort);
     };
 
     /**
@@ -763,6 +764,26 @@ export class Utils {
         const n1 = sort1 + this.fileTitle(a).toLowerCase();
         const n2 = sort2 + this.fileTitle(b).toLowerCase();
         return n1.localeCompare(n2);
+    };
+
+    /**
+     * Sorts files by their last modified time (mtime) in descending order.
+     * This means the most recently modified files will appear first.
+     * @param {TFile} a The first file to compare.
+     * @param {TFile} b The second file to compare.
+     * @returns {number} A negative number if `a` was modified after `b`,
+     *                   a positive number if `a` was modified before `b`,
+     *                   or 0 if they were modified at the same time.
+     */
+    sortTFileByMtime = (a: TFile, b: TFile): number => {
+        let diff = b.stat.mtime - a.stat.mtime;
+        if (diff === 0) {
+            diff = b.stat.ctime - a.stat.ctime;
+            if (diff === 0) {
+                diff = this.sortTFileByName(a, b);
+            }
+        }
+        return diff;
     };
 
     /**

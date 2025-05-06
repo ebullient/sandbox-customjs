@@ -10,6 +10,9 @@ interface LineInfo {
 }
 
 export class Templates {
+    private fileCache: { data: string[]; timestamp: number } | null = null;
+    private cacheTTL = 5 * 60 * 1000; // Cache valid for 5 minutes (in milliseconds)
+
     headerPush = ["Section", "Log item", "Tasks item"];
     itemPush = ["Log item", "Tasks item"];
     dated = /^.*?(\d{4}-\d{2}-\d{2}).*$/;
@@ -185,13 +188,50 @@ export class Templates {
         };
     };
 
+    cachedPushTargets = async (): Promise<string[]> => {
+        const now = Date.now();
+
+        // Check if cache exists and is still valid
+        if (this.fileCache && now - this.fileCache.timestamp < this.cacheTTL) {
+            console.log("Using cached files");
+            return this.fileCache.data;
+        }
+
+        // Cache is invalid or doesn't exist, refresh it
+        console.log("Refreshing file cache");
+        const files = this.utils()
+            .filesMatchingCondition((file) => {
+                console.log("Checking file", file.path);
+                const isConversation = file.path.contains("conversations");
+                const isNotArchived = !file.path.contains("archive");
+
+                const fileHeadings = this.app.metadataCache.getCache(
+                    file.path,
+                )?.headings;
+                const hasRelevantHeadings = fileHeadings
+                    ? fileHeadings
+                          .filter((x) => x.level === 2)
+                          .some((x) => x.heading.match(/(Log|Task)/))
+                    : false;
+
+                return isConversation || (isNotArchived && hasRelevantHeadings);
+            }, false)
+            .map((f) => f.path);
+
+        // Update the cache
+        this.fileCache = { data: files, timestamp: now };
+        return files;
+    };
+
     /**
      * Prompt the user to choose a file and push text to it.
      * @param {Templater} tp The templater plugin instance.
      * @returns {Promise<string>}
      */
     pushText = async (tp: Templater): Promise<void> => {
-        const choice = await this.chooseFile(tp);
+        const files = await this.cachedPushTargets();
+
+        const choice = await tp.system.suggester(files, files);
         if (choice) {
             const lineInfo = await this.findLine(tp);
             if (lineInfo.heading) {
