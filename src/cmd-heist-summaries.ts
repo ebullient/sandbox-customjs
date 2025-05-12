@@ -76,9 +76,16 @@ export class HeistSummaries {
                 }
                 result.push(`\n## [${d.file.name}](${d.file.path})\n`);
                 result.push(
-                    txt.replace(this.campaign().eventRegexp, (match, p1, p2) =>
-                        this.summaryEventSpan([match, p1, p2]),
-                    ),
+                    txt
+                        .replace(
+                            /\[([^\]]*)\]\(#([^)]+)\)/g,
+                            (_, title, reference) => {
+                                return `[${title}](${d.file.path}#${reference})`;
+                            },
+                        )
+                        .replace(this.campaign().eventRegexp, (match, p1, p2) =>
+                            this.summaryEventSpan([match, p1, p2]),
+                        ),
                 );
                 result.push("\n");
             }
