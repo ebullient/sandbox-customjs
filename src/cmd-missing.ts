@@ -11,6 +11,17 @@ export class Missing {
 
     targetFile = "assets/no-sync/missing.md";
 
+    ignoreAnchors = [
+        "card",
+        "center",
+        "callout",
+        "gallery",
+        "portrait",
+        "right",
+        "symbol",
+        "token",
+    ];
+
     // add additional files to ignore here
     ignoreFiles = [
         this.targetFile,
@@ -19,15 +30,56 @@ export class Missing {
         "${file.path}",
         "${y[0].file.path}",
         "/${p.file.path}",
-        "assets/templates/periodic-daily.md",
+
         "assets/Publications.bib",
         "assets/Readit.bib",
         "assets/birthdays.json",
+        "assets/pandoc",
+        "assets/templates/periodic-daily.md",
+        "assets/templates/encounter-create.md",
+        "assets/templates/group-create.md",
+        "assets/templates/img-full-width.md",
+        "assets/templates/img-portrait.md",
+        "assets/templates/indent-block.md",
+        "assets/templates/location-area-create.md",
+        "assets/templates/location-create.md",
+        "assets/templates/location-shop-create.md",
+        "assets/templates/mood-roll.md",
+        "assets/templates/note-create-rename.md",
+        "assets/templates/note-prev-next.md",
+        "assets/templates/note-preview-mode.md",
+        "assets/templates/note-rename.md",
+        "assets/templates/npc-block.md",
+        "assets/templates/npc-create.md",
+        "assets/templates/npc-mood-block.md",
+        "assets/templates/npc-mood-roll.md",
+        "assets/templates/pc-skill-check.md",
+        "assets/templates/scene-option.md",
+        "assets/templates/scene.md",
+        "assets/templates/session-create.md",
+        "assets/templates/session-recap.md",
+        "assets/templates/session-scene-option.md",
+        "assets/templates/statblock-create.md",
+        "assets/templates/statblock.md",
+        "assets/templates/tyrant-of-zhentil-keep.md",
+        "assets/templates/waterdeep-new-day.md",
+        "assets/templates/waterdeep-news.md",
+        "assets/templates/waterdeep-random-encounter.md",
+        "assets/templates/waterdeep-rumor.md",
+        "assets/templates/waterdeep-session.md",
+        "assets/templates/waterdeep-tavern-funds.md",
+        "assets/templates/waterdeep-tavern-patron.md",
+        "assets/templates/waterdeep-tavern-time.md",
+        "assets/templates/waterdeep-timeline.md",
+        "assets/templates/waterdeep-weather-10.md",
+        "assets/templates/waterdeep-weather.md",
+        "assets/templates/witchlight-session.md",
+
         "quests/obsidian-theme-plugins/ebullientworks-theme/links.md",
         "quests/obsidian-theme-plugins/ebullientworks-theme/obsidian-theme-test.md",
     ];
 
-    ignoreAnchors = ["callout", "portrait"];
+    ignoreUnreferencedPath = ["compendium/5e"];
 
     constructor() {
         this.app = window.customJS.app;
@@ -118,6 +170,9 @@ export class Missing {
             const keys = Object.keys(fileMap)
                 .filter((x) => fileMap[x] !== 0)
                 .filter((x) => !x.endsWith(".md"))
+                .filter((x) =>
+                    this.ignoreUnreferencedPath.every((y) => !x.startsWith(y)),
+                )
                 .filter((x) => {
                     if (x.contains("excalidraw")) {
                         const file =
@@ -261,9 +316,6 @@ export class Missing {
 
         if (cleanLink.anchor && tgtFile) {
             const anchor = cleanLink.anchor;
-            if (this.ignoreAnchors.includes(cleanLink.anchor)) {
-                return;
-            }
             const tgtFileCache = this.app.metadataCache.getFileCache(tgtFile);
             if (!tgtFileCache) {
                 // unlikely...
@@ -272,6 +324,8 @@ export class Missing {
                     "--",
                     "missing cache",
                 ]);
+            } else if (this.ignoreAnchors.includes(anchor)) {
+                // no-op: skip ignored anchors
             } else if (anchor.startsWith("^")) {
                 const blockref = anchor.substring(1);
                 const tgtBlock = tgtFileCache.blocks
@@ -292,14 +346,16 @@ export class Missing {
                     ]);
                 }
             } else {
-                const lower = cleanLink.anchor.toLowerCase();
+                const lower = cleanLink.anchor
+                    .toLowerCase()
+                    .replace(/[.]/g, "");
                 const tgtHeading = tgtFileCache.headings
                     ? tgtFileCache.headings.find(
                           (x) =>
                               lower ===
                               x.heading
                                   .toLowerCase()
-                                  .replace(/[?:]/g, "")
+                                  .replace(/[?:.]/g, "")
                                   .replace("#", " "),
                       )
                     : "";
