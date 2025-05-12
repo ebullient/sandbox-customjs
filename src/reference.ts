@@ -272,18 +272,25 @@ export class Reference {
         return this.utils().scopedFilesWithConditions(engine, conditions);
     };
 
+    log = (engine: EngineAPI) => {
+        return this.utils().listInboundLinks(engine);
+    };
+
     logs = (engine: EngineAPI, conditions: Conditions) => {
         const conditionsFilter =
             this.utils().createFileConditionFilter(conditions);
-        const files = this.utils().filesMatchingCondition((tfile: TFile) => {
-            return (
+        const files = this.utils().filesMatchingCondition(
+            (tfile: TFile) =>
                 this.utils().filterByPath(tfile, /sessions/) &&
-                conditionsFilter(tfile)
-            );
-        });
-        return engine.markdown.create(
-            files.map((f) => this.utils().scopedFileListItem(f)).join("\n"),
+                conditionsFilter(tfile),
         );
+        return files == null || files.length === 0
+            ? engine.markdown.create("None")
+            : engine.markdown.create(
+                  files
+                      .map((f) => this.utils().scopedFileListItem(f))
+                      .join("\n"),
+              );
     };
 
     /**
