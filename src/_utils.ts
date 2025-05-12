@@ -308,11 +308,14 @@ export class Utils {
         }
 
         const fileCache = this.app.metadataCache.getFileCache(tfile);
-        if (!fileCache?.links) {
+        if (!fileCache?.links && !fileCache?.embeds) {
             return false;
         }
 
-        return fileCache.links
+        const links = fileCache.links || [];
+        links.push(...(fileCache.embeds || []));
+
+        return links
             .filter((link) => !link.link.match(/^(http|mailto|view-source)/))
             .map((link) => this.cleanLinkTarget(link))
             .some((cleanedLink) => {
@@ -522,7 +525,9 @@ export class Utils {
                 result.push(`- ${this.markdownLink(v)}${note}`);
             }
         }
-        return engine.markdown.create(result.join("\n"));
+        return result == null || result.length === 0
+            ? engine.markdown.create("None")
+            : engine.markdown.create(result.join("\n"));
     };
 
     /**
@@ -552,9 +557,11 @@ export class Utils {
         includeCurrent = false,
     ): string => {
         const files = this.filesWithPath(pathPattern);
-        return engine.markdown.create(
-            files.map((f) => this.fileListItem(f)).join("\n"),
-        );
+        return files == null || files.length === 0
+            ? engine.markdown.create("None")
+            : engine.markdown.create(
+                  files.map((f) => this.fileListItem(f)).join("\n"),
+              );
     };
 
     /**
@@ -567,9 +574,11 @@ export class Utils {
     listInboundLinks = (engine: EngineAPI): string => {
         const current = this.app.workspace.getActiveFile();
         const files = this.filesLinkedToFile(current);
-        return engine.markdown.create(
-            files.map((f) => this.fileListItem(f)).join("\n"),
-        );
+        return files == null || files.length === 0
+            ? engine.markdown.create("None")
+            : engine.markdown.create(
+                  files.map((f) => this.fileListItem(f)).join("\n"),
+              );
     };
 
     /**
@@ -667,9 +676,11 @@ export class Utils {
         conditions: string | string[],
     ): string => {
         const files = this.filesWithConditions(conditions);
-        return engine.markdown.create(
-            files.map((f) => this.scopedFileListItem(f)).join("\n"),
-        );
+        return files == null || files.length === 0
+            ? engine.markdown.create("None")
+            : engine.markdown.create(
+                  files.map((f) => this.scopedFileListItem(f)).join("\n"),
+              );
     };
 
     /**
