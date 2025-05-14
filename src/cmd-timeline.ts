@@ -30,7 +30,6 @@ export class Timeline {
 
         const HeistAPI = window.Calendarium.getAPI("Heist");
         const events = HeistAPI.getEvents();
-        console.log(events);
 
         const groupByYear = this.groupByYear(HeistAPI, events);
         await this.renderTimeline(timeline, () => {
@@ -58,24 +57,20 @@ export class Timeline {
             result += "## Allied Factions\n";
             result += "\n";
 
-            result += this.list(emoji, 3, "⚔️", "Doom Raiders");
-            result += this.list(emoji, 3, "🪬", "Force Grey");
             result += this.list(emoji, 3, "🎻", "Harpers");
+            result += this.list(emoji, 3, "🪬", "Force Grey");
+            result += this.list(emoji, 3, "🏰", "Lords' Alliance");
+            result += this.list(emoji, 3, "⚔️", "Doom Raiders");
+            result += this.list(emoji, 3, "🧝🏿", "Bregan D'aerthe");
 
             result += "\n";
             result += "## Opposing Factions\n";
             result += "\n";
 
-            result += this.list(emoji, 3, "🧝🏿", "Bregan D'aerthe");
             result += this.list(emoji, 3, "👺", "Cassalanters");
-            result += this.list(
-                emoji,
-                3,
-                "💃",
-                "Gralhund's (Cassalanters / Zhenterim)",
-            );
-            result += this.list(emoji, 3, "🦹", "Manshoon Clone / Zhenterim");
+            result += this.list(emoji, 3, "💃", "Gralhund's");
             result += this.list(emoji, 3, "👾", "Xanathar Guild");
+            result += this.list(emoji, 3, "🧠", "Nihiloor / Intellect Devourers");
 
             result += "\n";
             result += "## Nusiances\n";
@@ -89,9 +84,15 @@ export class Timeline {
             result += "\n";
 
             result += this.list(emoji, 3, "🌿", "Emerald Enclave");
-            result += this.list(emoji, 3, "🏰", "Lords' Alliance");
             result += this.list(emoji, 3, "🌹", "Order of the Gauntlet");
             result += this.list(emoji, 3, "🧙‍♀️", "Watchful Order");
+
+            result += "\n";
+            result += "## Former factions and actors\n";
+            result += "\n";
+            result += this.list(emoji, 3, "🦹", "Manshoon Clone / Zhenterim");
+
+            result += "\n";
             return result;
         });
     }
@@ -186,7 +187,18 @@ export class Timeline {
         const data = this.punctuate(event.description);
         const suffix = event.note ? ` [➹](${event.note})` : "";
 
-        return `<span data-timeline="${event.sort.timestamp}">\`${date}\` *${name}* ${data}${suffix}</span>`;
+        const regex = /^([ \p{Emoji_Presentation}]*)\s*([\p{L}\p{N}].*)$/u;
+
+        let text = `*${name}*`;
+        const match = name.match(regex);
+        if (match) {
+            const leading = match[1]; // 🎻
+            const rest = match[2]; // Harpers are allies.
+
+            text = `${leading} *${rest}*`;
+        }
+
+        return `<span data-timeline="${event.sort.timestamp}">\`${date}\` ${text} ${data}${suffix}</span>`;
     };
 
     /**
@@ -268,7 +280,7 @@ export class Timeline {
 
     punctuate = (str: string): string => {
         let out = str.trim();
-        if (!out.match(/.*[.!?]$/)) {
+        if (out && !out.match(/.+[.!?]$/)) {
             out += ".";
         }
         return out;
