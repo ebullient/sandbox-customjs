@@ -1,6 +1,6 @@
 import type { App, TFolder } from "obsidian";
-import type { Utils } from "./_utils";
 import type { Templater } from "./@types/templater.types";
+import type { Utils } from "./_utils";
 
 interface LineInfo {
     title: string;

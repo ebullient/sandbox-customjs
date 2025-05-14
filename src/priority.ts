@@ -1,7 +1,7 @@
 import type { App, FrontMatterCache, TFile } from "obsidian";
-import type { CompareFn, Conditions, FileFilterFn, Utils } from "./_utils";
 import type { EngineAPI } from "./@types/jsengine.types";
 import type { Templater } from "./@types/templater.types";
+import type { CompareFn, Conditions, FileFilterFn, Utils } from "./_utils";
 
 export class AreaPriority {
     app: App;

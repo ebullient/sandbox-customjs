@@ -1,5 +1,5 @@
-import type { RenderFn } from "./_utils";
 import type { App, CachedMetadata, TFile } from "obsidian";
+import type { RenderFn } from "./_utils";
 import type { Campaign } from "./campaign";
 
 interface FileContent {

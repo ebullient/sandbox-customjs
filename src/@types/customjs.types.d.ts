@@ -1,8 +1,8 @@
 import type * as obsidian from "obsidian";
-import type { AreaPriority } from "src/priority";
+import type { Utils } from "src/_utils";
 import type { Campaign } from "src/campaign";
 import type { Timeline } from "src/cmd-timeline";
-import type { Utils } from "src/_utils";
+import type { AreaPriority } from "src/priority";
 import type { Reference } from "src/reference";
 
 // Note: Partial CustomJS API

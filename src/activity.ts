@@ -1,7 +1,7 @@
 import type { Moment } from "moment";
-import type { Utils } from "./_utils";
-import type { EngineAPI } from "./@types/jsengine.types";
 import type { App } from "obsidian";
+import type { EngineAPI } from "./@types/jsengine.types";
+import type { Utils } from "./_utils";
 
 declare global {
     interface Window {

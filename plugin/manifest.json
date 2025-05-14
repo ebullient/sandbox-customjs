@@ -1,0 +1,10 @@
+{
+  "id": "ebullient-campaign-index",
+  "name": "Campaign Index",
+  "version": "0.1.0",
+  "minAppVersion": "0.13.10",
+  "description": "Campaign data index",
+  "author": "ebullient",
+  "authorUrl": "https://github.com/ebullient",
+  "isDesktopOnly": false
+}

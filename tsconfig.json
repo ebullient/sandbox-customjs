@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+    "rootDir": "src",
     "outDir": "dist",
     "sourceMap": false,
     "module": "ESNext",
@@ -14,9 +15,15 @@
       "es5",
       "scripthost",
       "es2020"
-    ],
+    ]
   },
   "include": [
     "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "plugin"
   ]
 }

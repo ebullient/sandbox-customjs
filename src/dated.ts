@@ -112,7 +112,7 @@ export class Dated {
             nextMonday: window.moment(theMonday).add(1, "week"),
         };
     };
-    
+
     dateOfWeek = (monday: Moment, dayOfWeek: number): string => {
         return window.moment(monday).day(dayOfWeek).format("YYYY-MM-DD");
     };

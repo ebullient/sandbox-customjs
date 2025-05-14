@@ -3,9 +3,9 @@ import type {
     App,
     FrontMatterCache,
     LinkCache,
-    TagCache,
     TFile,
     TFolder,
+    TagCache,
 } from "obsidian";
 import type { EngineAPI } from "./@types/jsengine.types";
 
@@ -312,7 +312,8 @@ export class Utils {
             return false;
         }
 
-        const links = fileCache.links || [];
+        const links = [];
+        links.push(...(fileCache.links || []));
         links.push(...(fileCache.embeds || []));
 
         return links
@@ -405,6 +406,14 @@ export class Utils {
         // single string: return true if tag is present
         const tagRegex = this.tagFilterRegex(tag);
         return fileTags.some((ftag) => tagRegex.test(ftag));
+    };
+
+    filterByTags = (tfile: TFile, tagRegexes: RegExp[]): boolean => {
+        if (tagRegexes.length === 0) {
+            return true;
+        }
+        const fileTags = this.fileTags(tfile);
+        return fileTags.some((t) => tagRegexes.some((regex) => regex.test(t)));
     };
 
     /**
@@ -696,6 +705,10 @@ export class Utils {
         link: string,
     ): string => {
         return `- <small>(${scope})</small> [${displayText}](${link})`;
+    };
+
+    scopeRegex = (str: string): RegExp => {
+        return new RegExp(`^${str}$`, "i");
     };
 
     /**

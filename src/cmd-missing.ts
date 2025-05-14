@@ -1,5 +1,5 @@
-import type { RenderFn, Utils } from "./_utils";
 import type { App, LinkCache, TFile } from "obsidian";
+import type { RenderFn, Utils } from "./_utils";
 
 type FileReferences = Record<string, number>;
 

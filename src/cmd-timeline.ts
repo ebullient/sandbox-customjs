@@ -1,7 +1,7 @@
-import type { Campaign } from "./campaign";
-import type { RenderFn, Utils } from "./_utils";
 import type { App, TFile } from "obsidian";
-import type { CalendarAPI, CalEvent } from "./@types/calendarium.types";
+import type { CalEvent, CalendarAPI } from "./@types/calendarium.types";
+import type { RenderFn, Utils } from "./_utils";
+import type { Campaign } from "./campaign";
 
 type EventsByString = { [key: string]: CalEvent[] };
 type EventsByYear = { [key: number]: CalEvent[] };
@@ -70,7 +70,12 @@ export class Timeline {
             result += this.list(emoji, 3, "👺", "Cassalanters");
             result += this.list(emoji, 3, "💃", "Gralhund's");
             result += this.list(emoji, 3, "👾", "Xanathar Guild");
-            result += this.list(emoji, 3, "🧠", "Nihiloor / Intellect Devourers");
+            result += this.list(
+                emoji,
+                3,
+                "🧠",
+                "Nihiloor / Intellect Devourers",
+            );
 
             result += "\n";
             result += "## Nusiances\n";

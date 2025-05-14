@@ -1,7 +1,7 @@
 import type { App, TFile, TFolder } from "obsidian";
-import type { Utils } from "./_utils";
-import type { Templater } from "./@types/templater.types";
 import type { RollResult } from "./@types/diceroller.types";
+import type { Templater } from "./@types/templater.types";
+import type { Utils } from "./_utils";
 
 interface Date {
     year: number;

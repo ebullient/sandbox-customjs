@@ -1,15 +1,18 @@
-// Note: Partial JS-Engine API
-
-export interface EngineAPI {
-    markdown: MarkdownAPI;
-}
+// Type definitions for JS Engine Plugin's Markdown API
 
 export interface MarkdownAPI {
+    create(markdownString: string): string;
     createBuilder(): MarkdownBuilder;
-    create(markdown: string): string;
 }
 
 export interface MarkdownBuilder {
-    createTable(arg0: string[], arg1: string[][]): unknown;
     createHeading(arg0: number, arg1: string): unknown;
+    createParagraph(arg0: string): unknown;
+    addText(text: string): MarkdownBuilder;
+}
+
+// Engine API interface that includes Markdown API
+export interface EngineAPI {
+    markdown: MarkdownAPI;
+    // ... other Engine API properties
 }
