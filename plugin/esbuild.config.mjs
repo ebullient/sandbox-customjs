@@ -91,17 +91,18 @@ function copyManifest() {
     try {
         const manifestPath = path.join(pluginDir, "manifest.json");
         const targetPath = path.join(process.cwd(), outDir, "manifest.json");
-
-        // Read the manifest file
         const manifest = fs.readFileSync(manifestPath, "utf8");
-
-        // Create the output directory if it doesn't exist
         fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-
-        // Write the manifest to the output directory
         fs.writeFileSync(targetPath, manifest);
-
         console.log(`Manifest copied to ${targetPath}`);
+
+        const stylesPath = path.join(pluginDir, "styles.css");
+        const stylesTargetPath = path.join(process.cwd(), outDir, "styles.css");
+        const styles = fs.readFileSync(stylesPath, "utf8");
+        fs.mkdirSync(path.dirname(stylesTargetPath), { recursive: true });
+        fs.writeFileSync(stylesTargetPath, styles);
+        console.log(`Styles copied to ${stylesTargetPath}`);
+
     } catch (error) {
         console.error("Error copying manifest:", error);
     }

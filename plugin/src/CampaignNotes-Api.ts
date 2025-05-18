@@ -1,17 +1,21 @@
-import type { Plugin, Reference, TFile } from "obsidian";
-import {
-    type Area,
-    type CampaignEntity,
-    type CleanLink,
-    type Encounter,
-    EncounterStatus,
+import type { CampaignNotesCache } from "CampaignNotes-Cache";
+import type { Editor, Plugin, TFile } from "obsidian";
+import type {
+    Area,
+    CampaignEntity,
+    CleanLink,
+    Encounter,
     EntityType,
-    type Group,
-    type Item,
-    type NPC,
-    type Place,
+    Group,
+    Item,
+    NPC,
+    Place,
 } from "./@types";
 import type { CampaignReferenceAPI } from "./@types/api";
+import type {
+    EntityLinkOptions,
+    EntitySelectorService,
+} from "./CampaignNotes-EntitySelector";
 import type { CampaignNotesIndex } from "./CampaignNotes-Index";
 
 /**
@@ -20,84 +24,86 @@ import type { CampaignNotesIndex } from "./CampaignNotes-Index";
 export class CampaignReference implements CampaignReferenceAPI {
     plugin: Plugin;
     index: CampaignNotesIndex;
+    cache: CampaignNotesCache;
+    entitySelector: EntitySelectorService;
 
-    constructor(plugin: Plugin, index: CampaignNotesIndex) {
+    constructor(
+        plugin: Plugin,
+        index: CampaignNotesIndex,
+        cache: CampaignNotesCache,
+        entitySelector: EntitySelectorService,
+    ) {
         this.plugin = plugin;
         this.index = index;
+        this.cache = cache;
+        this.entitySelector = entitySelector;
     }
 
     /**
      * Get all areas
      */
     getAllAreas(scope = ""): Area[] {
-        return this.index.getEntitiesByType(EntityType.AREA, scope);
+        return this.index.getAllAreas(scope);
     }
 
     /**
      * Get all encounters
      */
     getAllEncounters(scope = ""): Encounter[] {
-        return this.index.getEntitiesByType(EntityType.ENCOUNTER, scope);
-    }
-
-    /**
-     * Get active encounters
-     */
-    getActiveEncounters(scope = ""): Encounter[] {
-        const encounters = this.getAllEncounters(scope);
-        return encounters.filter((e) => {
-            return e.status === EncounterStatus.ACTIVE;
-        });
+        return this.index.getAllEncounters(scope);
     }
 
     /**
      * Get all groups
      */
     getAllGroups(scope = ""): Group[] {
-        return this.index.getEntitiesByType(EntityType.GROUP, scope);
+        return this.index.getAllGroups(scope);
     }
 
     /**
      * Get all items
      */
     getAllItems(scope = ""): Item[] {
-        return this.index.getEntitiesByType(EntityType.ITEM, scope);
+        return this.index.getAllItems(scope);
     }
 
     /**
      * Get all locations
      */
     getAllPlaces(scope = ""): Place[] {
-        return this.index.getEntitiesByType(EntityType.PLACE, scope);
+        return this.index.getAllPlaces(scope);
     }
 
     /**
      * Get all NPCs
      */
-    getAllNPCs(scope = ""): NPC[] {
-        return this.index.getEntitiesByType(EntityType.NPC, scope);
+    getAllNPCs(scopePattern?: string): NPC[] {
+        return this.index.getAllNPCs(scopePattern);
     }
 
-    getBacklinks(filePath: string, scope: string): TFile[] {
-        return this.index.getBacklinks(filePath, scope);
+    getBacklinks(filePath: string, scopePattern?: string): TFile[] {
+        return this.cache.getBacklinks(filePath, scopePattern);
     }
 
-    getLinks<T extends CampaignEntity>(entity: T): CleanLink[] {
-        return this.index.getLinks(entity);
+    getLinks<T extends CampaignEntity>(entity: T): string[] {
+        return this.cache.getLinks(entity);
     }
 
     /**
      * Get entities by tag
      */
-    getEntitiesByTag(tag: string, scope = ""): CampaignEntity[] {
-        return this.index.getEntitiesByTag(tag, scope);
+    getEntitiesByTag(tag: string, scopePattern?: string): CampaignEntity[] {
+        return this.index.getEntitiesByTag(tag, scopePattern);
     }
 
     /**
      * Get entities by type
      */
-    getEntitiesByType(type: EntityType, scope?: string): CampaignEntity[] {
-        return this.index.getEntitiesByType(type, scope);
+    getEntitiesByType(
+        type: EntityType,
+        scopePattern?: string,
+    ): CampaignEntity[] {
+        return this.index.getEntitiesByType(type, scopePattern);
     }
 
     /**
@@ -114,48 +120,20 @@ export class CampaignReference implements CampaignReferenceAPI {
         return this.index.getEntitiesByFile(filePath);
     }
 
-    getIcons(entity: CampaignEntity): string {
-        const state = entity.state['*'];
-        if (state.icons) {
-            return state.icons;
-        }
-
-        const icons = new Set<string>();
-        if (entity.icon) {
-            icons.add(entity.icon);
-        }
-        if (entity.type === EntityType.NPC) {
-            const groupTags = entity.tags.filter((tag) =>
-                tag.startsWith("group/"),
-            );
-            for (const tag of groupTags) {
-                const group = this.index.getEntityById(tag);
-                if (group?.icon) {
-                    icons.add(group.icon);
-                }
-            }
-        }
-        state.icons = Array.from(icons).sort().join(" ");
-        return state.icons;
-    }
-
     getGeneratedIndexFiles(): TFile[] {
-        return [...this.index.indexes.values()];
+        return this.index.getGeneratedIndexFiles();
     }
 
-    getLastSeen(entity: CampaignEntity): string {
-        const state = entity.state['*'];
-        if (state.lastSeen) {
-            return state.lastSeen;
-        }
+    getIcons(entity: CampaignEntity): string {
+        return this.cache.getIcons(entity);
+    }
 
-        const lastSeen = this.getBacklinks(entity.file.path, entity.scope)
-            .filter((f) => f.path.match(/sessions/))
-            .sort((a, b) => a.path.localeCompare(b.path))
-            .pop();
+    getLastSeen(entity: CampaignEntity, scopePattern?: string): string {
+        return this.cache.getLastSeen(entity, scopePattern);
+    }
 
-        state.lastSeen = lastSeen?.basename.match(/\d+/)?.[0] || "";
-        return state.lastSeen;
+    includeFile(file: TFile): boolean {
+        return !this.index.skipFile(file);
     }
 
     /**
@@ -165,68 +143,25 @@ export class CampaignReference implements CampaignReferenceAPI {
         return this.index.rebuildIndex();
     }
 
-    /* Convert iff status into an emoji */
-    iffStatusIcon(iff: string): string {
-        // ["family", "pet"], "friend", "ally", "enemy",
-        // "positive", "neutral", "negative", "unknown"
-        switch (iff) {
-            case "family":
-                return "💖";
-            case "pet":
-                return "💖";
-            case "taproom":
-                return "🍺";
-            case "friend":
-                return "🩵";
-            case "ally":
-                return "💚";
-            case "enemy":
-                return "🔥";
-            case "positive":
-                return "👍";
-            case "negative":
-                return "👎";
-            case "neutral":
-                return "🤝";
-            default:
-                return "⬜️";
-        }
-    }
-
-    /* Convert status into an emoji */
-    statusIcon(alive: string): string {
-        switch (alive) {
-            case "alive":
-                return "🌱";
-            case "dead":
-                return "💀";
-            case "undead":
-                return "🧟‍♀️";
-            case "ghost":
-                return "👻";
-            default:
-                return "⬜️";
-        }
-    }
-
-    typeIcon(type: string): string {
-        switch (type) {
-            case "area":
-                return "🗺️";
-            case "encounter":
-                return "🎢";
-            case "group":
-                return "👥";
-            case "item":
-                return "🧸";
-            case "place":
-                return "🎠";
-            case "npc":
-                return "👤";
-            case "pc":
-                return "😇";
-            default:
-                return "⬜️";
-        }
+    /**
+     * Open the entity selector modal
+     *
+     * @param editor The editor instance (optional)
+     * @param type Filter by entity type (optional)
+     * @param scopePattern Filter by scope pattern (optional)
+     * @param options Link formatting options (optional)
+     */
+    openEntitySelector(
+        editor: Editor | null = null,
+        type?: EntityType,
+        scopePattern?: string,
+        options: EntityLinkOptions = {},
+    ): void {
+        this.entitySelector.openEntitySelector(
+            editor,
+            type,
+            scopePattern,
+            options,
+        );
     }
 }

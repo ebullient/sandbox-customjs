@@ -1,5 +1,3 @@
-import type { TFile } from "obsidian";
-
 export enum EntityType {
     AREA = "area",
     ENCOUNTER = "encounter",
@@ -43,9 +41,35 @@ export enum NPC_IFF {
     UNKNOWN = "unknown",
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: generic holder
+export type DataMap = Map<string, any>;
+export type EntityMap = Map<string, CampaignEntity>;
+export type StringMap = Map<string, string>;
+
+export type RelationshipCache = {
+    timestamp?: number; // When this cache was created
+    lists: {
+        [key: string]: CampaignEntity[]; // List of entities
+    };
+    data: {
+        [key: string]: DataMap;
+    };
+};
+
+export interface DataScope {
+    active: string;
+    pattern: string;
+    regex: RegExp;
+    filter?: RegExp;
+}
+
+export interface RowCount {
+    count: number;
+}
+
 export interface CleanLink {
-    entityRef: string;
-    link: string;
+    mdLink: string;
+    path: string;
     text?: string;
     anchor?: string;
 }
@@ -57,7 +81,7 @@ export interface CampaignEntity {
     type: EntityType; // Entity type (npc, group, location, etc.)
 
     // File information
-    file: TFile; // Reference to the original file
+    filePath: string; // Path of the original file
     anchor?: string; // Optional anchor for the entity
 
     // Common properties
@@ -68,6 +92,7 @@ export interface CampaignEntity {
     tags: string[]; // Tags associated with the entity
 
     // Campaign-specific properties
+    scopeStatePrefix?: string; // JSON path to scope-specific state in original note
     state?: {
         [key: string]: CampaignState;
     };

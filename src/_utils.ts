@@ -16,8 +16,8 @@ export type FileFilterFn = (a: TFile) => boolean;
 export type FileGroupByFn = (a: TFile) => string;
 export type FolderFilterFn = (a: TFolder) => boolean;
 export type RenderFn = () => string;
-
 export type SegmentFn = (tag: string) => string;
+export type Tags = string | string[];
 
 interface CleanLink {
     link: string;

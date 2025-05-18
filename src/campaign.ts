@@ -170,7 +170,6 @@ export class Campaign {
 
         // tags for all files, not current file
         const values = allTags.filter((tag) => tag.startsWith(filter)).sort();
-
         console.log("chooseTag", filter, defaultValue, values);
 
         values.unshift("--"); // add to the beginning

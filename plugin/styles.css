@@ -1,0 +1,19 @@
+.suggestion-item {
+  display: flex;
+  flex-direction: row;
+
+  .scope,
+  .type {
+    flex-grow: 1;
+    width: 6em;
+    max-width: 6em;
+  }
+
+  .type {
+    text-align: right;
+  }
+
+  .name {
+    flex-grow: 3;
+  }
+}

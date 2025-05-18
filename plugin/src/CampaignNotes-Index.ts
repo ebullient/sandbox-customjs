@@ -1,18 +1,23 @@
 import {
+    addToMappedMap,
+    lowerKebab,
+    markdownLinkPath,
+    scopeToRegex,
+} from "CampaignNotes-utils";
+import {
     type FrontMatterCache,
-    type LinkCache,
-    Reference,
     type TAbstractFile,
     TFile,
     getAllTags,
 } from "obsidian";
 import {
+    type Area,
     type CampaignEntity,
     type CampaignState,
-    type CleanLink,
     type Encounter,
     EntityType,
     type Group,
+    type GroupStatus,
     type Item,
     type NPC,
     NPCStatus,
@@ -24,16 +29,16 @@ import type { CampaignNotesSettings } from "./@types/settings";
 import type CampaignNotesPlugin from "./main";
 
 const generalTagPrefixes = ["group", "item", "place", "region", "type"];
+const validEntityTypes: Set<string> = new Set(Object.values(EntityType));
+const typeTagPrefix = "type/";
 
 export const DEFAULT_SETTINGS: CampaignNotesSettings = {
     includeFolders: ["campaign-notes"],
     keepTagPrefix: [],
     campaignScopes: [],
+    defaultScopePattern: "*",
     debug: false,
 };
-
-const validEntityTypes: Set<string> = new Set(Object.values(EntityType));
-const typeTagPrefix = "type/";
 
 export class CampaignNotesIndex {
     plugin: CampaignNotesPlugin;
@@ -41,10 +46,10 @@ export class CampaignNotesIndex {
 
     // Main indexes
     entities: Map<string, CampaignEntity> = new Map();
+    uniqueIndex: Map<string, CampaignEntity> = new Map();
 
     // Secondary indexes for quick lookup
-    backlinksIndex: Map<string, TFile[]> = new Map();
-    indexes: Map<string, TFile> = new Map();
+    generatedIndex: Map<string, TFile> = new Map();
 
     filePathToEntities: Map<string, Map<string, CampaignEntity>> = new Map();
     tagToEntities: Map<string, Map<string, CampaignEntity>> = new Map();
@@ -62,11 +67,21 @@ export class CampaignNotesIndex {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: we're debugging; yes. any.
     logDebug(message: string, ...optionalParams: any[]): void {
         if (!this.plugin.settings || this.plugin.settings.debug) {
             console.debug(`(CN) ${message}`, ...optionalParams);
         }
+    }
+
+    clearIndex(): void {
+        // Clear existing indexes
+        this.uniqueIndex.clear();
+        this.entities.clear();
+        this.filePathToEntities.clear();
+        this.typeToEntities.clear();
+        this.tagToEntities.clear();
+        this.generatedIndex.clear();
     }
 
     /**
@@ -74,14 +89,7 @@ export class CampaignNotesIndex {
      */
     async rebuildIndex(): Promise<void> {
         console.log("Rebuilding campaign notes index");
-
-        // Clear existing indexes
-        this.entities.clear();
-        this.filePathToEntities.clear();
-        this.typeToEntities.clear();
-        this.tagToEntities.clear();
-        this.backlinksIndex.clear();
-        this.indexes.clear();
+        this.clearIndex();
 
         // Get all markdown files in the included folders
         const files = this.getFilesInIncludedFolders();
@@ -92,71 +100,7 @@ export class CampaignNotesIndex {
             await this.processFile(file);
         }
 
-        console.log(`Indexed ${this.entities.size} entities`, this);
-    }
-
-    getBacklinks(filePath: string, scopePattern: string): TFile[] {
-        const file = this.plugin.app.vault.getAbstractFileByPath(filePath);
-        if (!(file instanceof TFile)) {
-            return [];
-        }
-        const files =
-            this.backlinksIndex.get(filePath) || this.findBacklinks(file);
-        if (scopePattern) {
-            // Filter by scope if provided
-            const pathRegex = this.segmentFilterRegex(scopePattern);
-            return files.filter((f) => pathRegex.test(f.path));
-        }
-        return files;
-    }
-
-    getLinks<T extends CampaignEntity>(entity: T): CleanLink[] {
-        const cache = this.plugin.app.metadataCache.getFileCache(entity.file);
-        if (!cache) {
-            return []; // Skip files without metadata
-        }
-        const linkRefs = [];
-        linkRefs.push(...(cache.links || []));
-        linkRefs.push(...(cache.embeds || []));
-
-        return Array.from(
-            new Set(
-                linkRefs
-                    .filter((ref) => !ref.link.startsWith("#"))
-                    .map((linkRef) => this.cleanLinkTarget(linkRef)),
-            ),
-        );
-    }
-
-    /**
-     * Get entities of a specific type
-     */
-    getEntitiesByType<T extends CampaignEntity>(
-        type: EntityType,
-        scopePattern?: string,
-    ): T[] {
-        const entities = this.typeToEntities.get(type);
-        const values = entities ? Array.from(entities.values()) : [];
-        if (scopePattern) {
-            // Filter by scope if provided
-            const scopeRegex = this.scopeRegex(scopePattern);
-            return values.filter((v) => scopeRegex.test(v.scope)) as T[];
-        }
-        return values as T[];
-    }
-
-    /**
-     * Get entities with a specific tag
-     */
-    getEntitiesByTag(tag: string, scopePattern: string): CampaignEntity[] {
-        const entities = this.tagToEntities.get(tag);
-        const values = entities ? Array.from(entities.values()) : [];
-        if (scopePattern) {
-            // Filter by scope if provided
-            const scopeRegex = this.scopeRegex(scopePattern);
-            return values.filter((v) => scopeRegex.test(v.scope));
-        }
-        return values;
+        console.log(`Indexed ${this.uniqueIndex.size} entities`, this);
     }
 
     /**
@@ -169,22 +113,54 @@ export class CampaignNotesIndex {
 
     /**
      * Get an entity by ID
+     * This could be a url target or a tag
      */
     getEntityById(id: string): CampaignEntity | undefined {
         return this.entities.get(id);
     }
 
     /**
-     * Get title of a file (without extension)
+     * Get entities within a specific scope
      */
-    getFileTitle(file: TFile): string {
-        const cache = this.plugin.app.metadataCache.getFileCache(file);
-        const aliases = cache?.frontmatter?.aliases;
-        const alias = aliases ? aliases[0] : file.basename;
-        if (typeof alias === "string") {
-            return alias;
+    getEntities(scopePattern: string): CampaignEntity[] {
+        const scopeRegex = scopeToRegex(scopePattern);
+        const result = Array.from(this.uniqueIndex.values()).filter((v) =>
+            scopeRegex.test(v.scope),
+        );
+        return result;
+    }
+
+    /**
+     * Get entities with a specific tag
+     */
+    getEntitiesByTag(tag: string, scopePattern: string): CampaignEntity[] {
+        const entities = this.tagToEntities.get(tag);
+        const values = entities ? Array.from(entities.values()) : [];
+        if (scopePattern) {
+            // Filter by scope if provided
+            const scopeRegex = scopeToRegex(scopePattern);
+            return values.filter((v) => scopeRegex.test(v.scope));
         }
-        return file.basename;
+        return values;
+    }
+
+    /**
+     * Get entities of a specific type
+     */
+    getEntitiesByType<T extends CampaignEntity>(
+        type: EntityType,
+        scopePattern?: string,
+    ): T[] {
+        const entitiesOfType = this.typeToEntities.get(type);
+        const values = entitiesOfType
+            ? Array.from(entitiesOfType.values())
+            : [];
+        if (scopePattern) {
+            // Filter by scope if provided
+            const scopeRegex = scopeToRegex(scopePattern);
+            return values.filter((v) => scopeRegex.test(v.scope)) as T[];
+        }
+        return values as T[];
     }
 
     /**
@@ -201,6 +177,30 @@ export class CampaignNotesIndex {
     }
 
     /**
+     * Get title of a file (without extension)
+     */
+    getFileTitle(file: TFile): string {
+        const cache = this.plugin.app.metadataCache.getFileCache(file);
+        const aliases = cache?.frontmatter?.aliases;
+        const alias = aliases ? aliases[0] : file.basename;
+        if (typeof alias === "string") {
+            return alias;
+        }
+        return file.basename;
+    }
+
+    getScopes(): string[] {
+        return this.plugin.settings.campaignScopes;
+    }
+
+    getEntityType(typeString: string): EntityType | undefined {
+        if (validEntityTypes.has(typeString.toLowerCase())) {
+            return typeString.toLowerCase() as EntityType;
+        }
+        return undefined;
+    }
+
+    /**
      * Determine all entity types for a file based on frontmatter and/or tags
      */
     getTypesForFile(
@@ -212,7 +212,6 @@ export class CampaignNotesIndex {
         }
 
         const types: Set<string> = new Set();
-
         if (frontmatter?.area) {
             types.add("area");
         }
@@ -250,81 +249,6 @@ export class CampaignNotesIndex {
     }
 
     /**
-     * Check if a file is in one of the included folders
-     */
-    isFileInIncludedFolders(file: TFile): boolean {
-        const { includeFolders } = this.plugin.settings;
-        return includeFolders.some(
-            (folder) =>
-                file.path === folder || file.path.startsWith(`${folder}/`),
-        );
-    }
-
-    /**
-     * Converts a name to lower kebab case.
-     * @param {string} name The name to convert.
-     * @returns {string} The name converted to lower kebab case.
-     */
-    lowerKebab = (name: string): string => {
-        return (name || "")
-            .replace(/([a-z])([A-Z])/g, "$1-$2") // separate on camelCase
-            .replace(/[\s_]+/g, "-") // replace all spaces and low dash
-            .replace(/[^0-9a-zA-Z_-]/g, "") // strip other things
-            .toLowerCase(); // convert to lower case
-    };
-
-    /**
-     * Cleans a link target by removing the title and extracting the anchor.
-     * @param {LinkCache} linkRef The link reference to clean.
-     * @returns {CleanLink} The cleaned link object.
-     */
-    cleanLinkTarget = (linkRef: LinkCache): CleanLink => {
-        let link = linkRef.link;
-
-        // remove/drop title: vaultPath#anchor "title" -> vaultPath#anchor
-        const titlePos = link.indexOf(' "');
-        if (titlePos >= 0) {
-            link = link.substring(0, titlePos);
-        }
-
-        // the entityRef will still contain %20 and the anchor.
-        // see markdownLinkPath
-        const entityRef = link.replace(/ /g, "%20").trim();
-
-        // extract anchor and decode spaces: vaultPath#anchor -> anchor and vaultPath
-        const anchorPos = link.indexOf("#");
-        const anchor =
-            anchorPos < 0
-                ? ""
-                : link
-                      .substring(anchorPos + 1)
-                      .replace(/%20/g, " ")
-                      .trim();
-
-        link = (anchorPos < 0 ? link : link.substring(0, anchorPos))
-            .replace(/%20/g, " ")
-            .trim();
-
-        return {
-            entityRef,
-            text: linkRef.displayText,
-            anchor,
-            link,
-        };
-    };
-
-    /**
-     * Converts a TFile to a markdown link path.
-     * @param {TFile} tfile The TFile to convert.
-     * @param {string} [anchor=""] The anchor to append to the path.
-     * @returns {string} The markdown link path.
-     */
-    markdownLinkPath = (tfile: TFile, anchor = ""): string => {
-        const hashAnchor = anchor ? `#${anchor}` : "";
-        return (tfile.path + hashAnchor).replace(/ /g, "%20");
-    };
-
-    /**
      * Handle file created event
      */
     handleFileCreated(file: TAbstractFile): void {
@@ -335,6 +259,18 @@ export class CampaignNotesIndex {
         if (this.isFileInIncludedFolders(file)) {
             this.processFile(file);
         }
+    }
+
+    /**
+     * Handle file deleted event
+     */
+    handleFileDeleted(file: TAbstractFile): void {
+        if (!(file instanceof TFile) || file.extension !== "md") {
+            return;
+        }
+        this.logDebug("File deleted", file);
+        // Remove any entities for this file
+        this.removeEntitiesForFile(file);
     }
 
     /**
@@ -356,18 +292,6 @@ export class CampaignNotesIndex {
     }
 
     /**
-     * Handle file deleted event
-     */
-    handleFileDeleted(file: TAbstractFile): void {
-        if (!(file instanceof TFile) || file.extension !== "md") {
-            return;
-        }
-        this.logDebug("File deleted", file);
-        // Remove any entities for this file
-        this.removeEntitiesForFile(file);
-    }
-
-    /**
      * Handle file renamed event
      */
     handleFileRenamed(file: TAbstractFile, oldPath: string): void {
@@ -382,113 +306,15 @@ export class CampaignNotesIndex {
         }
     }
 
-    scopeRegex = (str: string): RegExp => {
-        return new RegExp(`^${str}$`, "i");
-    };
-
-    segmentFilterRegex = (str: string): RegExp => {
-        return new RegExp(`^${str}(\\/|$)`);
-    };
-
-    skipFile(file: TFile): boolean {
-        const cache = this.plugin.app.metadataCache.getFileCache(file);
-        return this.skipFileFrontmatter(cache?.frontmatter);
-    }
-
-    skipFileFrontmatter(frontmatter: FrontMatterCache | undefined): boolean {
-        return (
-            frontmatter?.index === false || frontmatter?.index === "generated"
+    /**
+     * Check if a file is in one of the included folders
+     */
+    isFileInIncludedFolders(file: TFile): boolean {
+        const { includeFolders } = this.plugin.settings;
+        return includeFolders.some(
+            (folder) =>
+                file.path === folder || file.path.startsWith(`${folder}/`),
         );
-    }
-
-    /**
-     * Extract a single tag value
-     * Example: extractTagValue(['#place/waterdeep', '#group/harpers'], 'place/') => 'waterdeep'
-     */
-    extractTagValue(tags: string[], prefix: string): string {
-        for (const tag of tags) {
-            if (tag.startsWith(prefix)) {
-                return tag.substring(prefix.length);
-            }
-        }
-        return "";
-    }
-
-    /**
-     * Extract multiple tag values
-     * Example: extractArrayTagValues(['#group/harpers', '#group/lords-alliance'], 'group/')
-     *          => ['harpers', 'lords-alliance']
-     */
-    extractArrayTagValues(tags: string[], prefix: string): string[] {
-        const values: string[] = [];
-
-        for (const tag of tags) {
-            if (tag.startsWith(prefix)) {
-                values.push(tag.substring(prefix.length));
-            }
-        }
-
-        return values;
-    }
-
-    /**
-     * Process a single file and add its entities to the index
-     */
-    private async processFile(file: TFile): Promise<void> {
-        const metadata = this.plugin.app.metadataCache.getFileCache(file);
-        if (!metadata) {
-            return;
-        }
-
-        const frontmatter = metadata.frontmatter;
-        if (frontmatter?.index === 'generated') {
-            this.indexes.set(file.path, file);
-            return; // Skip files marked as generated
-        }
-        if (this.skipFile(file)) {
-            return; // Skip files marked as not indexable
-        }
-
-        const tags = (getAllTags(metadata) || []).map((tag) =>
-            tag.startsWith("#") ? tag.substring(1) : tag,
-        );
-
-        // Extract types from frontmatter and/or tags
-        const types = this.getTypesForFile(frontmatter, tags);
-        if (types.length === 0) {
-            return; // Skip files with no recognized types
-        }
-
-        // Process each type
-        for (const type of types) {
-            // Handle special case processing for different types of entities
-            switch (type) {
-                case "area":
-                    this.processAreas(file, frontmatter, tags);
-                    break;
-                case "encounter":
-                    this.processEncounters(file, frontmatter, tags);
-                    break;
-                case "group":
-                    this.processGroups(file, frontmatter, tags);
-                    break;
-                case "place":
-                    this.processPlaces(file, frontmatter, tags);
-                    break;
-                case "item":
-                    this.processItems(file, frontmatter, tags);
-                    break;
-                case "npc":
-                    this.processNPCs(file, frontmatter, tags);
-                    break;
-                case "pc":
-                    this.processPCs(file, frontmatter, tags);
-                    break;
-                default:
-                    // For any other types, just create a basic entity
-                    this.createBasicEntity(file, EntityType.UNKNOWN, tags);
-            }
-        }
     }
 
     /**
@@ -552,6 +378,66 @@ export class CampaignNotesIndex {
     }
 
     /**
+     * Process a single file and add its entities to the index
+     */
+    private async processFile(file: TFile): Promise<void> {
+        const metadata = this.plugin.app.metadataCache.getFileCache(file);
+        if (!metadata) {
+            return;
+        }
+
+        const frontmatter = metadata.frontmatter;
+        if (frontmatter?.index === "generated") {
+            this.generatedIndex.set(file.path, file);
+            return; // Skip files marked as generated
+        }
+        if (this.skipFile(file)) {
+            return; // Skip files marked as not indexable
+        }
+
+        const tags = (getAllTags(metadata) || []).map((tag) =>
+            tag.startsWith("#") ? tag.substring(1) : tag,
+        );
+
+        // Extract types from frontmatter and/or tags
+        const types = this.getTypesForFile(frontmatter, tags);
+        if (types.length === 0) {
+            return; // Skip files with no recognized types
+        }
+
+        // Process each type
+        for (const type of types) {
+            // Handle special case processing for different types of entities
+            switch (type) {
+                case "area":
+                    this.processAreas(file, frontmatter, tags);
+                    break;
+                case "encounter":
+                    this.processEncounters(file, frontmatter, tags);
+                    break;
+                case "group":
+                    this.processGroups(file, frontmatter, tags);
+                    break;
+                case "place":
+                    this.processPlaces(file, frontmatter, tags);
+                    break;
+                case "item":
+                    this.processItems(file, frontmatter, tags);
+                    break;
+                case "npc":
+                    this.processNPCs(file, frontmatter, tags);
+                    break;
+                case "pc":
+                    this.processPCs(file, frontmatter, tags);
+                    break;
+                default:
+                    // For any other types, just create a basic entity
+                    this.createBasicEntity(file, EntityType.UNKNOWN, tags);
+            }
+        }
+    }
+
+    /**
      * Process groups in a file
      */
     private processGroups(
@@ -571,21 +457,42 @@ export class CampaignNotesIndex {
                 // there are some shortcuts to avoid complicated structures
                 // for data entry on scoped groups.
 
+                // Values in the frontmatter apply to all scopes
                 if (fm?.status) {
                     entity.state["*"].status =
                         entity.state["*"].status || fm.status;
                 }
+                if (fm?.renown) {
+                    entity.state["*"].renown =
+                        entity.state["*"].renown || fm.renown;
+                }
 
                 // biome-ignore lint/complexity/useLiteralKeys: convenience, untyped
                 const entityStatus = entity["status"];
-
                 if (entity.scope && entityStatus) {
                     entity.state[entity.scope] =
                         entity.state[entity.scope] || {};
-                    const value =
+                    entity.state[entity.scope].status =
                         entity.state[entity.scope].status || entityStatus;
-                    if (value) {
-                        entity.state[entity.scope].status = value;
+                }
+
+                // look for tags (these are aggregated for entity and frontmatter)
+                // the tags include the scope and type: heist/renown/6, witchlight/renown/2
+                for (const tag of entity.tags) {
+                    const scopeRenown = tag.match(/([^/]+)\/renown\/(\d+)/);
+                    if (scopeRenown) {
+                        entity.state[scopeRenown[1]] =
+                            entity.state[scopeRenown[1]] || {};
+                        const state = entity.state[scopeRenown[1]];
+                        state.renown = state.renown || Number(scopeRenown[2]);
+                    }
+                    const scopeStatus = tag.match(/([^/]+)\/group\/(.*)/);
+                    if (scopeStatus) {
+                        entity.state[scopeStatus[1]] =
+                            entity.state[scopeStatus[1]] || {};
+                        const state = entity.state[scopeStatus[1]];
+                        state.status =
+                            state.status || (scopeStatus[2] as GroupStatus);
                     }
                 }
             },
@@ -606,30 +513,6 @@ export class CampaignNotesIndex {
             frontmatter,
             tags,
             (_e, _fm) => {},
-        );
-    }
-
-    /**
-     * Process locations in a file
-     */
-    private processPlaces(
-        file: TFile,
-        frontmatter: FrontMatterCache | undefined,
-        tags: string[],
-    ): void {
-        this.processEntityFrontmatter<Place>(
-            file,
-            EntityType.PLACE,
-            frontmatter,
-            tags,
-            (entity, _fm) => {
-                this.findSubType(entity, "type/place/");
-                this.findIdTag(entity, "place/");
-                entity.area = entity.tags.find((t) => t.startsWith("area/"));
-                if (!entity.area) {
-                    entity.area = entity.tags.find((t) => t.startsWith("region/"));
-                }
-            },
         );
     }
 
@@ -709,6 +592,32 @@ export class CampaignNotesIndex {
     }
 
     /**
+     * Process locations in a file
+     */
+    private processPlaces(
+        file: TFile,
+        frontmatter: FrontMatterCache | undefined,
+        tags: string[],
+    ): void {
+        this.processEntityFrontmatter<Place>(
+            file,
+            EntityType.PLACE,
+            frontmatter,
+            tags,
+            (entity, _fm) => {
+                this.findSubType(entity, "type/place/");
+                this.findIdTag(entity, "place/");
+                entity.area = entity.tags.find((t) => t.startsWith("area/"));
+                if (!entity.area) {
+                    entity.area = entity.tags.find((t) =>
+                        t.startsWith("region/"),
+                    );
+                }
+            },
+        );
+    }
+
+    /**
      * Create a basic entity with common properties
      */
     private createBasicEntity(
@@ -718,9 +627,9 @@ export class CampaignNotesIndex {
     ): CampaignEntity {
         const path = file.path;
         const entity: CampaignEntity = {
-            file,
-            id: this.markdownLinkPath(file),
+            id: markdownLinkPath(file.path),
             name: this.getFileTitle(file),
+            filePath: file.path,
             type,
             tags,
         };
@@ -729,8 +638,59 @@ export class CampaignNotesIndex {
             entity.scope = scope;
         }
         entity.state = entity.state || {};
-        entity.state['*'] = entity.state['*'] || {};
+        entity.state["*"] = entity.state["*"] || {};
         return entity;
+    }
+
+    private copyEntity<T extends CampaignEntity>(
+        entity: Partial<T>,
+    ): Partial<T> {
+        return JSON.parse(JSON.stringify(entity)) as Partial<T>;
+    }
+
+    private finalizeEntity<T extends CampaignEntity>(
+        entity: Partial<T>,
+        frontmatter: FrontMatterCache | undefined,
+        resolveProps?: (
+            entity: Partial<T>,
+            frontmatter: FrontMatterCache | undefined,
+        ) => void,
+    ): void {
+        if (resolveProps) {
+            resolveProps(entity, frontmatter);
+        }
+
+        const globalState = entity.state["*"];
+        if (globalState) {
+            // Merge the '*' state with other states
+            const stateKeys = Object.keys(entity.state).filter(
+                (key) => key !== "*",
+            );
+            if (entity.scope) {
+                stateKeys.push(entity.scope);
+            }
+            for (const key of stateKeys) {
+                const state = {
+                    ...globalState,
+                    ...(entity.state[key] || {}),
+                };
+                // Type assertion needed to satisfy TypeScript when modifying indexed properties on generic type
+                (entity.state as Record<string, CampaignState>)[key] = state;
+            }
+        }
+        entity.tags = (entity.tags || []).filter(
+            (tag) => !tag.startsWith(typeTagPrefix),
+        );
+    }
+
+    private findIdTag(entity: Partial<CampaignEntity>, tagRoot: string): void {
+        if (entity.idTag) {
+            return; // already set
+        }
+        const tagName = lowerKebab(entity.name);
+        entity.idTag = (entity.tags || []).find(
+            (tag) => tag.startsWith(tagRoot) && tag.endsWith(tagName),
+        );
     }
 
     private findSubType(
@@ -771,57 +731,6 @@ export class CampaignNotesIndex {
         }
     }
 
-    private findIdTag(entity: Partial<CampaignEntity>, tagRoot: string): void {
-        if (entity.idTag) {
-            return; // already set
-        }
-        const tagName = this.lowerKebab(entity.name);
-        entity.idTag = (entity.tags || []).find(
-            (tag) => tag.startsWith(tagRoot) && tag.endsWith(tagName),
-        );
-    }
-
-    // Method to find backlinks for a file
-    private findBacklinks(targetFile: TFile): TFile[] {
-        const backlinks: TFile[] = [];
-        const allFiles = this.plugin.app.vault.getMarkdownFiles();
-
-        for (const tfile of allFiles) {
-            const fileCache = this.plugin.app.metadataCache.getFileCache(tfile);
-
-            if (
-                tfile.path === targetFile.path ||
-                this.skipFile(tfile) ||
-                (!fileCache?.links && !fileCache?.embeds)
-            ) {
-                continue; // Skip the same file, and files w/o links or embeds
-            }
-
-            const links = [];
-            links.push(...(fileCache.links || []));
-            links.push(...(fileCache.embeds || []));
-
-            for (const link of links) {
-                if (link.link.match(/^(http|mailto|view-source)/)) {
-                    continue; // Skip external links
-                }
-                const cleanedLink = this.cleanLinkTarget(link);
-                const linkTarget =
-                    this.plugin.app.metadataCache.getFirstLinkpathDest(
-                        cleanedLink.link,
-                        tfile.path,
-                    );
-                if (targetFile.path === linkTarget?.path) {
-                    backlinks.push(tfile);
-                    break; // No need to check other links in this file
-                }
-            }
-        }
-
-        this.backlinksIndex.set(targetFile.path, backlinks);
-        return backlinks;
-    }
-
     private processEntityFrontmatter<T extends CampaignEntity>(
         file: TFile,
         type: EntityType,
@@ -834,12 +743,19 @@ export class CampaignNotesIndex {
     ): void {
         // Create the base entity
         const init = this.createBasicEntity(file, type, tags) as Partial<T>;
+        init.scope = frontmatter?.scope || init.scope;
         init.icon = frontmatter?.icon;
+
+        if (frontmatter?.state) {
+            init.state = { ...init.state, ...frontmatter.state };
+        }
 
         // Check for the field in frontmatter
         const fieldValue = frontmatter?.[type.toLowerCase()];
         if (!fieldValue) {
             // No frontmatter value, just use file as single entity
+            init.scopeStatePrefix = "state";
+            init.idTag = frontmatter?.idTag;
             this.finalizeEntity(init, frontmatter, resolveProps);
             this.addEntityToIndexes(init as T);
             return;
@@ -847,9 +763,11 @@ export class CampaignNotesIndex {
 
         const pageTitle = init.name;
         if (Array.isArray(fieldValue)) {
+            let i = 0;
             for (const fm of fieldValue) {
                 // Create a fresh copy of the entity for the array item
                 const entity = this.copyEntity(init);
+                entity.scopeStatePrefix = `${type}[${i++}].state`;
                 this.processEntityValue<T>(
                     entity,
                     fm,
@@ -860,6 +778,7 @@ export class CampaignNotesIndex {
                 this.addEntityToIndexes(entity as T);
             }
         } else {
+            init.scopeStatePrefix = `${type}.state`;
             this.processEntityValue<T>(
                 init,
                 fieldValue,
@@ -869,17 +788,6 @@ export class CampaignNotesIndex {
             );
             this.addEntityToIndexes(init as T);
         }
-    }
-
-    private copyEntity<T extends CampaignEntity>(
-        entity: Partial<T>,
-    ): Partial<T> {
-        const fileRef = entity.file;
-        entity.file = undefined;
-        const copy = JSON.parse(JSON.stringify(entity)) as Partial<T>;
-        entity.file = fileRef;
-        copy.file = fileRef;
-        return copy;
     }
 
     /**
@@ -916,54 +824,19 @@ export class CampaignNotesIndex {
         const notes = entity["notes"];
         if (notes) {
             const scope = entity.scope || "*";
-            const state = entity.state[scope] || {} as CampaignState;
+            const state = entity.state[scope] || ({} as CampaignState);
             state.notes = notes;
             (entity.state as Record<string, CampaignState>)[scope] = state;
         }
 
         if (entity.anchor) {
-            entity.id = this.markdownLinkPath(entity.file, entity.anchor);
+            entity.id = markdownLinkPath(entity.filePath, entity.anchor);
         } else {
             // Update the ID based on name and page title
             const anchorText = entity.name === pageTitle ? "" : entity.name;
-            entity.id = this.markdownLinkPath(entity.file, anchorText);
+            entity.id = markdownLinkPath(entity.filePath, anchorText);
         }
         this.finalizeEntity(entity, frontmatter, resolveProps);
-    }
-
-    private finalizeEntity<T extends CampaignEntity>(
-        entity: Partial<T>,
-        frontmatter: FrontMatterCache | undefined,
-        resolveProps?: (
-            entity: Partial<T>,
-            frontmatter: FrontMatterCache | undefined,
-        ) => void,
-    ): void {
-        if (resolveProps) {
-            resolveProps(entity, frontmatter);
-        }
-
-        const globalState = entity.state["*"];
-        if (globalState) {
-            // Merge the '*' state with other states
-            const stateKeys = Object.keys(entity.state).filter(
-                (key) => key !== "*",
-            );
-            if (entity.scope) {
-                stateKeys.push(entity.scope);
-            }
-            for (const key of stateKeys) {
-                const state = {
-                    ...globalState,
-                    ...(entity.state[key] || {}),
-                };
-                // Type assertion needed to satisfy TypeScript when modifying indexed properties on generic type
-                (entity.state as Record<string, CampaignState>)[key] = state;
-            }
-        }
-        entity.tags = (entity.tags || []).filter(
-            (tag) => !tag.startsWith(typeTagPrefix),
-        );
     }
 
     /**
@@ -972,7 +845,10 @@ export class CampaignNotesIndex {
     private addEntityToIndexes(entity: CampaignEntity): void {
         this.logDebug("Add entity", entity.type, entity.id, entity);
 
-        // Add to main entity index
+        // Add to suggestions for fuzzy search and general retrieval
+        this.uniqueIndex.set(entity.id, entity);
+
+        // Add to main entity index for lookup by id
         this.entities.set(entity.id, entity);
         if (entity.idTag) {
             // this is an alternate identifier for the entity
@@ -980,23 +856,18 @@ export class CampaignNotesIndex {
         }
 
         // Add to file path index
-        const filePath = entity.file.path;
-        const fileEntities = this.filePathToEntities.get(filePath) || new Map();
-        fileEntities.set(entity.id, entity);
-        this.filePathToEntities.set(filePath, fileEntities);
-
-        // Add to type index
-        const type = entity.type;
-        const typeEntities = this.typeToEntities.get(type) || new Map();
-        typeEntities.set(entity.id, entity);
-        this.typeToEntities.set(type, typeEntities);
+        addToMappedMap(
+            this.filePathToEntities,
+            entity.filePath,
+            entity.id,
+            entity,
+        );
+        addToMappedMap(this.typeToEntities, entity.type, entity.id, entity);
 
         // Add to tag indexes
         for (const tag of entity.tags) {
             if (this.tagPrefixes.find((prefix) => tag.startsWith(prefix))) {
-                const tagEntities = this.tagToEntities.get(tag) || new Map();
-                tagEntities.set(entity.id, entity);
-                this.tagToEntities.set(tag, tagEntities);
+                addToMappedMap(this.tagToEntities, tag, entity.id, entity);
             }
         }
     }
@@ -1026,18 +897,7 @@ export class CampaignNotesIndex {
             // Also delete the file entry from the map
             this.filePathToEntities.delete(path);
         }
-        this.removeBacklinks(file.path);
-        this.indexes.delete(file.path);
-    }
-
-    private removeBacklinks(filePath: string): void {
-        this.backlinksIndex.delete(filePath);
-        for (const [path, backlinks] of this.backlinksIndex.entries()) {
-            const updatedBacklinks = backlinks.filter(
-                (file) => file.path !== filePath,
-            );
-            this.backlinksIndex.set(path, updatedBacklinks);
-        }
+        this.generatedIndex.delete(file.path);
     }
 
     /**
@@ -1055,13 +915,14 @@ export class CampaignNotesIndex {
         this.logDebug("Remove entity from index", entity.type, entityId);
 
         // Remove from main index
+        this.uniqueIndex.delete(entityId);
         this.entities.delete(entityId);
         if (entity.idTag) {
             this.entities.delete(entity.idTag);
         }
 
         // Remove from file path index
-        const filePath = entity.file.path;
+        const filePath = entity.filePath;
         const fileEntities = this.filePathToEntities.get(filePath);
         if (fileEntities) {
             fileEntities.delete(entity.id);
@@ -1090,5 +951,74 @@ export class CampaignNotesIndex {
                 }
             }
         }
+    }
+
+    fileIncluded(path: string): boolean {
+        return this.plugin.settings.includeFolders.some((folder) =>
+            path.startsWith(folder),
+        );
+    }
+
+    fileExcluded(path: string): boolean {
+        return !this.fileIncluded(path);
+    }
+
+    skipFile(file: TFile): boolean {
+        const cache = this.plugin.app.metadataCache.getFileCache(file);
+        return this.skipFileFrontmatter(cache?.frontmatter);
+    }
+
+    skipFileFrontmatter(frontmatter: FrontMatterCache | undefined): boolean {
+        return (
+            frontmatter?.index === false || frontmatter?.index === "generated"
+        );
+    }
+
+    // --------------------------------
+
+    /**
+     * Get all areas
+     */
+    getAllAreas(scope = ""): Area[] {
+        return this.getEntitiesByType(EntityType.AREA, scope);
+    }
+
+    /**
+     * Get all encounters
+     */
+    getAllEncounters(scope = ""): Encounter[] {
+        return this.getEntitiesByType(EntityType.ENCOUNTER, scope);
+    }
+
+    /**
+     * Get all groups
+     */
+    getAllGroups(scope = ""): Group[] {
+        return this.getEntitiesByType(EntityType.GROUP, scope);
+    }
+
+    /**
+     * Get all items
+     */
+    getAllItems(scope = ""): Item[] {
+        return this.getEntitiesByType(EntityType.ITEM, scope);
+    }
+
+    /**
+     * Get all NPCs
+     */
+    getAllNPCs(scopePattern?: string): NPC[] {
+        return this.getEntitiesByType(EntityType.NPC, scopePattern);
+    }
+
+    /**
+     * Get all locations
+     */
+    getAllPlaces(scope = ""): Place[] {
+        return this.getEntitiesByType(EntityType.PLACE, scope);
+    }
+
+    getGeneratedIndexFiles(): TFile[] {
+        return [...this.generatedIndex.values()];
     }
 }

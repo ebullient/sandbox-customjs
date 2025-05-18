@@ -1,15 +1,21 @@
-import { debounce, Plugin, type TAbstractFile } from "obsidian";
-import type { CampaignReferenceAPI } from "./@types/api";
+import { Plugin, type TAbstractFile, debounce } from "obsidian";
 import type { CampaignNotesSettings } from "./@types/settings";
 import { CampaignReference } from "./CampaignNotes-Api";
+import { EntitySelectorService } from "./CampaignNotes-EntitySelector";
 import { CampaignNotesIndex, DEFAULT_SETTINGS } from "./CampaignNotes-Index";
 import { CampaignNotesSettingsTab } from "./CampaignNotes-SettingsTab";
+import { TableGenerationService } from "./CampaignNotes-TableGeneration";
 import "./window-type";
+import { CampaignNotesCache } from "CampaignNotes-Cache";
+import { EntityType } from "./@types";
 
 export default class CampaignNotesPlugin extends Plugin {
     settings: CampaignNotesSettings;
     index: CampaignNotesIndex;
-    api: CampaignReferenceAPI;
+    cache: CampaignNotesCache;
+    api: CampaignReference;
+    tableService: TableGenerationService;
+    entitySelector: EntitySelectorService;
 
     async onload() {
         console.log("Loading Campaign Notes plugin");
@@ -18,9 +24,21 @@ export default class CampaignNotesPlugin extends Plugin {
 
         // Initialize the index
         this.index = new CampaignNotesIndex(this);
+        this.cache = new CampaignNotesCache(this.app, this.index);
+        this.tableService = new TableGenerationService(
+            this.app,
+            this.index,
+            this.cache,
+        );
+        this.entitySelector = new EntitySelectorService(this.app, this);
 
         // Initialize the API
-        this.api = new CampaignReference(this, this.index);
+        this.api = new CampaignReference(
+            this,
+            this.index,
+            this.cache,
+            this.entitySelector,
+        );
         console.log("Campaign Notes API initialized", this.api);
 
         if (!window.campaignNotes) {
@@ -40,6 +58,48 @@ export default class CampaignNotesPlugin extends Plugin {
             },
         });
 
+        this.addCommand({
+            id: "regenerate-index-tables",
+            name: "Regenerate Index Tables",
+            callback: async () => {
+                // Then generate tables
+                await this.tableService.generateTables();
+            },
+        });
+
+        // Add commands for entity selection
+        this.addCommand({
+            id: "insert-entity-link",
+            name: "Insert Entity Link",
+            editorCallback: (editor) => {
+                this.entitySelector.openEntitySelector(editor);
+            },
+        });
+
+        // this.addCommand({
+        //     id: "insert-npc-link",
+        //     name: "Insert NPC Link",
+        //     editorCallback: (editor) => {
+        //         this.entitySelector.openEntitySelector(editor, EntityType.NPC);
+        //     },
+        // });
+
+        // this.addCommand({
+        //     id: "insert-npc-first-name-link",
+        //     name: "Insert NPC Link (First Name)",
+        //     editorCallback: (editor) => {
+        //         this.entitySelector.openEntitySelector(editor, "npc", undefined, { useFirstName: true });
+        //     },
+        // });
+
+        // this.addCommand({
+        //     id: "insert-place-link",
+        //     name: "Insert Place Link",
+        //     editorCallback: (editor) => {
+        //         this.entitySelector.openEntitySelector(editor, "place");
+        //     },
+        // });
+
         // Start indexing when workspace is ready
         this.app.workspace.onLayoutReady(() => {
             // Expose the API to window for other plugins/scripts
@@ -53,35 +113,42 @@ export default class CampaignNotesPlugin extends Plugin {
             );
 
             this.registerEvent(
-                this.app.vault.on("modify", async (file) =>
-                    this.onFileModified(file),
+                this.app.vault.on(
+                    "modify",
+                    debounce(
+                        async (file: TAbstractFile) => {
+                            this.cache.removeAllLinks(file.path);
+                            this.index.handleFileModified(file);
+                            console.log("File modified:", file, this.index);
+                        },
+                        2000,
+                        true,
+                    ),
                 ),
             );
 
             this.registerEvent(
-                this.app.vault.on("delete", (file) =>
-                    this.index.handleFileDeleted(file),
-                ),
+                this.app.vault.on("delete", (file) => {
+                    this.cache.removeAllLinks(file.path);
+                    this.index.handleFileDeleted(file);
+                    console.log("File deleted:", file, this.index);
+                }),
             );
 
             this.registerEvent(
-                this.app.vault.on("rename", (file, oldPath) =>
-                    this.index.handleFileRenamed(file, oldPath),
-                ),
+                this.app.vault.on("rename", (file, oldPath) => {
+                    this.cache.removeAllLinks(oldPath);
+                    this.index.handleFileRenamed(file, oldPath);
+                    console.log("File renamed:", file, this.index);
+                }),
             );
         });
     }
 
-    onFileModified = debounce(
-        async (file: TAbstractFile) => {
-            this.index.handleFileModified(file);
-        },
-        2000,
-        true,
-    );
-
     onunload() {
         console.log("Unloading Campaign Notes plugin");
+        this.cache.clearAll();
+        this.index.clearIndex();
 
         // Clear the API reference if it exists
         if (window.campaignNotes) {

@@ -1,4 +1,4 @@
-import type { Reference, TFile } from "obsidian";
+import type { Editor, TFile } from "obsidian";
 import type {
     Area,
     CampaignEntity,
@@ -11,58 +11,59 @@ import type {
     Place,
 } from ".";
 
+export interface EntityLinkOptions {
+    useFirstName?: boolean;
+    useCustomText?: string;
+}
+
 export interface CampaignReferenceAPI {
     /**
-     * Get all NPCs
+     * Get all encounters
      */
-    getAllNPCs(scope?: string): NPC[];
-
-    /**
-     * Get all groups
-     */
-    getAllGroups(scope?: string): Group[];
-
-    /**
-     * Get all locations
-     */
-    getAllPlaces(scope?: string): Place[];
+    getAllEncounters(scopePattern?: string): Encounter[];
 
     /**
      * Get all areas
      */
-    getAllAreas(scope?: string): Area[];
+    getAllAreas(scopePattern?: string): Area[];
+
+    /**
+     * Get all groups
+     */
+    getAllGroups(scopePattern?: string): Group[];
 
     /**
      * Get all items
      */
-    getAllItems(scope?: string): Item[];
+    getAllItems(scopePattern?: string): Item[];
 
     /**
-     * Get all encounters
+     * Get all NPCs
      */
-    getAllEncounters(scope?: string): Encounter[];
+    getAllNPCs(scopePattern?: string): NPC[];
 
     /**
-     * Get active encounters
+     * Get all locations
      */
-    getActiveEncounters(scope?: string): Encounter[];
+    getAllPlaces(scopePattern?: string): Place[];
 
     /**
      * Get all backlinks for the specified file path
      */
-    getBacklinks(filePath: string, scope?: string): TFile[];
-
-    getLinks<T extends CampaignEntity>(entity: T): CleanLink[];
+    getBacklinks(filePath: string, scopePattern?: string): TFile[];
 
     /**
      * Get entities by tag
      */
-    getEntitiesByTag(tag: string, scope?: string): CampaignEntity[];
+    getEntitiesByTag(tag: string, scopePattern?: string): CampaignEntity[];
 
     /**
      * Get entities by tag
      */
-    getEntitiesByType(type: EntityType, scope?: string): CampaignEntity[];
+    getEntitiesByType(
+        type: EntityType,
+        scopePattern?: string,
+    ): CampaignEntity[];
 
     /**
      * Get an entity by ID
@@ -74,20 +75,47 @@ export interface CampaignReferenceAPI {
      */
     getEntitiesInFile(filePath: string): CampaignEntity[];
 
-    getIcons(entity: CampaignEntity): string;
-
+    /**
+     * Get generated index files
+     */
     getGeneratedIndexFiles(): TFile[];
 
-    getLastSeen(entity: CampaignEntity): string;
+    /**
+     * Get icons associated with the entity
+     */
+    getIcons(entity: CampaignEntity): string;
 
-    iffStatusIcon(iff: string): string;
+    /**
+     * Find the last session for the entity
+     * @param entity
+     * @param scopePattern
+     */
+    getLastSeen(entity: CampaignEntity, scopePattern?: string): string;
 
-    statusIcon(alive: string): string;
+    /**
+     * Get all links from the specified entity
+     */
+    getLinks<T extends CampaignEntity>(entity: T): string[];
 
-    typeIcon(type: string): string;
+    includeFile(file: TFile): boolean;
 
     /**
      * Rebuild the index
      */
     rebuildIndex(): Promise<void>;
+
+    /**
+     * Open the entity selector modal
+     *
+     * @param editor The editor instance (optional)
+     * @param type Filter by entity type (optional)
+     * @param scopePattern Filter by scope pattern (optional)
+     * @param options Link formatting options (optional)
+     */
+    openEntitySelector(
+        editor: Editor | null,
+        type?: EntityType,
+        scopePattern?: string,
+        options?: EntityLinkOptions,
+    ): void;
 }

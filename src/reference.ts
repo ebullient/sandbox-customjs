@@ -8,8 +8,8 @@ import type {
     Place,
 } from "../plugin/src/@types";
 import type { CampaignReferenceAPI } from "../plugin/src/@types/api";
-import type { EngineAPI, MarkdownBuilder } from "./@types/jsengine.types";
-import type { Conditions, Utils } from "./_utils";
+import type { EngineAPI } from "./@types/jsengine.types";
+import type { Conditions, Tags, Utils } from "./_utils";
 
 declare global {
     interface Window {
@@ -18,8 +18,6 @@ declare global {
         };
     }
 }
-
-type Tags = string | string[];
 
 export class Reference {
     app: App;
@@ -33,27 +31,26 @@ export class Reference {
     }
 
     utils = (): Utils => window.customJS.Utils;
+    campaignApi = (): CampaignReferenceAPI => window.campaignNotes.api;
 
     currentScope = () => {
         const current = this.app.workspace.getActiveFile();
         return current.path.split("/")[0];
     };
 
-
     itemsForTagRaw = (
         tag: Tags,
         maybeType: string,
         scoped = false,
     ): string[] => {
-        const campaignApi = window.campaignNotes?.api;
         const tagRegexes = this.tagToRegexes(tag);
         const scope = this.currentScope();
         const type = maybeType.replace("location", "place");
         const currentFile = this.app.workspace.getActiveFile();
 
-        const entities = campaignApi
+        const entities = this.campaignApi()
             .getEntitiesByType(type as EntityType, scoped ? scope : undefined)
-            .filter((entity) => entity.file.path !== currentFile.path)
+            .filter((entity) => entity.filePath !== currentFile.path)
             .filter((entity) =>
                 entity.tags.find((t) =>
                     tagRegexes.some((regex) => regex.test(t)),
@@ -62,7 +59,7 @@ export class Reference {
 
         const items: string[] = [];
         for (const entity of entities) {
-            items.push(this.entityToLink(entity, scoped));
+            items.push(this.entityToListLink(entity, scoped));
         }
         return items.sort((a, b) => this.sortMarkdownLinks(a, b));
     };
@@ -89,29 +86,43 @@ export class Reference {
         includeLogs = true,
         conditions?: Conditions,
     ) => {
-        const campaignApi = window.campaignNotes?.api;
         const current = this.app.workspace.getActiveFile();
 
-        const includeLogsFilter = (tfile: TFile) => {
+        const includeLogsFilter = (filePath: string) => {
             // either do nothing (allow logs) or filter out logs
             return includeLogs
                 ? true // do nothing
-                : !this.utils().filterByPath(tfile, /sessions/);
+                : !filePath.match(/sessions/);
         };
 
         // Backlinks to current file
-        const files = campaignApi
+        const files = this.campaignApi()
             .getBacklinks(current.path)
-            .filter((f) => includeLogsFilter(f));
+            .filter(
+                (f) =>
+                    this.campaignApi().includeFile(f) &&
+                    includeLogsFilter(f.path),
+            );
 
         // References to items in current file (idTag)
-        const entityFiles = campaignApi
+        const entityFiles = this.campaignApi()
             .getEntitiesInFile(current.path)
             .filter((entity) => entity.idTag)
             .map((entity) => entity.idTag)
-            .flatMap((idTag) => campaignApi.getEntitiesByTag(idTag))
-            .map((x) => x.file)
-            .filter((f) => includeLogsFilter(f) && f.path !== current.path);
+            .flatMap((idTag) => this.campaignApi().getEntitiesByTag(idTag))
+            .filter(
+                (e) =>
+                    includeLogsFilter(e.filePath) &&
+                    e.filePath !== current.path,
+            )
+            .map(
+                (entity) =>
+                    this.app.vault.getAbstractFileByPath(
+                        entity.filePath,
+                    ) as TFile,
+            )
+            .filter((f) => f as TFile);
+
         files.push(...entityFiles);
 
         // Other files matching conditions (if any)
@@ -119,7 +130,7 @@ export class Reference {
             const conditionsFilter =
                 this.utils().createFileConditionFilter(conditions);
             const extraFiles = this.utils().filesMatchingCondition(
-                (f) => conditionsFilter(f) && includeLogsFilter(f),
+                (f) => conditionsFilter(f) && includeLogsFilter(f.path),
             );
             files.push(...extraFiles);
         }
@@ -132,9 +143,8 @@ export class Reference {
 
     // List of backlinks from session logs
     logBacklink = (engine: EngineAPI) => {
-        const campaignApi = window.campaignNotes?.api;
         const current = this.app.workspace.getActiveFile();
-        const files = campaignApi
+        const files = this.campaignApi()
             .getBacklinks(current.path)
             .filter((f) => this.utils().filterByPath(f, /sessions/))
             .sort((a, b) => this.utils().sortTFile(a, b));
@@ -148,9 +158,8 @@ export class Reference {
 
     logs = (engine: EngineAPI, conditions?: Conditions) => {
         const current = this.app.workspace.getActiveFile();
-        const campaignApi = window.campaignNotes?.api;
 
-        const files = campaignApi
+        const files = this.campaignApi()
             .getBacklinks(current.path)
             .filter((f) => this.utils().filterByPath(f, /sessions/));
 
@@ -182,13 +191,14 @@ export class Reference {
     };
 
     relatedNotItems = (engine: EngineAPI, tags: Tags = []): string => {
-        const campaignApi = window.campaignNotes?.api;
         const current = this.app.workspace.getActiveFile();
         const tagRegexes = tags ? this.tagToRegexes(tags) : [];
-        const files = campaignApi
+        const files = this.campaignApi()
             .getBacklinks(current.path)
-            .filter((f) => f.path !== current.path)
-            .filter((f) => campaignApi.getEntitiesInFile(f.path).length === 0)
+            .filter(
+                (f) =>
+                    this.campaignApi().getEntitiesInFile(f.path).length === 0,
+            )
             .filter((f) => this.utils().filterByTags(f, tagRegexes));
 
         return files == null || files.length === 0
@@ -223,14 +233,12 @@ export class Reference {
         files: TFile[],
         scoped = false,
     ): string => {
-        const campaignApi = window.campaignNotes?.api;
-
         const items = [];
         for (const f of files) {
-            const entities = campaignApi.getEntitiesInFile(f.path);
+            const entities = this.campaignApi().getEntitiesInFile(f.path);
             if (entities.length > 0) {
                 for (const entity of entities) {
-                    items.push(this.entityToLink(entity, scoped));
+                    items.push(this.entityToListLink(entity, scoped));
                 }
             } else {
                 items.push(
@@ -248,30 +256,14 @@ export class Reference {
               );
     };
 
-    scopeRegex = (root: string): RegExp => {
-        return this.utils().segmentFilterRegex(root);
-    };
-
     sortMarkdownLinks = (a: string, b: string): number => {
         const n1 = a.replace(/\[(.*)\].*/, "$1").toLowerCase();
         const n2 = b.replace(/\[(.*)\].*/, "$1").toLowerCase();
         return n1.localeCompare(n2);
     };
 
-    sortStatus = (a: NPC, b: NPC): number => {
-        const n1 = a.state[a.scope || "*"]?.status || "unknown";
-        const idx1 = this.statusOrder.indexOf(n1);
-        const n2 = b.state[b.scope || "*"]?.status || "unknown";
-        const idx2 = this.statusOrder.indexOf(n2);
-        if (idx1 === idx2) {
-            return a.name.localeCompare(b.name);
-        }
-        return idx1 - idx2;
-    };
-
-    entityToLink = (entity: CampaignEntity, scoped = false): string => {
-        const campaignApi = window.campaignNotes?.api;
-        const icons = campaignApi.getIcons(entity);
+    entityToListLink = (entity: CampaignEntity, scoped = false): string => {
+        const icons = this.campaignApi().getIcons(entity);
         const iconText = icons ? `<span class="icon">${icons}</span> ` : "";
         if (scoped) {
             return `- <small>(${entity.scope})</small> ${iconText}[${entity.name}](${entity.id})`;

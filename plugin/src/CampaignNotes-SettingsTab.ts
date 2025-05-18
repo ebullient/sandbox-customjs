@@ -51,6 +51,21 @@ export class CampaignNotesSettingsTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
+            .setName("Default scope pattern")
+            .setDesc(
+                "Default scope pattern used for entity selector (should match a cache pattern)",
+            )
+            .addText((text) =>
+                text
+                    .setPlaceholder("(faerûn|heist)")
+                    .setValue(this.plugin.settings.defaultScopePattern)
+                    .onChange(async (value) => {
+                        this.plugin.settings.defaultScopePattern = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
             .setName("Keep tags")
             .setDesc("Prefixes for additional tags to keep in index")
             .addText((text) =>
