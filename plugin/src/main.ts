@@ -118,8 +118,10 @@ export default class CampaignNotesPlugin extends Plugin {
                     debounce(
                         async (file: TAbstractFile) => {
                             this.cache.removeAllLinks(file.path);
-                            this.index.handleFileModified(file);
-                            console.log("File modified:", file, this.index);
+                            if (this.index.fileIncluded(file.path)) {
+                                this.index.handleFileModified(file);
+                                console.log("File modified:", file, this.index);
+                            }
                         },
                         2000,
                         true,
@@ -130,16 +132,20 @@ export default class CampaignNotesPlugin extends Plugin {
             this.registerEvent(
                 this.app.vault.on("delete", (file) => {
                     this.cache.removeAllLinks(file.path);
-                    this.index.handleFileDeleted(file);
-                    console.log("File deleted:", file, this.index);
+                    if (this.index.fileIncluded(file.path)) {
+                        this.index.handleFileDeleted(file);
+                        console.log("File deleted:", file, this.index);
+                    }
                 }),
             );
 
             this.registerEvent(
                 this.app.vault.on("rename", (file, oldPath) => {
                     this.cache.removeAllLinks(oldPath);
-                    this.index.handleFileRenamed(file, oldPath);
-                    console.log("File renamed:", file, this.index);
+                    if (this.index.fileIncluded(file.path)) {
+                        this.index.handleFileRenamed(file, oldPath);
+                        console.log("File renamed:", file, this.index);
+                    }
                 }),
             );
         });

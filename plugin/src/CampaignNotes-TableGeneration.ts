@@ -100,17 +100,18 @@ export class TableGenerationService {
         this.index.logDebug("Index files by scope", indexFilesByScope);
 
         this.cache.clearRelationshipCache();
+
+        // First: read/update content
         for (const [scopePattern, files] of indexFilesByScope) {
             await this.processFileGroup(scopePattern, files);
             await new Promise((resolve) => setTimeout(resolve, 0));
         }
+
         this.cache.clearRelationshipCache();
     }
 
     private async processFileGroup(
-        scopePattern: string,
-        files: TFile[],
-    ): Promise<void> {
+        scopePattern: string, files: TFile[]): Promise<void> {
         this.cache.precomputeRelationshipsForScope(scopePattern);
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -123,7 +124,6 @@ export class TableGenerationService {
             };
 
             await this.processFile(dataScope, file);
-            new Notice(`Updated ${file.path}`);
             await new Promise((resolve) => setTimeout(resolve, 0));
         }
     }
@@ -134,55 +134,54 @@ export class TableGenerationService {
     ): Promise<void> {
         // Processing the file is an atomic operation.
         // Do as little processing as possible to format content
-        await this.app.vault.process(file, (content) => {
-            let updatedContent = content;
+        let updatedContent = await this.app.vault.read(file);
 
-            // Check for each section type and update if found
-            if (this.ENCOUNTERS_SECTION.test(updatedContent)) {
-                updatedContent = this.updateEncounterSection(
-                    updatedContent,
-                    dataScope,
-                );
-            }
+        // Check for each section type and update if found
+        if (this.ENCOUNTERS_SECTION.test(updatedContent)) {
+            updatedContent = this.updateEncounterSection(
+                updatedContent,
+                dataScope,
+            );
+        }
 
-            if (this.GROUPS_SECTION.test(updatedContent)) {
-                updatedContent = this.updateGroupsSection(
-                    updatedContent,
-                    dataScope,
-                );
-            }
+        if (this.GROUPS_SECTION.test(updatedContent)) {
+            updatedContent = this.updateGroupsSection(
+                updatedContent,
+                dataScope,
+            );
+        }
 
-            if (this.NPCS_SECTION.test(updatedContent)) {
-                updatedContent = this.updateNPCsSection(
-                    updatedContent,
-                    dataScope,
-                );
-            }
+        if (this.NPCS_SECTION.test(updatedContent)) {
+            updatedContent = this.updateNPCsSection(
+                updatedContent,
+                dataScope,
+            );
+        }
 
-            if (this.PLACES_SECTION.test(updatedContent)) {
-                updatedContent = this.updatePlacesSection(
-                    updatedContent,
-                    dataScope,
-                );
-            }
+        if (this.PLACES_SECTION.test(updatedContent)) {
+            updatedContent = this.updatePlacesSection(
+                updatedContent,
+                dataScope,
+            );
+        }
 
-            if (this.RENOWN_SECTION.test(updatedContent)) {
-                updatedContent = this.updateRenownSection(
-                    updatedContent,
-                    dataScope,
-                );
-            }
+        if (this.RENOWN_SECTION.test(updatedContent)) {
+            updatedContent = this.updateRenownSection(
+                updatedContent,
+                dataScope,
+            );
+        }
 
-            if (this.TAG_CONNECTION_SECTION.test(updatedContent)) {
-                updatedContent = this.updateTagConnectionSections(
-                    updatedContent,
-                    dataScope,
-                );
-            }
+        if (this.TAG_CONNECTION_SECTION.test(updatedContent)) {
+            updatedContent = this.updateTagConnectionSections(
+                updatedContent,
+                dataScope,
+            );
+        }
 
-            return updatedContent;
-        });
-        console.log(`Content updated for ${file.path}`);
+        await this.app.vault.process(file, () => updatedContent);
+        new Notice(`Updated ${file.path}`);
+        console.log("Processed", file.path, "with", dataScope);
     }
 
     private updateEncounterSection(

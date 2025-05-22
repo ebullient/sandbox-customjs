@@ -16,7 +16,6 @@ import {
     type CleanLink,
     type DataScope,
     type Encounter,
-    EntityMap,
     EntityType,
     type Group,
     GroupStatus,
