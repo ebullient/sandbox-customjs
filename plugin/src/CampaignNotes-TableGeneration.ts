@@ -324,19 +324,21 @@ export class TableGenerationService {
         let result = "\n";
 
         const header =
-            "- <span class='tr header encounter'><span class='th level cellWidth'>lvl</span><span class='th status cellWidth'>status</span><span class='th name'></span></span>";
+            "- <span class='tr header encounter'><span class='th level'>lvl</span><span class='th status'>status</span><span class='th name'>## encounter(s)</span></span>";
 
         if (activeEncounters.length > 0) {
-            result += `## Active Encounters\n\n${header}\n${activeEncounters.join("\n")}\n\n`;
+            result += `## Active Encounters\n\n${header.replace('##', `${activeEncounters.length}`)}\n${activeEncounters.join("\n")}\n\n`;
         }
 
         if (newEncounters.length > 0) {
-            result += `## New Encounters\n\n${header}\n${newEncounters.join("\n")}\n\n`;
+            result += `## New Encounters\n\n${header.replace('##', `${newEncounters.length}`)}\n${newEncounters.join("\n")}\n\n`;
         }
 
         if (otherEncounters.length > 0) {
-            const otherHeader = header.replace(
-                "<span class='th level cellWidth'>lvl</span>",
+            const otherHeader = header
+                .replace('##', `${otherEncounters.length}`)
+                .replace(
+                    "<span class='th level'>lvl</span>",
                 "",
             );
             result += `## Other Encounters\n\n${otherHeader}\n${otherEncounters.join("\n")}\n\n`;
@@ -390,38 +392,45 @@ export class TableGenerationService {
             }
         }
 
-        let result = "\n";
-
-        const header =
-            "- <span class='tr header groups'><span class='th icon cellWidth'></span><span class='th name'>name</span><span class='th subtype cellWidth'>subtype</span><span class='th scope cellWidth'>scope</span><span class='th sess cellWidth'>sess</span></span>";
-
-        if (activeGroups.length > 0) {
-            result += `## Active Groups\n\n${header}\n${activeGroups.join("\n")}\n\n`;
-        }
-
-        if (defunctGroups.length > 0) {
-            result += `## Defunct Groups\n\n${header}\n${defunctGroups.join("\n")}\n\n`;
-        }
-
-        if (otherGroups.length > 0) {
-            result += `## Other Groups\n\n${header}\n${otherGroups.join("\n")}\n\n`;
-        }
-
         if (
             activeGroups.length === 0 &&
             defunctGroups.length === 0 &&
             otherGroups.length === 0
         ) {
-            result += "No Groups\n\n";
+            return "\nNo Groups\n\n";
         }
 
+        let result = `\n${filteredGroups.length} group(s) found in ${dataScope.pattern}\n\n`;
+
+        const header =
+            "- <span class='tr header groups'><span class='th icon'></span><span class='th name'>## group(s)</span><span class='th subtype'>subtype</span><span class='th scope'>scope</span><span class='th sess'>sess</span></span>";
+
+        if (activeGroups.length > 0) {
+            result += `## Active Groups\n\n${header.replace('##', `${activeGroups.length}`)}\n${activeGroups.join("\n")}\n\n`;
+        }
+
+        if (defunctGroups.length > 0) {
+            result += `## Defunct Groups\n\n${header.replace('##', `${defunctGroups.length}`)}\n${defunctGroups.join("\n")}\n\n`;
+        }
+
+        if (otherGroups.length > 0) {
+            result += `## Other Groups\n\n${header.replace('##', `${otherGroups.length}`)}\n${otherGroups.join("\n")}\n\n`;
+        }
         return result;
     }
 
     private generateNPCsContent(dataScope: DataScope): string {
-        const result = [];
+        const allNPCs = this.cache.getNPCs(dataScope.pattern);
+        if (allNPCs.length === 0) {
+            return "\nNo NPCs\n\n";
+        }
+
+        const result = [
+            `${allNPCs.length} NPC(s) found in ${dataScope.pattern}\n`,
+        ];
+
         const header =
-            "- <span class='tr header npcs'><span class='th sess cellWidth'>sess</span><span class='th stat cellWidth'>stat</span><span class='th iff cellWidth'>iff</span><span class='th name'></span><span class='th scope cellWidth'>scope</span></span>";
+            "- <span class='tr header npcs'><span class='th sess'>sess</span><span class='th stat'>stat</span><span class='th iff'>iff</span><span class='th name'>## NPC(s)</span><span class='th scope'>scope</span></span>";
 
         // Family / Pets
         const familySection = this.generateNPCGroup(
@@ -459,10 +468,7 @@ export class TableGenerationService {
         );
         if (otherSection) result.push(otherSection);
 
-        if (result.length > 0) {
-            return `\n${result.join("\n")}`;
-        }
-        return "\nNo NPCs\n\n";
+        return `\n${result.join("\n")}`;
     }
 
     private generateNPCGroup(
@@ -477,7 +483,7 @@ export class TableGenerationService {
         }
 
         const counter = this.rowCount();
-        return `## ${heading}\n\n${thead}\n${iffNpcs
+        return `## ${heading}\n\n${thead.replace('##', `${iffNpcs.length}`)}\n${iffNpcs
             .map((npc) => this.formatNPCCard(npc, dataScope, counter))
             .join("\n")}\n\n`;
     }
@@ -492,11 +498,11 @@ export class TableGenerationService {
             .map((area) => this.formatAreaCard(area, dataScope, areaCounter));
 
         const header =
-            "- <span class='tr header places'><span class='th sess cellWidth'>sess</span><span class='th name'></span><span class='th subtype cellWidth'>subtype</span></span>";
+            "- <span class='tr header places'><span class='th sess'>sess</span><span class='th name'>##</span><span class='th subtype'>subtype</span></span>";
 
         result += "## Areas\n\n";
         if (formattedAreas.length > 0) {
-            result += `${header}\n${formattedAreas.join("\n")}\n\n`;
+            result += `${header.replace('##', `${formattedAreas.length} area(s)`)}\n${formattedAreas.join("\n")}\n\n`;
         } else {
             result += "No Areas\n\n";
         }
@@ -511,7 +517,7 @@ export class TableGenerationService {
 
         result += "## Places\n\n";
         if (formattedPlaces.length > 0) {
-            result += `${header}\n${formattedPlaces.join("\n")}\n\n`;
+            result += `${header.replace('##', `${formattedPlaces.length} place(s)`)}\n${formattedPlaces.join("\n")}\n\n`;
         } else {
             result += "No Places\n\n";
         }
@@ -521,14 +527,14 @@ export class TableGenerationService {
     private generateRenownContent(dataScope: DataScope): string {
         let result = "\n";
         const header =
-            "- <span class='tr header renown'><span class='th amount cellWidth'></span><span class='th icon cellWidth'></span><span class='th name'></span><span class='th sess cellWidth'>sess</span>";
+            "- <span class='tr header renown'><span class='th amount'></span><span class='th icon'></span><span class='th name'></span><span class='th sess'>sess</span>";
 
         const counter = this.rowCount();
         const groupsRenown = this.cache
             .getGroupRenown(dataScope)
             .map((place) => this.formatRenownCard(place, dataScope, counter));
 
-        result += "## Renown\n\n";
+        result += "\n";
         if (groupsRenown.length > 0) {
             result += `${header}\n${groupsRenown.join("\n")}\n\n`;
         } else {
@@ -597,13 +603,13 @@ export class TableGenerationService {
                 : "";
 
         const level = showLevel
-            ? `<span class="level cellWidth center">${encounter.level ? encounter.level : ""}</span>`
+            ? `<span class="level">${encounter.level ? encounter.level : ""}</span>`
             : "";
 
         const row = [
             `- <span class="tr encounter ${evenOdd}${levelClass}">`,
             level,
-            `<span class="status cellWidth" style="--cell-width: 4.5em;">${status}</span>`,
+            `<span class="status">${status}</span>`,
             `<span>${entityToLink(encounter, true)}${related}</span>`,
             "</span>",
         ];
@@ -621,11 +627,11 @@ export class TableGenerationService {
 
         const row = [
             `- <span class="tr groups ${evenOdd}">`,
-            `<span class="icon cellWidth center" style="--cell-width: 3em;">${group.icon || ""}</span>`,
+            `<span class="icon">${group.icon || ""}</span>`,
             `<span class="name">${entityToLink(group, true)}${renown ? ` (${renown})` : ""}${notesRow}</span>`,
-            `<span class="subtype cellWidth" style="--cell-width: 8em;">${group.subtype || ""}</span>`,
-            `<span class="scope cellWidth" style="--cell-width: 6em;">${group.scope}</span>`,
-            `<span class="sess cellWidth center" style="--cell-width: 3em;">${this.cache.getLastSeen(group, dataScope.pattern)}</span>`,
+            `<span class="subtype">${group.subtype || ""}</span>`,
+            `<span class="scope">${group.scope}</span>`,
+            `<span class="sess">${this.cache.getLastSeen(group, dataScope.pattern)}</span>`,
             "</span>",
         ];
         return row.join("");
@@ -652,11 +658,11 @@ export class TableGenerationService {
 
         const set = [
             `- <span class="tr npcs ${evenOdd}">`,
-            `<span class="cellWidth center sess" style="--cell-width: 2em;">${lastSeenText}</span>`,
+            `<span class="cellWidth sess">${lastSeenText}</span>`,
             `<span class="cellWidth stat">${status}</span>`,
             `<span class="cellWidth iff">${iffKey}</span>`,
             `<span class="name">${entityToLink(npc, true)}${iconText}${notesRow}</span>`,
-            `<span class="cellWidth center scope" style="--cell-width: 6em;">${npc.scope}</span>`,
+            `<span class="cellWidth scope">${npc.scope}</span>`,
             "</span>",
         ];
 
@@ -696,9 +702,9 @@ export class TableGenerationService {
 
         const set = [
             `- <span class="tr places ${evenOdd}">`,
-            `<span class="sess cellWidth center" style="--cell-width: 2em;">${lastSeenText}</span>`,
-            `<span class="name">${entityToLink(area, true)}${groupInfo}${notesRow}</td>`,
-            `<span class="subtype cellWidth" style="--cell-width: 8em;">${subtypeText}</span>`,
+            `<span class="sess">${lastSeenText}</span>`,
+            `<span class="name">${entityToLink(area, true)}${groupInfo}${notesRow}</span>`,
+            `<span class="subtype">${subtypeText}</span>`,
             "</span>",
         ];
         return set.join("");
@@ -745,9 +751,9 @@ export class TableGenerationService {
 
         const row = [
             `- <span class="tr places ${evenOdd}">`,
-            `<span class="sess cellWidth center" style="--cell-width: 2em;">${lastSeenText}</span>`,
+            `<span class="sess">${lastSeenText}</span>`,
             `<span class="name">${entityToLink(place, true)}${groupInfo}${notesRow}</span>`,
-            `<span class="subtype cellWidth" style="--cell-width: 8em;">${subtypeText}</span>`,
+            `<span class="subtype">${subtypeText}</span>`,
             "</span>",
         ];
         return row.join("");
@@ -764,10 +770,10 @@ export class TableGenerationService {
 
         const row = [
             `- <span class="tr renown ${evenOdd}">`,
-            `<span class="amount cellWidth center" style="--cell-width: 3em;">${renown || ""}</span>`,
-            `<span class="icon cellWidth center" style="--cell-width: 3em;">${group.icon || ""}</span>`,
+            `<span class="amount">${renown || ""}</span>`,
+            `<span class="icon">${group.icon || ""}</span>`,
             `<span class="name">${entityToLink(group, true)}</span>`,
-            `<span class="sess cellWidth center" style="--cell-width: 2em;">${lastSeenText}</span>`,
+            `<span class="sess">${lastSeenText}</span>`,
             "</span>",
         ];
         return row.join("");
