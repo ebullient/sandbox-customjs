@@ -106,12 +106,13 @@ export class TableGenerationService {
             await this.processFileGroup(scopePattern, files);
             await new Promise((resolve) => setTimeout(resolve, 0));
         }
-
         this.cache.clearRelationshipCache();
     }
 
     private async processFileGroup(
-        scopePattern: string, files: TFile[]): Promise<void> {
+        scopePattern: string,
+        files: TFile[],
+    ): Promise<void> {
         this.cache.precomputeRelationshipsForScope(scopePattern);
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -152,10 +153,7 @@ export class TableGenerationService {
         }
 
         if (this.NPCS_SECTION.test(updatedContent)) {
-            updatedContent = this.updateNPCsSection(
-                updatedContent,
-                dataScope,
-            );
+            updatedContent = this.updateNPCsSection(updatedContent, dataScope);
         }
 
         if (this.PLACES_SECTION.test(updatedContent)) {
@@ -326,21 +324,22 @@ export class TableGenerationService {
         let result = "\n";
 
         const header =
-            "<thead><tr><th>level</th><th>status</th><th></th></tr></thead>";
+            "- <span class='tr header encounter'><span class='th level cellWidth'>lvl</span><span class='th status cellWidth'>status</span><span class='th name'></span></span>";
 
         if (activeEncounters.length > 0) {
-            result += "## Active Encounters\n\n";
-            result += `<table class="index encounter-table">${header}<tbody>${activeEncounters.join("")}</tbody></table>\n\n`;
+            result += `## Active Encounters\n\n${header}\n${activeEncounters.join("\n")}\n\n`;
         }
 
         if (newEncounters.length > 0) {
-            result += "## New Encounters\n\n";
-            result += `<table class="index encounter-table">${header}<tbody>${newEncounters.join("")}</tbody></table>\n\n`;
+            result += `## New Encounters\n\n${header}\n${newEncounters.join("\n")}\n\n`;
         }
 
         if (otherEncounters.length > 0) {
-            result += "## Other Encounters\n\n";
-            result += `<table class="index encounter-table">${header.replace("<th>level</th>", "")}<tbody>${otherEncounters.join("")}</tbody></table>\n\n`;
+            const otherHeader = header.replace(
+                "<span class='th level cellWidth'>lvl</span>",
+                "",
+            );
+            result += `## Other Encounters\n\n${otherHeader}\n${otherEncounters.join("\n")}\n\n`;
         }
 
         if (
@@ -394,21 +393,18 @@ export class TableGenerationService {
         let result = "\n";
 
         const header =
-            "<thead><tr><th></th><th>name</th><th>subtype</th><th>scope</th><th>sess</th></tr></thead>";
+            "- <span class='tr header groups'><span class='th icon cellWidth'></span><span class='th name'>name</span><span class='th subtype cellWidth'>subtype</span><span class='th scope cellWidth'>scope</span><span class='th sess cellWidth'>sess</span></span>";
 
         if (activeGroups.length > 0) {
-            result += "## Active Groups\n\n";
-            result += `<table class="index group-table">${header}<tbody>${activeGroups.join("")}</tbody></table>\n\n`;
+            result += `## Active Groups\n\n${header}\n${activeGroups.join("\n")}\n\n`;
         }
 
         if (defunctGroups.length > 0) {
-            result += "## Defunct Groups\n\n";
-            result += `<table class="index group-table">${header}<tbody>${defunctGroups.join("")}</tbody></table>\n\n`;
+            result += `## Defunct Groups\n\n${header}\n${defunctGroups.join("\n")}\n\n`;
         }
 
         if (otherGroups.length > 0) {
-            result += "## Other Groups\n\n";
-            result += `<table class="index group-table">${header}<tbody>${otherGroups.join("")}</tbody></table>\n\n`;
+            result += `## Other Groups\n\n${header}\n${otherGroups.join("\n")}\n\n`;
         }
 
         if (
@@ -425,7 +421,7 @@ export class TableGenerationService {
     private generateNPCsContent(dataScope: DataScope): string {
         const result = [];
         const header =
-            "<thead><tr><th>sess</th><th>stat</th><th>iff</th><th></th><th>scope</th></tr></thead>";
+            "- <span class='tr header npcs'><span class='th sess cellWidth'>sess</span><span class='th stat cellWidth'>stat</span><span class='th iff cellWidth'>iff</span><span class='th name'></span><span class='th scope cellWidth'>scope</span></span>";
 
         // Family / Pets
         const familySection = this.generateNPCGroup(
@@ -464,7 +460,7 @@ export class TableGenerationService {
         if (otherSection) result.push(otherSection);
 
         if (result.length > 0) {
-            return `\n${result.join("")}`;
+            return `\n${result.join("\n")}`;
         }
         return "\nNo NPCs\n\n";
     }
@@ -476,17 +472,14 @@ export class TableGenerationService {
         dataScope: DataScope,
     ): string {
         const iffNpcs = this.cache.getIffNpcs(dataScope, iffGroup);
-
         if (!iffNpcs || iffNpcs.length === 0) {
             return "";
         }
+
         const counter = this.rowCount();
-        return (
-            `## ${heading}\n\n` +
-            `<table class="index npc-table">${thead}<tbody>${iffNpcs
-                .map((npc) => this.formatNPCCard(npc, dataScope, counter))
-                .join("")}</tbody></table>\n\n`
-        );
+        return `## ${heading}\n\n${thead}\n${iffNpcs
+            .map((npc) => this.formatNPCCard(npc, dataScope, counter))
+            .join("\n")}\n\n`;
     }
 
     private generatePlacesContent(dataScope: DataScope): string {
@@ -499,11 +492,11 @@ export class TableGenerationService {
             .map((area) => this.formatAreaCard(area, dataScope, areaCounter));
 
         const header =
-            "<thead><tr><th>sess</th><th></th><th>subtype</th></tr></thead>";
+            "- <span class='tr header places'><span class='th sess cellWidth'>sess</span><span class='th name'></span><span class='th subtype cellWidth'>subtype</span></span>";
 
         result += "## Areas\n\n";
         if (formattedAreas.length > 0) {
-            result += `<table class="index area-table">${header}<tbody>${formattedAreas.join("")}</tbody></table>\n\n`;
+            result += `${header}\n${formattedAreas.join("\n")}\n\n`;
         } else {
             result += "No Areas\n\n";
         }
@@ -518,7 +511,7 @@ export class TableGenerationService {
 
         result += "## Places\n\n";
         if (formattedPlaces.length > 0) {
-            result += `<table class="index place-table">${header}<tbody>${formattedPlaces.join("")}</tbody></table>\n\n`;
+            result += `${header}\n${formattedPlaces.join("\n")}\n\n`;
         } else {
             result += "No Places\n\n";
         }
@@ -528,7 +521,7 @@ export class TableGenerationService {
     private generateRenownContent(dataScope: DataScope): string {
         let result = "\n";
         const header =
-            "<thead><tr><th>renown</th><th></th><th></th><th>sess</th></tr></thead>";
+            "- <span class='tr header renown'><span class='th amount cellWidth'></span><span class='th icon cellWidth'></span><span class='th name'></span><span class='th sess cellWidth'>sess</span>";
 
         const counter = this.rowCount();
         const groupsRenown = this.cache
@@ -537,7 +530,7 @@ export class TableGenerationService {
 
         result += "## Renown\n\n";
         if (groupsRenown.length > 0) {
-            result += `<table class="index place-table">${header}<tbody>${groupsRenown.join("")}</tbody></table>\n\n`;
+            result += `${header}\n${groupsRenown.join("\n")}\n\n`;
         } else {
             result += "None\n\n";
         }
@@ -592,30 +585,27 @@ export class TableGenerationService {
         const entityGroups = [];
         for (const [type, entityLinks] of references) {
             entityGroups.push(
-                `<span>${typeIcon(type)} ${Array.from(entityLinks.values()).join(", ")}</span>`,
+                `<span class="groupOfType">${typeIcon(type)} ${Array.from(entityLinks.values()).join(", ")}</span>`,
             );
         }
 
         const evenOdd = counter.count++ % 2 === 0 ? "even" : "odd";
-        const rowSpan = entityGroups.length > 0 ? ' rowspan="2"' : "";
-        const rowClass = evenOdd + (rowSpan ? " multirow" : "");
-
+        const levelClass = showLevel ? " hasLevel" : "";
         const related =
             entityGroups.length > 0
-                ? `</tr><tr class="${rowClass} last"><td class="indent multirow">${entityGroups.join("; ")}</td>`
+                ? `<span class="indent related">${entityGroups.join("; ")}</span>`
                 : "";
 
         const level = showLevel
-            ? `<td${rowSpan} class="cellWidth center">${encounter.level ? encounter.level : ""}</td>`
+            ? `<span class="level cellWidth center">${encounter.level ? encounter.level : ""}</span>`
             : "";
 
         const row = [
-            `<tr class="${rowClass} first">`,
+            `- <span class="tr encounter ${evenOdd}${levelClass}">`,
             level,
-            `<td${rowSpan} class="cellWidth" style="--cell-width: 4.5em;">${status}</td>`,
-            `<td>${entityToLink(encounter, true)}</td>`,
-            related,
-            "</tr>",
+            `<span class="status cellWidth" style="--cell-width: 4.5em;">${status}</span>`,
+            `<span>${entityToLink(encounter, true)}${related}</span>`,
+            "</span>",
         ];
         return row.join("");
     }
@@ -626,24 +616,17 @@ export class TableGenerationService {
         counter: RowCount,
     ): string {
         const evenOdd = counter.count++ % 2 === 0 ? "even" : "odd";
-        const notesRow = this.associatedNotes(
-            group,
-            dataScope,
-            `${evenOdd} last`,
-        );
-        const rowSpan = notesRow ? ` rowspan="2"` : "";
-        const rowClass = evenOdd + (rowSpan ? " multirow first" : "");
+        const notesRow = this.associatedNotes(group, dataScope);
         const renown = group.state[dataScope.active || "*"]?.renown || "";
 
         const row = [
-            `<tr class="${rowClass}"}>`,
-            `<td${rowSpan} class="cellWidth center" style="--cell-width: 3em;">${group.icon || ""}</td>`,
-            `<td>${entityToLink(group, true)}${renown ? ` (${renown})` : ""}</td>`,
-            `<td${rowSpan} class="cellWidth" style="--cell-width: 8em;">${group.subtype || ""}</td>`,
-            `<td${rowSpan} class="cellWidth" style="--cell-width: 6em;">${group.scope}</td>`,
-            `<td${rowSpan} class="cellWidth center" style="--cell-width: 3em;">${this.cache.getLastSeen(group, dataScope.pattern)}</td>`,
-            notesRow,
-            "</tr>",
+            `- <span class="tr groups ${evenOdd}">`,
+            `<span class="icon cellWidth center" style="--cell-width: 3em;">${group.icon || ""}</span>`,
+            `<span class="name">${entityToLink(group, true)}${renown ? ` (${renown})` : ""}${notesRow}</span>`,
+            `<span class="subtype cellWidth" style="--cell-width: 8em;">${group.subtype || ""}</span>`,
+            `<span class="scope cellWidth" style="--cell-width: 6em;">${group.scope}</span>`,
+            `<span class="sess cellWidth center" style="--cell-width: 3em;">${this.cache.getLastSeen(group, dataScope.pattern)}</span>`,
+            "</span>",
         ];
         return row.join("");
     }
@@ -665,23 +648,16 @@ export class TableGenerationService {
         const lastSeenText = this.cache.getLastSeen(npc, dataScope.pattern);
 
         const evenOdd = counter.count++ % 2 === 0 ? "even" : "odd";
-        const notesRow = this.associatedNotes(
-            npc,
-            dataScope,
-            `${evenOdd} last`,
-        );
-        const rowSpan = notesRow ? ` rowspan="2"` : "";
-        const rowClass = evenOdd + (rowSpan ? " multirow first" : "");
+        const notesRow = this.associatedNotes(npc, dataScope);
 
         const set = [
-            `<tr class="${rowClass}">`,
-            `<td${rowSpan} class="cellWidth center" style="--cell-width: 2em;">${lastSeenText}</td>`,
-            `<td${rowSpan} class="cellWidth">${status}</td>`,
-            `<td${rowSpan} class="cellWidth">${iffKey}</td>`,
-            `<td>${entityToLink(npc, true)}${iconText}</td>`,
-            `<td${rowSpan} class="cellWidth center" style="--cell-width: 6em;">${npc.scope}</td>`,
-            notesRow,
-            "</tr>",
+            `- <span class="tr npcs ${evenOdd}">`,
+            `<span class="cellWidth center sess" style="--cell-width: 2em;">${lastSeenText}</span>`,
+            `<span class="cellWidth stat">${status}</span>`,
+            `<span class="cellWidth iff">${iffKey}</span>`,
+            `<span class="name">${entityToLink(npc, true)}${iconText}${notesRow}</span>`,
+            `<span class="cellWidth center scope" style="--cell-width: 6em;">${npc.scope}</span>`,
+            "</span>",
         ];
 
         return set.join("");
@@ -716,21 +692,14 @@ export class TableGenerationService {
             groupAreaText.length > 0 ? ` — ${groupAreaText.join("; ")}` : "";
 
         const evenOdd = counter.count++ % 2 === 0 ? "even" : "odd";
-        const notesRow = this.associatedNotes(
-            area,
-            dataScope,
-            `${evenOdd} last`,
-        );
-        const rowSpan = notesRow ? ` rowspan="2"` : "";
-        const rowClass = evenOdd + (rowSpan ? " multirow first" : "");
+        const notesRow = this.associatedNotes(area, dataScope);
 
         const set = [
-            `<tr class="${rowClass}">`,
-            `<td${rowSpan} class="cellWidth center" style="--cell-width: 2em;">${lastSeenText}</td>`,
-            `<td>${entityToLink(area, true)}${groupInfo}</td>`,
-            `<td${rowSpan} class="cellWidth" style="--cell-width: 8em;">${subtypeText}</td>`,
-            notesRow,
-            "</tr>",
+            `- <span class="tr places ${evenOdd}">`,
+            `<span class="sess cellWidth center" style="--cell-width: 2em;">${lastSeenText}</span>`,
+            `<span class="name">${entityToLink(area, true)}${groupInfo}${notesRow}</td>`,
+            `<span class="subtype cellWidth" style="--cell-width: 8em;">${subtypeText}</span>`,
+            "</span>",
         ];
         return set.join("");
     }
@@ -772,21 +741,14 @@ export class TableGenerationService {
 
         // If notes exist, add them as a second row
         const evenOdd = counter.count++ % 2 === 0 ? "even" : "odd";
-        const notesRow = this.associatedNotes(
-            place,
-            dataScope,
-            `${evenOdd} last`,
-        );
-        const rowSpan = notesRow ? ` rowspan="2"` : "";
-        const rowClass = evenOdd + (rowSpan ? " multirow first" : "");
+        const notesRow = this.associatedNotes(place, dataScope);
 
         const row = [
-            `<tr class="${rowClass}">`,
-            `<td${rowSpan} class="cellWidth center" style="--cell-width: 2em;">${lastSeenText}</td>`,
-            `<td>${entityToLink(place, true)}${groupInfo}</span>`,
-            `<td${rowSpan} class="cellWidth" style="--cell-width: 8em;">${subtypeText}</td>`,
-            notesRow,
-            "</tr>",
+            `- <span class="tr places ${evenOdd}">`,
+            `<span class="sess cellWidth center" style="--cell-width: 2em;">${lastSeenText}</span>`,
+            `<span class="name">${entityToLink(place, true)}${groupInfo}${notesRow}</span>`,
+            `<span class="subtype cellWidth" style="--cell-width: 8em;">${subtypeText}</span>`,
+            "</span>",
         ];
         return row.join("");
     }
@@ -801,12 +763,12 @@ export class TableGenerationService {
         const renown = group.state[dataScope.active || "*"]?.renown || "";
 
         const row = [
-            `<tr class="${evenOdd}">`,
-            `<td class="cellWidth center" style="--cell-width: 3em;">${renown || ""}</td>`,
-            `<td class="cellWidth center" style="--cell-width: 3em;">${group.icon || ""}</td>`,
-            `<td>${entityToLink(group, true)}</td>`,
-            `<td class="cellWidth center" style="--cell-width: 2em;">${lastSeenText}</td>`,
-            "</tr>",
+            `- <span class="tr renown ${evenOdd}">`,
+            `<span class="amount cellWidth center" style="--cell-width: 3em;">${renown || ""}</span>`,
+            `<span class="icon cellWidth center" style="--cell-width: 3em;">${group.icon || ""}</span>`,
+            `<span class="name">${entityToLink(group, true)}</span>`,
+            `<span class="sess cellWidth center" style="--cell-width: 2em;">${lastSeenText}</span>`,
+            "</span>",
         ];
         return row.join("");
     }
@@ -814,11 +776,8 @@ export class TableGenerationService {
     private associatedNotes(
         entity: CampaignEntity,
         dataScope: DataScope,
-        evenOdd: string,
     ): string {
         const notes = entity.state[dataScope.active || "*"]?.notes || "";
-        return notes
-            ? `</tr><tr class="${evenOdd} multirow"><td class="indent notes">${notes}</td>`
-            : "";
+        return notes ? `<span class="indent notes">${notes}</span>` : "";
     }
 }

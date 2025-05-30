@@ -338,14 +338,14 @@ export class CampaignNotesCache {
             }
         }
 
-        for (const value of scopeCache.data.npcIff.values()) {
-            for (const iffKey of value.keys()) {
-                const iffValue = value.get(iffKey);
-                value.set(
-                    iffKey,
-                    iffValue?.sort((a, b) =>
-                        this.sortNPCStatus(a, b, scopePattern),
-                    ),
+        console.log(scopeCache.data.npcIff);
+        for (const [scope, iffMap] of scopeCache.data.npcIff.entries()) {
+            const iffGroups = Array.from(iffMap.keys());
+            for (const iffGroup of iffGroups) {
+                const iffValue = iffMap.get(iffGroup);
+                iffMap.set(
+                    iffGroup,
+                    iffValue?.sort((a, b) => this.sortNPCStatus(a, b, scope)),
                 );
             }
         }

@@ -90,8 +90,8 @@ export const entityToLink = (
     entity: CampaignEntity,
     strong = false,
 ): string => {
-    const strongText = strong ? `<strong>${entity.name}</strong>` : entity.name;
-    return `<a class="internal-link" data-href="${entity.id}" href="${entity.id}" target="_blank" rel="noopener nofollow">${strongText}</a>`;
+    const strongText = strong ? `**${entity.name}**` : entity.name;
+    return `[${strongText}](${entity.id})`;
 };
 
 /**
