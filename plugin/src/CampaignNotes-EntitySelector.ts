@@ -45,10 +45,18 @@ class EntitySelectorModal extends FuzzySuggestModal<CampaignEntity> {
         this.setInstructions([
             {
                 command: "Enter/Click",
-                purpose: "Select entity",
+                purpose: "Open the entity",
             },
             {
                 command: "Shift+Enter/Click",
+                purpose: "Open the entity in a new tab",
+            },
+            {
+                command: "Tab",
+                purpose: "Create a link to the entity",
+            },
+            {
+                command: "Shift+Tab",
                 purpose: "Create link with first name only (NPCs)",
             },
             {
@@ -57,13 +65,16 @@ class EntitySelectorModal extends FuzzySuggestModal<CampaignEntity> {
             },
         ]);
 
-        // Add Shift+Enter handler
-        this.scope.register(["Shift"], "Enter", (evt: KeyboardEvent) => {
-            this.selectActiveSuggestion(evt);
-            this.close();
-            evt.preventDefault();
-            return false;
-        });
+        this.scope.register([], "Tab", this.acceptSuggestion.bind(this));
+        this.scope.register(["Shift"], "Tab", this.acceptSuggestion.bind(this));
+        this.scope.register(["Shift"], "Enter", this.acceptSuggestion.bind(this));
+    }
+
+    acceptSuggestion(evt: KeyboardEvent): boolean {
+        this.selectActiveSuggestion(evt);
+        this.close();
+        evt.preventDefault();
+        return false;
     }
 
     getItems(): CampaignEntity[] {
@@ -98,8 +109,11 @@ class EntitySelectorModal extends FuzzySuggestModal<CampaignEntity> {
         entity: CampaignEntity,
         evt: MouseEvent | KeyboardEvent,
     ): void {
+        console.log("onChooseItem", evt.type, (evt as KeyboardEvent).key, (evt as KeyboardEvent).shiftKey);
         this.chosen = entity;
-        if (this.editor && entity) {
+
+        // If Tab key is pressed (and we're in an editor), create a link
+        if (this.editor && this.chosen && evt instanceof KeyboardEvent && evt.key === "Tab") {
             let name = entity.name;
             if (evt.shiftKey && entity.type === EntityType.NPC) {
                 // If Shift+Enter is pressed and the entity is an NPC, use only the first name
@@ -107,6 +121,16 @@ class EntitySelectorModal extends FuzzySuggestModal<CampaignEntity> {
             }
             const link = `[${name}](${entity.id})`;
             this.editor.replaceSelection(link);
+            this.close();
+            return;
+        }
+
+        const isEnterKey = evt instanceof KeyboardEvent
+            ? evt.key === "Enter"
+            : evt.type === "click";
+
+        if (isEnterKey) {
+            this.plugin.app.workspace.openLinkText(entity.id, "", evt.shiftKey);
         }
         this.close();
     }

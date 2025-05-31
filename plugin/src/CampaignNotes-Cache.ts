@@ -267,6 +267,8 @@ export class CampaignNotesCache {
                     case EntityType.GROUP: {
                         const group = entity as Group;
                         const groupState = group.state?.[scope];
+                        const groupFallback = group.state?.["*"];
+
                         if (groupState?.renown) {
                             addToMappedMap(
                                 scopeCache.data.groupRenown,
@@ -278,7 +280,7 @@ export class CampaignNotesCache {
 
                         const status = groupState
                             ? groupState.status || GroupStatus.ACTIVE
-                            : group.state?.["*"].status || GroupStatus.UNKNOWN;
+                            : groupFallback?.status || GroupStatus.UNKNOWN;
 
                         addToMappedMap(
                             scopeCache.data.groupStatus,
@@ -299,6 +301,8 @@ export class CampaignNotesCache {
                     case EntityType.NPC: {
                         const npc = entity as NPC;
                         const npcState = npc.state?.[scope];
+                        const npcFallback = npc.state?.["*"];
+
                         addToMappedNestedArray(
                             scopeCache.data.npcIff,
                             scope,
@@ -306,9 +310,9 @@ export class CampaignNotesCache {
                             npc,
                         );
 
-                        const status =
-                            (npc.state[scope || "*"]?.status as NPCStatus) ||
-                            NPCStatus.ALIVE;
+                        const status = npcState?.status
+                            || npcFallback?.status
+                            || NPCStatus.ALIVE;
                         addToMappedMap(
                             scopeCache.data.npcStatus,
                             scope,
@@ -338,7 +342,6 @@ export class CampaignNotesCache {
             }
         }
 
-        console.log(scopeCache.data.npcIff);
         for (const [scope, iffMap] of scopeCache.data.npcIff.entries()) {
             const iffGroups = Array.from(iffMap.keys());
             for (const iffGroup of iffGroups) {
@@ -367,9 +370,11 @@ export class CampaignNotesCache {
     }
 
     private sortNPCStatus(a: NPC, b: NPC, currentScope: string): number {
-        const n1 = a.state[currentScope || "*"]?.status || "alive";
+        const s1 = a.state[currentScope] || a.state["*"];
+        const n1 = s1?.status || "alive";
         const idx1 = this.npcStatusOrder.indexOf(n1);
-        const n2 = b.state[currentScope || "*"]?.status || "alive";
+        const s2 = b.state[currentScope] || b.state["*"];
+        const n2 = s2?.status || "alive";
         const idx2 = this.npcStatusOrder.indexOf(n2);
         if (idx1 === idx2) {
             return a.name.localeCompare(b.name);

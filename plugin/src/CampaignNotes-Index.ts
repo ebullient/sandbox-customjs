@@ -17,7 +17,7 @@ import {
     type Encounter,
     EntityType,
     type Group,
-    type GroupStatus,
+    GroupStatus,
     type Item,
     type NPC,
     NPCStatus,
@@ -36,7 +36,7 @@ export const DEFAULT_SETTINGS: CampaignNotesSettings = {
     includeFolders: ["campaign-notes"],
     keepTagPrefix: [],
     campaignScopes: [],
-    defaultScopePattern: "*",
+    defaultScopePattern: ".*",
     debug: false,
 };
 
@@ -457,40 +457,34 @@ export class CampaignNotesIndex {
                 // there are some shortcuts to avoid complicated structures
                 // for data entry on scoped groups.
 
-                // Values in the frontmatter apply to all scopes
-                if (fm?.status) {
-                    entity.state["*"].status =
-                        entity.state["*"].status || fm.status;
-                }
-                if (fm?.renown) {
-                    entity.state["*"].renown =
-                        entity.state["*"].renown || fm.renown;
-                }
-
                 // biome-ignore lint/complexity/useLiteralKeys: convenience, untyped
                 const entityStatus = entity["status"];
-                if (entity.scope && entityStatus) {
-                    entity.state[entity.scope] =
-                        entity.state[entity.scope] || {};
-                    entity.state[entity.scope].status =
-                        entity.state[entity.scope].status || entityStatus;
-                }
+                this.deleteAttribute(entity, "status");
+
+                // biome-ignore lint/complexity/useLiteralKeys: convenience, untyped
+                const entityRenown = entity["renown"];
+                this.deleteAttribute(entity, "renown");
+
+                // Values in the frontmatter apply to all scopes
+                const scope = entity.scope || "*";
+                entity.state[scope] = entity.state[scope] || {};
+
+                entity.state[scope].status =
+                    entity.state[scope].status || entityStatus || fm?.status;
+                entity.state[scope].renown =
+                    entity.state[scope].renown || entityRenown || fm?.renown;
 
                 // look for tags (these are aggregated for entity and frontmatter)
                 // the tags include the scope and type: heist/renown/6, witchlight/renown/2
                 for (const tag of entity.tags) {
                     const scopeRenown = tag.match(/([^/]+)\/renown\/(\d+)/);
                     if (scopeRenown) {
-                        entity.state[scopeRenown[1]] =
-                            entity.state[scopeRenown[1]] || {};
-                        const state = entity.state[scopeRenown[1]];
+                        const state = this.setAttributeIfMissing(entity.state, scopeRenown[1], {});
                         state.renown = state.renown || Number(scopeRenown[2]);
                     }
                     const scopeStatus = tag.match(/([^/]+)\/group\/(.*)/);
                     if (scopeStatus) {
-                        entity.state[scopeStatus[1]] =
-                            entity.state[scopeStatus[1]] || {};
-                        const state = entity.state[scopeStatus[1]];
+                        const state = this.setAttributeIfMissing(entity.state, scopeStatus[1], {});
                         state.status =
                             state.status || (scopeStatus[2] as GroupStatus);
                     }
@@ -526,53 +520,41 @@ export class CampaignNotesIndex {
             EntityType.NPC,
             frontmatter,
             tags,
-            (entity, _fm) => {
+            (entity, fm) => {
                 const scope = entity.scope || "*";
+                entity.state[scope] = entity.state[scope] || {};
 
                 // there are some shortcuts to avoid complicated structures
                 // for data entry on scoped npcs.
 
-                entity.state[scope] = entity.state[scope] || {};
-
                 // biome-ignore lint/complexity/useLiteralKeys: not typed / partial
                 const entityStatus = entity["status"];
+                this.deleteAttribute(entity, "status");
+
                 // biome-ignore lint/complexity/useLiteralKeys: not typed / partial
                 const entityIff = entity["iff"];
+                this.deleteAttribute(entity, "iff");
 
-                if (entityIff) {
-                    entity.state[scope].iff =
-                        entity.state[scope].iff || entityIff;
-                }
-                if (entityStatus) {
-                    entity.state[scope].status =
-                        entity.state[scope].status || entityStatus;
-                }
+                entity.state[scope].iff =
+                    entity.state[scope].iff || entityIff || fm?.iff;
+                entity.state[scope].status =
+                    entity.state[scope].status || entityStatus || fm?.status;
 
                 // look for tags (these are aggregated for entity and frontmatter)
                 // the tags include the scope and type: heist/iff/ally, witchlight/npc/dead
                 for (const tag of entity.tags) {
                     const scopeStatus = tag.match(/([^/]+)\/npc\/(.*)/);
                     if (scopeStatus) {
-                        entity.state[scopeStatus[1]] =
-                            entity.state[scopeStatus[1]] || {};
-                        const state = entity.state[scopeStatus[1]];
+                        const state = this.setAttributeIfMissing(entity.state, scopeStatus[1], {});
                         state.status =
                             state.status || (scopeStatus[2] as NPCStatus);
                     }
                     const iffStatus = tag.match(/([^/]+)\/iff\/(.*)/);
                     if (iffStatus) {
-                        entity.state[iffStatus[1]] =
-                            entity.state[iffStatus[1]] || {};
-                        const state = entity.state[iffStatus[1]];
+                        const state = this.setAttributeIfMissing(entity.state, iffStatus[1], {});
                         state.iff = state.iff || (iffStatus[2] as NPC_IFF);
                     }
                 }
-
-                // set the default if otherwise missing
-                entity.state[scope].status =
-                    entity.state[scope].status || NPCStatus.ALIVE;
-                entity.state[scope].iff =
-                    entity.state[scope].iff || NPC_IFF.UNKNOWN;
             },
         );
     }
@@ -633,12 +615,8 @@ export class CampaignNotesIndex {
             type,
             tags,
         };
-        const scope = path.split("/")[0];
-        if (this.plugin.settings.campaignScopes.includes(scope)) {
-            entity.scope = scope;
-        }
+        entity.scope = path.split("/")[0];;
         entity.state = entity.state || {};
-        entity.state["*"] = entity.state["*"] || {};
         return entity;
     }
 
@@ -660,27 +638,23 @@ export class CampaignNotesIndex {
             resolveProps(entity, frontmatter);
         }
 
-        const globalState = entity.state["*"];
-        if (globalState) {
-            // Merge the '*' state with other states
-            const stateKeys = Object.keys(entity.state).filter(
-                (key) => key !== "*",
+        const scope = entity.scope || "*";
+        const entityState = this.setAttribute(entity.state, scope, entity.state[scope] || {});
+
+        // biome-ignore lint/complexity/useLiteralKeys: partial/untyped
+        const entityNotes = entity["notes"];
+        this.deleteAttribute(entity, "notes");
+
+        entity.state[scope].notes = entity.state[entity.scope].notes || entityNotes || frontmatter?.notes;
+
+        // biome-ignore lint/complexity/useLiteralKeys: partial/untyped
+        const remove: string[] = entity["remove"];
+        this.deleteAttribute(entity, "remove");
+
+        entity.tags = (entity.tags || [])
+            .filter(
+                (tag) => !tag.startsWith(typeTagPrefix) && !remove?.includes(tag),
             );
-            if (entity.scope) {
-                stateKeys.push(entity.scope);
-            }
-            for (const key of stateKeys) {
-                const state = {
-                    ...globalState,
-                    ...(entity.state[key] || {}),
-                };
-                // Type assertion needed to satisfy TypeScript when modifying indexed properties on generic type
-                (entity.state as Record<string, CampaignState>)[key] = state;
-            }
-        }
-        entity.tags = (entity.tags || []).filter(
-            (tag) => !tag.startsWith(typeTagPrefix),
-        );
     }
 
     private findIdTag(entity: Partial<CampaignEntity>, tagRoot: string): void {
@@ -809,25 +783,25 @@ export class CampaignNotesIndex {
         ) => void,
     ): void {
         // Handle either string or object values
-        if (typeof value === "object") {
+        if (value && typeof value === "object") {
             // Merge properties from the value object
             // Combine tags from the parent and the value
             const tags = [...(entity.tags || []), ...(value.tags || [])];
             Object.assign(entity, value);
             entity.tags = Array.from(new Set(tags)); // Remove duplicates
-        } else {
+        } else if (value && typeof value === "string") {
             // Just update the name if it's a string
             entity.name = value;
         }
 
+        const scope = entity.scope || "*";
+        const state = this.setAttribute(entity.state, scope, entity.state[scope] || {});
+
         // biome-ignore lint/complexity/useLiteralKeys: partial/untyped
         const notes = entity["notes"];
-        if (notes) {
-            const scope = entity.scope || "*";
-            const state = entity.state[scope] || ({} as CampaignState);
-            state.notes = notes;
-            (entity.state as Record<string, CampaignState>)[scope] = state;
-        }
+        this.deleteAttribute(entity, "notes");
+
+        state.notes = state.notes || notes || frontmatter?.notes;
 
         if (entity.anchor) {
             entity.id = markdownLinkPath(entity.filePath, entity.anchor);
@@ -972,6 +946,22 @@ export class CampaignNotesIndex {
         return (
             frontmatter?.index === false || frontmatter?.index === "generated"
         );
+    }
+
+    private setAttributeIfMissing<T>(obj: Record<string, T>, key: string, value: T): T {
+        obj[key] = obj[key] || value;
+        return obj[key];
+    }
+
+    private setAttribute<T>(obj: Record<string, T>, key: string, value: T): T {
+        obj[key] = value;
+        return value;
+    }
+
+    private deleteAttribute(obj: Record<string, unknown>, key: string): void {
+        if (obj && key in obj) {
+            delete obj[key];
+        }
     }
 
     // --------------------------------

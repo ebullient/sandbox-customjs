@@ -621,9 +621,12 @@ export class TableGenerationService {
         dataScope: DataScope,
         counter: RowCount,
     ): string {
+        const groupState = group.state[dataScope.active];
+        const groupFallback = group.state["*"];
+
         const evenOdd = counter.count++ % 2 === 0 ? "even" : "odd";
         const notesRow = this.associatedNotes(group, dataScope);
-        const renown = group.state[dataScope.active || "*"]?.renown || "";
+        const renown = groupState?.renown || groupFallback?.renown || "";
 
         const row = [
             `- <span class="tr groups ${evenOdd}">`,
@@ -642,11 +645,14 @@ export class TableGenerationService {
         dataScope: DataScope,
         counter: RowCount,
     ): string {
-        const iffKey = iffStatusIcon(
-            npc.state[dataScope.active || "*"]?.iff || "",
-        );
+        const npcState = npc.state[dataScope.active];
+        const npcFallback = npc.state["*"];
+        const npcIff = npcState?.iff || npcFallback?.iff || "";
+
+        const iffKey = iffStatusIcon(npcIff);
         const status = statusIcon(
-            npc.state[dataScope.active || "*"]?.status || "",
+            npcState?.status || npcFallback?.status
+            || (npcIff ? NPCStatus.ALIVE : NPCStatus.UNKNOWN),
         );
 
         const icons = this.cache.getIcons(npc);
@@ -764,15 +770,19 @@ export class TableGenerationService {
         dataScope: DataScope,
         counter: RowCount,
     ): string {
+        const groupState = group.state[dataScope.active];
+        const groupFallback = group.state["*"];
+
         const lastSeenText = this.cache.getLastSeen(group, dataScope.pattern);
         const evenOdd = counter.count++ % 2 === 0 ? "even" : "odd";
-        const renown = group.state[dataScope.active || "*"]?.renown || "";
+        const renown = groupState?.renown || groupFallback?.renown || "";
+        const notesRow = this.associatedNotes(group, dataScope);
 
         const row = [
             `- <span class="tr renown ${evenOdd}">`,
             `<span class="amount">${renown || ""}</span>`,
             `<span class="icon">${group.icon || ""}</span>`,
-            `<span class="name">${entityToLink(group, true)}</span>`,
+            `<span class="name">${entityToLink(group, true)}${notesRow}</span>`,
             `<span class="sess">${lastSeenText}</span>`,
             "</span>",
         ];
@@ -783,7 +793,10 @@ export class TableGenerationService {
         entity: CampaignEntity,
         dataScope: DataScope,
     ): string {
-        const notes = entity.state[dataScope.active || "*"]?.notes || "";
+        const entityState = entity.state[dataScope.active];
+        const entityFallback = entity.state["*"];
+
+        const notes = entityState?.notes || entityFallback?.notes || "";
         return notes ? `<span class="indent notes">${notes}</span>` : "";
     }
 }

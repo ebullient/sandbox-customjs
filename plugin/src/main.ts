@@ -70,35 +70,12 @@ export default class CampaignNotesPlugin extends Plugin {
         // Add commands for entity selection
         this.addCommand({
             id: "insert-entity-link",
-            name: "Insert Entity Link",
-            editorCallback: (editor) => {
+            name: "Find Entity (open or link)",
+            callback: () => {
+                const editor = this.app.workspace.activeEditor?.editor ?? null;
                 this.entitySelector.openEntitySelector(editor);
             },
         });
-
-        // this.addCommand({
-        //     id: "insert-npc-link",
-        //     name: "Insert NPC Link",
-        //     editorCallback: (editor) => {
-        //         this.entitySelector.openEntitySelector(editor, EntityType.NPC);
-        //     },
-        // });
-
-        // this.addCommand({
-        //     id: "insert-npc-first-name-link",
-        //     name: "Insert NPC Link (First Name)",
-        //     editorCallback: (editor) => {
-        //         this.entitySelector.openEntitySelector(editor, "npc", undefined, { useFirstName: true });
-        //     },
-        // });
-
-        // this.addCommand({
-        //     id: "insert-place-link",
-        //     name: "Insert Place Link",
-        //     editorCallback: (editor) => {
-        //         this.entitySelector.openEntitySelector(editor, "place");
-        //     },
-        // });
 
         // Start indexing when workspace is ready
         this.app.workspace.onLayoutReady(() => {
