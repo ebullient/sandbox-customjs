@@ -13,15 +13,14 @@ import {
 import {
     type Area,
     type CampaignEntity,
-    type CampaignState,
     type Encounter,
     EntityType,
     type Group,
-    GroupStatus,
+    type GroupStatus,
     type Item,
     type NPC,
-    NPCStatus,
-    NPC_IFF,
+    type NPCStatus,
+    type NPC_IFF,
     type PC,
     type Place,
 } from "./@types";
@@ -479,12 +478,20 @@ export class CampaignNotesIndex {
                 for (const tag of entity.tags) {
                     const scopeRenown = tag.match(/([^/]+)\/renown\/(\d+)/);
                     if (scopeRenown) {
-                        const state = this.setAttributeIfMissing(entity.state, scopeRenown[1], {});
+                        const state = this.setAttributeIfMissing(
+                            entity.state,
+                            scopeRenown[1],
+                            {},
+                        );
                         state.renown = state.renown || Number(scopeRenown[2]);
                     }
                     const scopeStatus = tag.match(/([^/]+)\/group\/(.*)/);
                     if (scopeStatus) {
-                        const state = this.setAttributeIfMissing(entity.state, scopeStatus[1], {});
+                        const state = this.setAttributeIfMissing(
+                            entity.state,
+                            scopeStatus[1],
+                            {},
+                        );
                         state.status =
                             state.status || (scopeStatus[2] as GroupStatus);
                     }
@@ -545,13 +552,21 @@ export class CampaignNotesIndex {
                 for (const tag of entity.tags) {
                     const scopeStatus = tag.match(/([^/]+)\/npc\/(.*)/);
                     if (scopeStatus) {
-                        const state = this.setAttributeIfMissing(entity.state, scopeStatus[1], {});
+                        const state = this.setAttributeIfMissing(
+                            entity.state,
+                            scopeStatus[1],
+                            {},
+                        );
                         state.status =
                             state.status || (scopeStatus[2] as NPCStatus);
                     }
                     const iffStatus = tag.match(/([^/]+)\/iff\/(.*)/);
                     if (iffStatus) {
-                        const state = this.setAttributeIfMissing(entity.state, iffStatus[1], {});
+                        const state = this.setAttributeIfMissing(
+                            entity.state,
+                            iffStatus[1],
+                            {},
+                        );
                         state.iff = state.iff || (iffStatus[2] as NPC_IFF);
                     }
                 }
@@ -615,7 +630,7 @@ export class CampaignNotesIndex {
             type,
             tags,
         };
-        entity.scope = path.split("/")[0];;
+        entity.scope = path.split("/")[0];
         entity.state = entity.state || {};
         return entity;
     }
@@ -639,22 +654,28 @@ export class CampaignNotesIndex {
         }
 
         const scope = entity.scope || "*";
-        const entityState = this.setAttribute(entity.state, scope, entity.state[scope] || {});
+        const entityState = this.setAttribute(
+            entity.state,
+            scope,
+            entity.state[scope] || {},
+        );
 
         // biome-ignore lint/complexity/useLiteralKeys: partial/untyped
         const entityNotes = entity["notes"];
         this.deleteAttribute(entity, "notes");
 
-        entity.state[scope].notes = entity.state[entity.scope].notes || entityNotes || frontmatter?.notes;
+        entity.state[scope].notes =
+            entity.state[entity.scope].notes ||
+            entityNotes ||
+            frontmatter?.notes;
 
         // biome-ignore lint/complexity/useLiteralKeys: partial/untyped
         const remove: string[] = entity["remove"];
         this.deleteAttribute(entity, "remove");
 
-        entity.tags = (entity.tags || [])
-            .filter(
-                (tag) => !tag.startsWith(typeTagPrefix) && !remove?.includes(tag),
-            );
+        entity.tags = (entity.tags || []).filter(
+            (tag) => !tag.startsWith(typeTagPrefix) && !remove?.includes(tag),
+        );
     }
 
     private findIdTag(entity: Partial<CampaignEntity>, tagRoot: string): void {
@@ -795,7 +816,11 @@ export class CampaignNotesIndex {
         }
 
         const scope = entity.scope || "*";
-        const state = this.setAttribute(entity.state, scope, entity.state[scope] || {});
+        const state = this.setAttribute(
+            entity.state,
+            scope,
+            entity.state[scope] || {},
+        );
 
         // biome-ignore lint/complexity/useLiteralKeys: partial/untyped
         const notes = entity["notes"];
@@ -948,7 +973,11 @@ export class CampaignNotesIndex {
         );
     }
 
-    private setAttributeIfMissing<T>(obj: Record<string, T>, key: string, value: T): T {
+    private setAttributeIfMissing<T>(
+        obj: Record<string, T>,
+        key: string,
+        value: T,
+    ): T {
         obj[key] = obj[key] || value;
         return obj[key];
     }

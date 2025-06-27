@@ -327,20 +327,17 @@ export class TableGenerationService {
             "- <span class='tr header encounter'><span class='th level'>lvl</span><span class='th status'>status</span><span class='th name'>## encounter(s)</span></span>";
 
         if (activeEncounters.length > 0) {
-            result += `## Active Encounters\n\n${header.replace('##', `${activeEncounters.length}`)}\n${activeEncounters.join("\n")}\n\n`;
+            result += `## Active Encounters\n\n${header.replace("##", `${activeEncounters.length}`)}\n${activeEncounters.join("\n")}\n\n`;
         }
 
         if (newEncounters.length > 0) {
-            result += `## New Encounters\n\n${header.replace('##', `${newEncounters.length}`)}\n${newEncounters.join("\n")}\n\n`;
+            result += `## New Encounters\n\n${header.replace("##", `${newEncounters.length}`)}\n${newEncounters.join("\n")}\n\n`;
         }
 
         if (otherEncounters.length > 0) {
             const otherHeader = header
-                .replace('##', `${otherEncounters.length}`)
-                .replace(
-                    "<span class='th level'>lvl</span>",
-                "",
-            );
+                .replace("##", `${otherEncounters.length}`)
+                .replace("<span class='th level'>lvl</span>", "");
             result += `## Other Encounters\n\n${otherHeader}\n${otherEncounters.join("\n")}\n\n`;
         }
 
@@ -406,15 +403,15 @@ export class TableGenerationService {
             "- <span class='tr header groups'><span class='th icon'></span><span class='th name'>## group(s)</span><span class='th subtype'>subtype</span><span class='th scope'>scope</span><span class='th sess'>sess</span></span>";
 
         if (activeGroups.length > 0) {
-            result += `## Active Groups\n\n${header.replace('##', `${activeGroups.length}`)}\n${activeGroups.join("\n")}\n\n`;
+            result += `## Active Groups\n\n${header.replace("##", `${activeGroups.length}`)}\n${activeGroups.join("\n")}\n\n`;
         }
 
         if (defunctGroups.length > 0) {
-            result += `## Defunct Groups\n\n${header.replace('##', `${defunctGroups.length}`)}\n${defunctGroups.join("\n")}\n\n`;
+            result += `## Defunct Groups\n\n${header.replace("##", `${defunctGroups.length}`)}\n${defunctGroups.join("\n")}\n\n`;
         }
 
         if (otherGroups.length > 0) {
-            result += `## Other Groups\n\n${header.replace('##', `${otherGroups.length}`)}\n${otherGroups.join("\n")}\n\n`;
+            result += `## Other Groups\n\n${header.replace("##", `${otherGroups.length}`)}\n${otherGroups.join("\n")}\n\n`;
         }
         return result;
     }
@@ -483,7 +480,7 @@ export class TableGenerationService {
         }
 
         const counter = this.rowCount();
-        return `## ${heading}\n\n${thead.replace('##', `${iffNpcs.length}`)}\n${iffNpcs
+        return `## ${heading}\n\n${thead.replace("##", `${iffNpcs.length}`)}\n${iffNpcs
             .map((npc) => this.formatNPCCard(npc, dataScope, counter))
             .join("\n")}\n\n`;
     }
@@ -502,7 +499,7 @@ export class TableGenerationService {
 
         result += "## Areas\n\n";
         if (formattedAreas.length > 0) {
-            result += `${header.replace('##', `${formattedAreas.length} area(s)`)}\n${formattedAreas.join("\n")}\n\n`;
+            result += `${header.replace("##", `${formattedAreas.length} area(s)`)}\n${formattedAreas.join("\n")}\n\n`;
         } else {
             result += "No Areas\n\n";
         }
@@ -517,7 +514,7 @@ export class TableGenerationService {
 
         result += "## Places\n\n";
         if (formattedPlaces.length > 0) {
-            result += `${header.replace('##', `${formattedPlaces.length} place(s)`)}\n${formattedPlaces.join("\n")}\n\n`;
+            result += `${header.replace("##", `${formattedPlaces.length} place(s)`)}\n${formattedPlaces.join("\n")}\n\n`;
         } else {
             result += "No Places\n\n";
         }
@@ -651,8 +648,9 @@ export class TableGenerationService {
 
         const iffKey = iffStatusIcon(npcIff);
         const status = statusIcon(
-            npcState?.status || npcFallback?.status
-            || (npcIff ? NPCStatus.ALIVE : NPCStatus.UNKNOWN),
+            npcState?.status ||
+                npcFallback?.status ||
+                (npcIff ? NPCStatus.ALIVE : NPCStatus.UNKNOWN),
         );
 
         const icons = this.cache.getIcons(npc);

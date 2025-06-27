@@ -310,9 +310,10 @@ export class CampaignNotesCache {
                             npc,
                         );
 
-                        const status = npcState?.status
-                            || npcFallback?.status
-                            || NPCStatus.ALIVE;
+                        const status =
+                            npcState?.status ||
+                            npcFallback?.status ||
+                            NPCStatus.ALIVE;
                         addToMappedMap(
                             scopeCache.data.npcStatus,
                             scope,
@@ -506,19 +507,30 @@ export class CampaignNotesCache {
                             !ref.link.match(/^(http|mailto|view-source)/),
                     )
                     .map((linkRef) => cleanLinkTarget(linkRef))
+                    .filter((linkRef) => linkRef.path)
                     .map((linkRef) => {
                         const linkTarget =
                             this.app.metadataCache.getFirstLinkpathDest(
                                 linkRef.path,
                                 file.path,
                             );
+                        if (!linkTarget) {
+                            console.log(
+                                "Link target not found",
+                                linkRef.path,
+                                "from",
+                                file.path,
+                            );
+                            return null; // Skip if target not found
+                        }
                         linkRef.mdLink = markdownLinkPath(
                             linkTarget.path,
                             linkRef.anchor,
                         );
                         linkRef.path = linkTarget.path;
                         return linkRef;
-                    }),
+                    })
+                    .filter((x) => x),
             ),
         );
 
