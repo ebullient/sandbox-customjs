@@ -1,3 +1,3 @@
 <%* const { Templates } = await window.cJS();
-await Templates.pushText(tp);
+tR += await Templates.pushText(tp);
 %>

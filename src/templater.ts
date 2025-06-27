@@ -7,6 +7,7 @@ interface LineInfo {
     path: string;
     heading: string;
     text: string;
+    selectedLines?: string[];
 }
 
 export class Templates {
@@ -43,7 +44,14 @@ export class Templates {
         section = "Log",
     ): Promise<void> => {
         const file = tp.file.find_tfile(choice);
-        const fileCache = this.app.metadataCache.getCache(choice);
+        const fileCache = this.app.metadataCache.getFileCache(file);
+
+        // Check if fileCache exists and has headings
+        if (!fileCache || !fileCache.headings) {
+            console.warn(`No metadata cache or headings found for ${choice}`);
+            return;
+        }
+
         const headings = fileCache.headings
             .filter((x) => x.level >= 2)
             .filter((x) => x.heading.contains(section));
@@ -121,7 +129,7 @@ export class Templates {
             result = `\n- [**${title}**](${file.path}#${day})\n`;
             result += `    ![${day}](${file.path}#${day})\n`;
 
-            const headings = fileCache.headings.filter((x) => x.level === 2);
+            const headings = fileCache?.headings?.filter((x) => x.level === 2);
             if (!headings || headings.length === 0) {
                 await this.app.vault.process(file, (content) => {
                     return `${content}\n\n## ${day}\n`;
@@ -142,12 +150,17 @@ export class Templates {
     };
 
     /**
-     * Find the current line in the active file and extract relevant information.
+     * Find the current line or selection in the active file and extract relevant information.
      * @param {Templater} tp The templater plugin instance.
-     * @returns {Promise<LineInfo>} An object containing the title, path, heading, and text of the current line.
+     * @param {string} [originalSelection] The original selected text if any.
+     * @returns {Promise<LineInfo>} An object containing the title, path, heading, text, and selectedLines if applicable.
      */
-    findLine = async (tp: Templater): Promise<LineInfo> => {
+    findLine = async (
+        tp: Templater,
+        originalSelection?: string,
+    ): Promise<LineInfo> => {
         let line = undefined;
+        let selectedLines = undefined;
 
         const split = tp.file.content.split("\n");
         const file = tp.file.find_tfile(tp.file.title);
@@ -157,9 +170,43 @@ export class Templates {
         const view = this.app.workspace.getActiveViewOfType(
             window.customJS.obsidian.MarkdownView,
         );
-        if (view) {
-            const cursor = view.editor.getCursor("from").line;
-            line = split[cursor];
+
+        // If we have original selection text, use that instead of trying to read from editor
+        if (originalSelection) {
+            selectedLines = originalSelection
+                .split("\n")
+                .filter((line) => line.trim() !== "");
+
+            // For selection, use the first selected line as the primary line
+            if (selectedLines.length > 0) {
+                line = selectedLines[0];
+            }
+        } else if (view?.editor) {
+            // Check if there's a selection using Obsidian editor API
+            if (view.editor.somethingSelected()) {
+                // Store current selection info to avoid any interference
+                const selectionStart = view.editor.getCursor("from");
+                const selectionEnd = view.editor.getCursor("to");
+
+                // Get the selected text without affecting the selection
+                const selection = view.editor.getRange(
+                    selectionStart,
+                    selectionEnd,
+                );
+
+                selectedLines = selection
+                    .split("\n")
+                    .filter((line) => line.trim() !== "");
+
+                // For selection, use the first selected line as the primary line
+                if (selectedLines.length > 0) {
+                    line = selectedLines[0];
+                }
+            } else {
+                // No selection, use cursor position
+                const cursor = view.editor.getCursor("from").line;
+                line = split[cursor];
+            }
         }
 
         let heading = undefined;
@@ -171,13 +218,13 @@ export class Templates {
         } else {
             if (!line || !line.startsWith("#")) {
                 // No line, or the line isn't a heading: Find the first h2 heading in the file
-                const headings = fileCache.headings.filter(
+                const headings = fileCache?.headings?.filter(
                     (x) => x.level === 2,
                 );
-                line = split[headings[0]?.position.start.line];
+                line = split[headings?.[0]?.position.start.line];
             }
             // Extract text from a heading
-            heading = line.replace(/#+ /, "").trim();
+            heading = line?.replace(/#+ /, "").trim();
         }
 
         return {
@@ -185,6 +232,7 @@ export class Templates {
             path: tp.file.path(true),
             heading,
             text,
+            selectedLines,
         };
     };
 
@@ -225,23 +273,131 @@ export class Templates {
 
     /**
      * Prompt the user to choose a file and push text to it.
+     * Supports both single line (cursor position) and multiple lines (selection).
      * @param {Templater} tp The templater plugin instance.
-     * @returns {Promise<string>}
+     * @returns {Promise<string>} The original text (to preserve it in the source)
      */
-    pushText = async (tp: Templater): Promise<void> => {
+    pushText = async (tp: Templater): Promise<string> => {
         const files = await this.cachedPushTargets();
+
+        // Store original selected text to return it for preservation
+        const view = this.app.workspace.getActiveViewOfType(
+            window.customJS.obsidian.MarkdownView,
+        );
+        let originalText = "";
+        if (view?.editor?.somethingSelected()) {
+            originalText = view.editor.getSelection();
+        }
 
         const choice = await tp.system.suggester(files, files);
         if (choice) {
-            const lineInfo = await this.findLine(tp);
+            const lineInfo = await this.findLine(tp, originalText);
+
+            // Handle multiple selected lines
+            if (lineInfo.selectedLines && lineInfo.selectedLines.length > 1) {
+                await this.doPushMultipleLinesAsBlob(tp, choice, lineInfo);
+
+                // Return the original selected text to preserve it
+                return originalText || lineInfo.selectedLines.join("\n");
+            }
             if (lineInfo.heading) {
                 // pushing header references
                 await this.doPushHeader(tp, choice, lineInfo);
-            } else {
-                // pushing tasks or log items
-                await this.doPushText(tp, choice, lineInfo);
+                return originalText; // Return original text or empty string
+            }
+            // pushing tasks or log items
+            await this.doPushText(tp, choice, lineInfo);
+            return originalText; // Return original text or empty string
+        }
+
+        // Return original text or empty string if no choice made
+        return originalText;
+    };
+
+    /**
+     * Handle pushing multiple selected lines as a blob to the specified file.
+     * Uses regex to mark list items as complete and maintains order.
+     * @param {Templater} tp The templater plugin instance.
+     * @param {string} choice The file path to push the lines to.
+     * @param {LineInfo} lineInfo Information about the selected lines.
+     * @returns {Promise<void>}
+     */
+    doPushMultipleLinesAsBlob = async (
+        tp: Templater,
+        choice: string,
+        lineInfo: LineInfo,
+    ): Promise<void> => {
+        const type = await tp.system.suggester(this.itemPush, this.itemPush);
+        const fromDaily = this.dated.exec(lineInfo.path);
+        const isDaily = this.dated.exec(choice);
+        const pretty = lineInfo.path.contains("conversations")
+            ? `**${lineInfo.title}**`
+            : `_${lineInfo.title}_`;
+
+        const date = fromDaily
+            ? fromDaily[1]
+            : window.moment().format("YYYY-MM-DD");
+
+        // Join all selected lines and process as a blob
+        const originalText = lineInfo.selectedLines?.join("\n") || "";
+        let processedText = originalText;
+
+        switch (type) {
+            case "Tasks item": {
+                // Convert list items to tasks, add source reference
+                const from = isDaily
+                    ? ""
+                    : ` from [${pretty}](${lineInfo.path})`;
+                processedText = processedText.replace(
+                    /^(\s*)-\s*(?:\[.\]\s*)?(.+)$/gm,
+                    `$1- [ ] $2${from}`,
+                );
+                // Handle non-list items
+                processedText = processedText.replace(
+                    /^(?!\s*-\s)(.+)$/gm,
+                    `- [ ] $1${from}`,
+                );
+                break;
+            }
+            default: {
+                // Log section - mark items as complete
+                const isWeekly = choice.endsWith("_week.md");
+                const task = !isDaily || isWeekly ? "[x] " : "";
+                const from = fromDaily ? "" : `[${pretty}](${lineInfo.path}): `;
+                const completed = task
+                    ? fromDaily
+                        ? ` ([${pretty}](${lineInfo.path}))`
+                        : ` (${date})`
+                    : "";
+
+                // Convert list items to completed tasks
+                if (task) {
+                    processedText = processedText.replace(
+                        /^(\s*)-\s*(?:\[.\]\s*)?(.+)$/gm,
+                        `$1- ${task}${from}$2${completed}`,
+                    );
+                    // Handle non-list items
+                    processedText = processedText.replace(
+                        /^(?!\s*-\s)(.+)$/gm,
+                        `- ${task}${from}$1${completed}`,
+                    );
+                } else {
+                    // Simple log entries without completion
+                    processedText = processedText.replace(
+                        /^(\s*)-\s*(?:\[.\]\s*)?(.+)$/gm,
+                        `$1- ${from}$2`,
+                    );
+                    processedText = processedText.replace(
+                        /^(?!\s*-\s)(.+)$/gm,
+                        `- ${from}$1`,
+                    );
+                }
+                break;
             }
         }
+
+        // Add the processed text as a single block
+        await this.addToSection(tp, choice, processedText);
     };
 
     /**
@@ -283,7 +439,15 @@ export class Templates {
                 addThis += `![invisible-embed](${line.path}#${anchor})\n\n`;
 
                 const file = tp.file.find_tfile(choice);
-                const fileCache = this.app.metadataCache.getCache(choice);
+                const fileCache = this.app.metadataCache.getFileCache(file);
+
+                if (!fileCache || !fileCache.headings) {
+                    console.warn(
+                        `No metadata cache or headings found for ${choice}`,
+                    );
+                    return;
+                }
+
                 const headings = fileCache.headings.filter(
                     (x) => x.level === 2,
                 );
