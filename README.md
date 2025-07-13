@@ -109,7 +109,8 @@ I prompt for important, urgent, status, and role on creation.
 
 I use deeply nested tags in my notes. I have templater prompts to work through selecting tags from the right scope for all known tags, etc.
 
-I use a *LOT* of events in my notes (session notes and others). 
+I use a *LOT* of events in my notes (session notes and others).
+
 - I use with Calendarium span tag (never front-matter).
 - I have an emoji key that I use to code event descriptions: 
 
@@ -118,6 +119,16 @@ My events look like this:
 ```html
 <span data-date='1499-Mirtul-02-20' data-category='heist' data-name="🧵😵🦹💃🗿 Dalakhar makes a run for the Stone and Sky">...</span>
 ```
+
+## Development
+
+For build commands, architecture overview, and development guidance, see [CLAUDE.md](CLAUDE.md).
+
+This file is primarily written for Claude Code (AI assistant) but contains useful information for human contributors as well, including:
+
+- Build and development commands
+- Project architecture overview
+- Integration points between components
 
 ## Scripts
 
