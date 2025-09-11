@@ -21,7 +21,7 @@
   "keywords": [],
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@types/codemirror": "5.60.15",
+    "@types/codemirror": "5.60.16",
     "@types/node": "^22.15.3",
     "builtin-modules": "^5.0.0",
     "chokidar": "^4.0.1",
