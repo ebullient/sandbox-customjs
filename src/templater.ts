@@ -2,73 +2,64 @@ import type { App, TFolder } from "obsidian";
 import type { Templater } from "./@types/templater.types";
 import type { Utils } from "./_utils";
 
+/**
+ * Information about a line or selection in a file
+ */
 interface LineInfo {
     title: string;
     path: string;
-    heading: string;
-    text: string;
+    heading: string | undefined;
+    text: string | undefined;
     selectedLines?: string[];
 }
 
+/**
+ * Cache for push target files
+ */
+interface PushTargetCache {
+    data: string[];
+    timestamp: number;
+}
+
+/**
+ * Templates class for working with Obsidian Templater templates.
+ * Provides utilities for file selection, content pushing, and conversation management.
+ */
 export class Templates {
-    private fileCache: { data: string[]; timestamp: number } | null = null;
-    private cacheTTL = 5 * 60 * 1000; // Cache valid for 5 minutes (in milliseconds)
+    private readonly app: App;
+    private fileCache: PushTargetCache | null = null;
+    private readonly cacheTTL = 5 * 60 * 1000; // Cache valid for 5 minutes
 
-    headerPush = ["Section", "Log item", "Tasks item"];
-    itemPush = ["Log item", "Tasks item"];
-    dated = /^.*?(\d{4}-\d{2}-\d{2}).*$/;
-    completedPattern = /.*\((\d{4}-\d{2}-\d{2})\)\s*$/;
-    dailyNotePattern = /(\d{4}-\d{2}-\d{2})\.md/;
+    private readonly pushOptions = {
+        header: ["Section", "Log item", "Tasks item"],
+        item: ["Log item", "Tasks item"],
+    };
 
-    app: App;
+    private readonly patterns = {
+        dated: /^.*?(\d{4}-\d{2}-\d{2}).*$/,
+        completed: /.*\((\d{4}-\d{2}-\d{2})\)\s*$/,
+        dailyNote: /(\d{4}-\d{2}-\d{2})\.md/,
+        listItem: /^\s*-\s*(?:\[.\]\s*)?(.*)$/,
+        heading: /^#+\s*/,
+        // Task-specific patterns
+        task: /^([\s>]*- )\[(.)\] (.*)$/,
+        completedMark: /[x-]/,
+    };
 
     constructor() {
         this.app = window.customJS.app;
         console.log("loaded Templates");
     }
 
-    utils = (): Utils => window.customJS.Utils;
-
     /**
-     * Add text to a specified section in a file.
-     * @param {Templater} tp The templater plugin instance.
-     * @param {string} choice The file path to add text to.
-     * @param {string} addThis The text to add.
-     * @param {string} [section='Log'] The section to add the text to.
-     * @returns {Promise<void>}
+     * Lazy-load utils function - important for dynamic updates
      */
-    addToSection = async (
-        tp: Templater,
-        choice: string,
-        addThis: string,
-        section = "Log",
-    ): Promise<void> => {
-        const file = tp.file.find_tfile(choice);
-        const fileCache = this.app.metadataCache.getFileCache(file);
+    private utils = (): Utils => window.customJS.Utils;
 
-        // Check if fileCache exists and has headings
-        if (!fileCache || !fileCache.headings) {
-            console.warn(`No metadata cache or headings found for ${choice}`);
-            return;
-        }
-
-        const headings = fileCache.headings
-            .filter((x) => x.level >= 2)
-            .filter((x) => x.heading.contains(section));
-
-        if (headings[0]) {
-            await this.app.vault.process(file, (content) => {
-                const split = content.split("\n");
-                split.splice(headings[0].position.start.line + 1, 0, addThis);
-                return split.join("\n");
-            });
-        }
-    };
+    // === API METHODS ===
 
     /**
-     * Templater prompt with suggester to choose a file from the vault.
-     * @param {Templater} tp The templater plugin instance.
-     * @returns {Promise<string>} The chosen file path.
+     * Prompt user to choose a file from the vault.
      */
     chooseFile = async (tp: Templater): Promise<string> => {
         const files = this.utils().filePaths();
@@ -76,10 +67,7 @@ export class Templates {
     };
 
     /**
-     * Templater prompt with suggester to choose a folder from the vault.
-     * @param {Templater} tp The templater plugin instance.
-     * @param {string} folder The initial folder path to filter.
-     * @returns {Promise<string>} The chosen folder path or a user-entered folder path.
+     * Prompt user to choose a folder from the vault.
      */
     chooseFolder = async (tp: Templater, folder: string): Promise<string> => {
         const folders = this.utils()
@@ -91,25 +79,23 @@ export class Templates {
 
         folders.unshift("--");
         const choice = await tp.system.suggester(folders, folders);
-        if (choice) {
-            if (choice === "--") {
-                return await tp.system.prompt("Enter folder path");
-            }
-            return choice;
+
+        if (!choice) {
+            console.warn("No choice selected. Using 'athenaeum'");
+            return "athenaeum";
         }
-        console.warn("No choice selected. Using 'athenaeum'");
-        return "athenaeum";
+
+        return choice === "--"
+            ? await tp.system.prompt("Enter folder path")
+            : choice;
     };
 
     /**
      * Create a conversation entry for the specified day:
      * - Create a new dated section in the relevant file
      * - Add a link to the conversation in the daily log, and embed that section
-     * @param {Templater} tp The templater plugin instance.
-     * @returns {Promise<string>} The markdown content for the conversation entry.
      */
     createConversation = async (tp: Templater): Promise<string> => {
-        let result = "";
         const day = window.moment(tp.file.title).format("YYYY-MM-DD");
         const regex = this.utils().segmentFilterRegex(
             "chronicles/conversations",
@@ -119,48 +105,93 @@ export class Templates {
             .map((x) => x.path);
 
         const choice = await tp.system.suggester(files, files);
-        if (choice) {
-            const file = tp.file.find_tfile(choice);
-            const fileCache = this.app.metadataCache.getFileCache(file);
-            const title = fileCache.frontmatter?.aliases
-                ? fileCache.frontmatter.aliases[0]
-                : file.basename;
-
-            result = `\n- [**${title}**](${file.path}#${day})\n`;
-            result += `    ![${day}](${file.path}#${day})\n`;
-
-            const headings = fileCache?.headings?.filter((x) => x.level === 2);
-            if (!headings || headings.length === 0) {
-                await this.app.vault.process(file, (content) => {
-                    return `${content}\n\n## ${day}\n`;
-                });
-            } else if (headings[0].heading !== day) {
-                await this.app.vault.process(file, (content) => {
-                    const split = content.split("\n");
-                    split.splice(
-                        headings[0].position.start.line,
-                        0,
-                        `## ${day}\n\n`,
-                    );
-                    return split.join("\n");
-                });
-            }
+        if (!choice) {
+            return "";
         }
-        return result;
+
+        const file = tp.file.find_tfile(choice);
+        const fileCache = this.app.metadataCache.getFileCache(file);
+        const title = fileCache.frontmatter?.aliases
+            ? fileCache.frontmatter.aliases[0]
+            : file.basename;
+
+        const headings = fileCache?.headings?.filter((x) => x.level === 2);
+        if (!headings || headings.length === 0) {
+            await this.app.vault.process(file, (content) => {
+                return `${content}\n\n## ${day}\n\n`;
+            });
+        } else if (headings[0].heading !== day) {
+            await this.app.vault.process(file, (content) => {
+                const split = content.split("\n");
+                split.splice(
+                    headings[0].position.start.line,
+                    0,
+                    `## ${day}\n\n`,
+                );
+                return split.join("\n");
+            });
+        }
+
+        return [
+            `- [**${title}**](${file.path}#${day})`,
+            `    ![${day}](${file.path}#${day})`,
+            '',
+        ].join("\n");
     };
 
     /**
+     * Main push method: prompts user to choose a file and pushes text to it.
+     * Handles both single line (cursor position) and multiple lines (selection).
+     * This is the primary method for managing "what I've done" on a day to projects/quests.
+     */
+    pushText = async (tp: Templater): Promise<string> => {
+        const files = await this.cachedPushTargets();
+
+        const view = this.app.workspace.getActiveViewOfType(
+            window.customJS.obsidian.MarkdownView,
+        );
+        const originalText = view?.editor?.somethingSelected()
+            ? view.editor.getSelection()
+            : "";
+
+        const choice = await tp.system.suggester(files, files);
+        if (!choice) {
+            return originalText;
+        }
+
+        const lineInfo = await this.findLine(tp, originalText);
+
+        if (lineInfo.selectedLines && lineInfo.selectedLines.length > 1) {
+            await this.doPushMultipleLinesAsBlob(tp, choice, lineInfo);
+            return originalText || lineInfo.selectedLines.join("\n");
+        }
+
+        // Check for weekly file involvement (either source or target)
+        const isWeeklyInvolved =
+            lineInfo.path.endsWith("_week.md") || choice.endsWith("_week.md");
+
+        if (lineInfo.heading) {
+            await this.doPushHeader(tp, choice, lineInfo);
+        } else if (isWeeklyInvolved) {
+            await this.doPushWeeklyTask(tp, choice, lineInfo);
+        } else {
+            await this.doPushText(tp, choice, lineInfo);
+        }
+
+        return originalText;
+    };
+
+    // === CONTENT ANALYSIS METHODS ===
+
+    /**
      * Find the current line or selection in the active file and extract relevant information.
-     * @param {Templater} tp The templater plugin instance.
-     * @param {string} [originalSelection] The original selected text if any.
-     * @returns {Promise<LineInfo>} An object containing the title, path, heading, text, and selectedLines if applicable.
      */
     findLine = async (
         tp: Templater,
         originalSelection?: string,
     ): Promise<LineInfo> => {
-        let line = undefined;
-        let selectedLines = undefined;
+        let line: string | undefined;
+        let selectedLines: string[] | undefined;
 
         const split = tp.file.content.split("\n");
         const file = tp.file.find_tfile(tp.file.title);
@@ -171,24 +202,19 @@ export class Templates {
             window.customJS.obsidian.MarkdownView,
         );
 
-        // If we have original selection text, use that instead of trying to read from editor
         if (originalSelection) {
             selectedLines = originalSelection
                 .split("\n")
                 .filter((line) => line.trim() !== "");
 
-            // For selection, use the first selected line as the primary line
             if (selectedLines.length > 0) {
                 line = selectedLines[0];
             }
         } else if (view?.editor) {
-            // Check if there's a selection using Obsidian editor API
             if (view.editor.somethingSelected()) {
-                // Store current selection info to avoid any interference
                 const selectionStart = view.editor.getCursor("from");
                 const selectionEnd = view.editor.getCursor("to");
 
-                // Get the selected text without affecting the selection
                 const selection = view.editor.getRange(
                     selectionStart,
                     selectionEnd,
@@ -198,19 +224,17 @@ export class Templates {
                     .split("\n")
                     .filter((line) => line.trim() !== "");
 
-                // For selection, use the first selected line as the primary line
                 if (selectedLines.length > 0) {
                     line = selectedLines[0];
                 }
             } else {
-                // No selection, use cursor position
                 const cursor = view.editor.getCursor("from").line;
                 line = split[cursor];
             }
         }
 
-        let heading = undefined;
-        let text = undefined;
+        let heading: string | undefined;
+        let text: string | undefined;
 
         if (line?.match(/^\s*- .*/)) {
             // Extract text from a task item
@@ -236,16 +260,18 @@ export class Templates {
         };
     };
 
+    /**
+     * Get cached list of files that can be push targets.
+     * Pre-finds matched headings to avoid re-searching when cache is stale.
+     */
     cachedPushTargets = async (): Promise<string[]> => {
         const now = Date.now();
 
-        // Check if cache exists and is still valid
         if (this.fileCache && now - this.fileCache.timestamp < this.cacheTTL) {
             console.log("Using cached files");
             return this.fileCache.data;
         }
 
-        // Cache is invalid or doesn't exist, refresh it
         console.log("Refreshing file cache");
         const files = this.utils()
             .filesMatchingCondition((file) => {
@@ -266,147 +292,227 @@ export class Templates {
             }, false)
             .map((f) => f.path);
 
-        // Update the cache
         this.fileCache = { data: files, timestamp: now };
         return files;
     };
 
+    // === WRITE OPERATIONS ===
+
     /**
-     * Prompt the user to choose a file and push text to it.
-     * Supports both single line (cursor position) and multiple lines (selection).
-     * @param {Templater} tp The templater plugin instance.
-     * @returns {Promise<string>} The original text (to preserve it in the source)
+     * Add text to a specified section in a file.
      */
-    pushText = async (tp: Templater): Promise<string> => {
-        const files = await this.cachedPushTargets();
+    addToSection = async (
+        tp: Templater,
+        choice: string,
+        addThis: string,
+        section = "Log",
+    ): Promise<void> => {
+        const file = tp.file.find_tfile(choice);
+        const fileCache = this.app.metadataCache.getFileCache(file);
 
-        // Store original selected text to return it for preservation
-        const view = this.app.workspace.getActiveViewOfType(
-            window.customJS.obsidian.MarkdownView,
-        );
-        let originalText = "";
-        if (view?.editor?.somethingSelected()) {
-            originalText = view.editor.getSelection();
+        if (!fileCache?.headings) {
+            console.warn(`No metadata cache or headings found for ${choice}`);
+            return;
         }
 
-        const choice = await tp.system.suggester(files, files);
-        if (choice) {
-            const lineInfo = await this.findLine(tp, originalText);
+        const headings = fileCache.headings
+            .filter((x) => x.level >= 2)
+            .filter((x) => x.heading.contains(section));
 
-            // Handle multiple selected lines
-            if (lineInfo.selectedLines && lineInfo.selectedLines.length > 1) {
-                await this.doPushMultipleLinesAsBlob(tp, choice, lineInfo);
-
-                // Return the original selected text to preserve it
-                return originalText || lineInfo.selectedLines.join("\n");
-            }
-            if (lineInfo.heading) {
-                // pushing header references
-                await this.doPushHeader(tp, choice, lineInfo);
-                return originalText; // Return original text or empty string
-            }
-            // pushing tasks or log items
-            await this.doPushText(tp, choice, lineInfo);
-            return originalText; // Return original text or empty string
+        if (headings[0]) {
+            await this.app.vault.process(file, (content) => {
+                const split = content.split("\n");
+                split.splice(headings[0].position.start.line + 1, 0, addThis);
+                return split.join("\n");
+            });
         }
+    };
 
-        // Return original text or empty string if no choice made
-        return originalText;
+    // === HELPER METHODS FOR PUSH OPERATIONS ===
+
+    /**
+     * Get formatted source attribution for push operations
+     */
+    private getSourceAttribution = (
+        path: string,
+        title: string,
+    ): {
+        pretty: string;
+        fromDaily: boolean;
+        date: string;
+    } => {
+        const fromDaily = this.patterns.dated.test(path);
+        const pretty = path.contains("conversations")
+            ? `**${title}**`
+            : `_${title}_`;
+        const date = fromDaily
+            ? this.patterns.dated.exec(path)?.[1] || ""
+            : window.moment().format("YYYY-MM-DD");
+
+        return { pretty, fromDaily, date };
+    };
+
+    /**
+     * Determine completion status based on target file type
+     */
+    private getCompletionStatus = (
+        targetPath: string,
+    ): {
+        isDaily: boolean;
+        isWeekly: boolean;
+        shouldHaveCheckbox: boolean;
+    } => {
+        const isDaily = this.patterns.dated.test(targetPath);
+        const isWeekly = targetPath.endsWith("_week.md");
+        const shouldHaveCheckbox = !isDaily || isWeekly;
+
+        return { isDaily, isWeekly, shouldHaveCheckbox };
     };
 
     /**
      * Handle pushing multiple selected lines as a blob to the specified file.
      * Uses regex to mark list items as complete and maintains order.
-     * @param {Templater} tp The templater plugin instance.
-     * @param {string} choice The file path to push the lines to.
-     * @param {LineInfo} lineInfo Information about the selected lines.
-     * @returns {Promise<void>}
      */
     doPushMultipleLinesAsBlob = async (
         tp: Templater,
         choice: string,
         lineInfo: LineInfo,
     ): Promise<void> => {
-        const type = await tp.system.suggester(this.itemPush, this.itemPush);
-        const fromDaily = this.dated.exec(lineInfo.path);
-        const isDaily = this.dated.exec(choice);
-        const pretty = lineInfo.path.contains("conversations")
-            ? `**${lineInfo.title}**`
-            : `_${lineInfo.title}_`;
+        const type = await tp.system.suggester(
+            this.pushOptions.item,
+            this.pushOptions.item,
+        );
+        const source = this.getSourceAttribution(lineInfo.path, lineInfo.title);
+        const target = this.getCompletionStatus(choice);
 
-        const date = fromDaily
-            ? fromDaily[1]
-            : window.moment().format("YYYY-MM-DD");
-
-        // Join all selected lines and process as a blob
         const originalText = lineInfo.selectedLines?.join("\n") || "";
         let processedText = originalText;
 
-        switch (type) {
-            case "Tasks item": {
-                // Convert list items to tasks, add source reference
-                const from = isDaily
-                    ? ""
-                    : ` from [${pretty}](${lineInfo.path})`;
+        if (type === "Tasks item") {
+            const from = target.isDaily
+                ? ""
+                : ` from [${source.pretty}](${lineInfo.path})`;
+            processedText = processedText.replace(
+                /^(\s*)-\s*(?:\[.\]\s*)?(.+)$/gm,
+                `$1- [ ] $2${from}`,
+            );
+            processedText = processedText.replace(
+                /^(?!\s*-\s)(.+)$/gm,
+                `- [ ] $1${from}`,
+            );
+        } else {
+            const task = target.shouldHaveCheckbox ? "[x] " : "";
+            const from = source.fromDaily
+                ? ""
+                : `[${source.pretty}](${lineInfo.path}): `;
+            const completed = task
+                ? source.fromDaily
+                    ? ` ([${source.pretty}](${lineInfo.path}))`
+                    : ` (${source.date})`
+                : "";
+
+            if (task) {
                 processedText = processedText.replace(
                     /^(\s*)-\s*(?:\[.\]\s*)?(.+)$/gm,
-                    `$1- [ ] $2${from}`,
+                    `$1- ${task}${from}$2${completed}`,
                 );
-                // Handle non-list items
                 processedText = processedText.replace(
                     /^(?!\s*-\s)(.+)$/gm,
-                    `- [ ] $1${from}`,
+                    `- ${task}${from}$1${completed}`,
                 );
-                break;
-            }
-            default: {
-                // Log section - mark items as complete
-                const isWeekly = choice.endsWith("_week.md");
-                const task = !isDaily || isWeekly ? "[x] " : "";
-                const from = fromDaily ? "" : `[${pretty}](${lineInfo.path}): `;
-                const completed = task
-                    ? fromDaily
-                        ? ` ([${pretty}](${lineInfo.path}))`
-                        : ` (${date})`
-                    : "";
-
-                // Convert list items to completed tasks
-                if (task) {
-                    processedText = processedText.replace(
-                        /^(\s*)-\s*(?:\[.\]\s*)?(.+)$/gm,
-                        `$1- ${task}${from}$2${completed}`,
-                    );
-                    // Handle non-list items
-                    processedText = processedText.replace(
-                        /^(?!\s*-\s)(.+)$/gm,
-                        `- ${task}${from}$1${completed}`,
-                    );
-                } else {
-                    // Simple log entries without completion
-                    processedText = processedText.replace(
-                        /^(\s*)-\s*(?:\[.\]\s*)?(.+)$/gm,
-                        `$1- ${from}$2`,
-                    );
-                    processedText = processedText.replace(
-                        /^(?!\s*-\s)(.+)$/gm,
-                        `- ${from}$1`,
-                    );
-                }
-                break;
+            } else {
+                processedText = processedText.replace(
+                    /^(\s*)-\s*(?:\[.\]\s*)?(.+)$/gm,
+                    `$1- ${from}$2`,
+                );
+                processedText = processedText.replace(
+                    /^(?!\s*-\s)(.+)$/gm,
+                    `- ${from}$1`,
+                );
             }
         }
 
-        // Add the processed text as a single block
         await this.addToSection(tp, choice, processedText);
     };
 
     /**
-     * Push Header link to the specified file.
-     * - Templater prompt with suggester to choose the kind of text to push (Section, Log item, Tasks item)
-     * @param {Templater} tp The templater plugin instance.
-     * @param {string} choice The file path to push the header to.
-     * @param {LineInfo} line information about the line being pushed
-     * @returns {Promise<void>}
+     * Extract date and interesting text from conversation heading
+     * Example: "## 2023-10-11 Foundation materials review" →
+     *   date: "2023-10-11", interesting: "Foundation materials review"
+     */
+    private parseConversationHeading = (
+        heading: string,
+    ): {
+        date: string;
+        interesting: string;
+    } => {
+        const date = heading.replace(/^.*?(\d{4}-\d{2}-\d{2}).*$/, "$1") || "";
+        const interesting = heading
+            .replace(/\s*\d{4}-\d{2}-\d{2}\s*/, "")
+            .trim();
+        return { date, interesting };
+    };
+
+    /**
+     * Create URL anchor from heading text
+     */
+    private createAnchor = (heading: string): string => {
+        return heading
+            .replace(/\s+/g, " ")
+            .replace(/:/g, "")
+            .replace(/ /g, "%20");
+    };
+
+    /**
+     * Create a new section with heading and embed
+     * Used for "Section" type pushes
+     */
+    private createNewSection = async (
+        tp: Templater,
+        targetFile: string,
+        heading: string,
+        title: string,
+        sourcePath: string,
+        anchor: string,
+    ): Promise<void> => {
+        const addThis = [
+            `## ${heading} ${title}`,
+            `![invisible-embed](${sourcePath}#${anchor})`,
+            "",
+        ].join("\n");
+
+        const file = tp.file.find_tfile(targetFile);
+        const fileCache = this.app.metadataCache.getFileCache(file);
+
+        if (!fileCache?.headings) {
+            console.warn(
+                `No metadata cache or headings found for ${targetFile}`,
+            );
+            return;
+        }
+
+        const headings = fileCache.headings.filter((x) => x.level === 2);
+
+        await this.app.vault.process(file, (content) => {
+            const split = content.split("\n");
+            if (headings?.[0]) {
+                split.splice(headings[0].position.start.line, 0, addThis);
+            } else {
+                split.push("", addThis);
+            }
+            return split.join("\n");
+        });
+    };
+
+    /**
+     * PATTERN 1: Push conversation header references
+     *
+     * Purpose: Reference what happened in a conversation on a specific day
+     * Source: Conversation files with dated headings like "## 2023-10-11 Foundation materials review"
+     * Target: Daily notes or project logs
+     *
+     * Creates links to conversation sections, using "interesting" part or file title
+     * if no interesting part exists.
      */
     doPushHeader = async (
         tp: Templater,
@@ -414,122 +520,99 @@ export class Templates {
         line: LineInfo,
     ): Promise<void> => {
         const type = await tp.system.suggester(
-            this.headerPush,
-            this.headerPush,
+            this.pushOptions.header,
+            this.pushOptions.header,
         );
-        const date = line.heading.replace(/^.*?(\d{4}-\d{2}-\d{2}).*$/, "$1");
-        const interesting = line.heading.replace(/\s*\d{4}-\d{2}-\d{2}\s*/, "");
-        const pretty = line.path.contains("conversations")
-            ? `**${line.title}**`
-            : `_${line.title}_`;
-        const linkText = line.path === choice ? "⤴" : `${pretty}`;
-        const lineText = interesting ? interesting : "";
+
+        const { date, interesting } = this.parseConversationHeading(
+            line.heading || "",
+        );
+        const source = this.getSourceAttribution(line.path, line.title);
+        const linkText = line.path === choice ? "⤴" : source.pretty;
+        const lineText = interesting || line.title; // Use file title if no interesting part
+        const anchor = this.createAnchor(line.heading || "");
 
         console.log("PUSH HEADER", line, date, interesting, linkText, lineText);
 
-        const anchor = line.heading
-            .replace(/\s+/g, " ")
-            .replace(/:/g, "")
-            .replace(/ /g, "%20");
+        if (type === "Section") {
+            await this.createNewSection(
+                tp,
+                choice,
+                line.heading || "",
+                line.title,
+                line.path,
+                anchor,
+            );
+        } else if (type === "Tasks item") {
+            const addThis = `- [ ] [${linkText}](${line.path}#${anchor}): ${lineText}\n`;
+            await this.addToSection(tp, choice, addThis, "Tasks");
+        } else {
+            // Log item - create completed reference to conversation
+            const target = this.getCompletionStatus(choice);
+            const task = target.shouldHaveCheckbox ? "[x] " : "";
+            const prefix = source.fromDaily
+                ? ""
+                : `[${linkText}](${line.path}#${anchor}): `;
+            const completed = task
+                ? source.fromDaily
+                    ? `([${linkText}](${line.path}#${anchor}))`
+                    : ` (${date})`
+                : "";
 
-        switch (type) {
-            case "Section": {
-                // Create a new section with the heading and title
-                let addThis = `## ${line.heading} ${line.title}\n`;
-                addThis += `![invisible-embed](${line.path}#${anchor})\n\n`;
-
-                const file = tp.file.find_tfile(choice);
-                const fileCache = this.app.metadataCache.getFileCache(file);
-
-                if (!fileCache || !fileCache.headings) {
-                    console.warn(
-                        `No metadata cache or headings found for ${choice}`,
-                    );
-                    return;
-                }
-
-                const headings = fileCache.headings.filter(
-                    (x) => x.level === 2,
-                );
-
-                await this.app.vault.process(file, (content) => {
-                    const split = content.split("\n");
-                    if (headings?.[0]) {
-                        // insert in front of first h2 heading
-                        split.splice(
-                            headings[0].position.start.line,
-                            0,
-                            addThis,
-                        );
-                    } else {
-                        // no other headings, just create the new section
-                        split.push("");
-                        split.push(addThis);
-                    }
-                    // rejoin the file content
-                    return split.join("\n");
-                });
-                break;
-            }
-            case "Tasks item": {
-                // Create a new task
-                const addThis = `- [ ] [${linkText}](${line.path}#${anchor}): ${lineText}\n`;
-                this.addToSection(tp, choice, addThis, "Tasks");
-                break;
-            }
-            default: {
-                // Log section
-                const toDaily = this.dated.test(choice);
-                const fromDaily = this.dated.test(line.path);
-                const isWeekly = choice.endsWith("_week.md");
-
-                // daily log sections are not tasks.
-                const task = !toDaily || isWeekly ? "[x] " : "";
-                // add completion date to tasks
-                // if from a daily note, link to it at the end of the line (just like a completion date)
-                // otherwise, add the note link as a prefix
-                const prefix = fromDaily
-                    ? ""
-                    : `[${linkText}](${line.path}#${anchor}): `;
-                const completed = task
-                    ? fromDaily
-                        ? `([${linkText}](${line.path}#${anchor}))`
-                        : ` (${date})`
-                    : "";
-
-                const addThis = `- ${task}${prefix}${lineText}${completed}`;
-                console.log("doPushHeader: Log", addThis);
-                this.addToSection(tp, choice, addThis);
-                break;
-            }
+            const addThis = `- ${task}${prefix}${lineText}${completed}`;
+            console.log("doPushHeader: Log", addThis);
+            await this.addToSection(tp, choice, addThis);
         }
     };
 
     /**
-     * Push text to a specified file.
-     * @param {Templater} tp The templater plugin instance.
-     * @param {string} choice The file path to push the text to.
-     * @param {LineInfo} line information about the line being pushed
-     * @returns {Promise<void>}
+     * Get the most appropriate date from various sources
+     * Priority: line text date > source file date > current date
+     */
+    private getBestDate = (
+        lineText: string | undefined,
+        sourcePath: string,
+    ): string => {
+        // First try to extract date from the line text itself
+        const lineDate = lineText?.match(this.patterns.dated);
+        if (lineDate) {
+            return lineDate[1];
+        }
+
+        // Then try the source file path (for daily notes)
+        const sourceDate = this.patterns.dated.exec(sourcePath);
+        if (sourceDate) {
+            return sourceDate[1];
+        }
+
+        // Fall back to current date
+        return window.moment().format("YYYY-MM-DD");
+    };
+
+    /**
+     * PATTERN 2: Push daily progress items
+     *
+     * Purpose: Track "what I did" progress from daily notes to project tracking
+     * Source: Daily notes with accomplishment lines like "- Haus Manager: Fixed NPE for team sync"
+     * Target: Project files
+     *
+     * Output:
+     * - Log item: "- [x] ... ([_2025-09-17_](chronicles/2025/2025-09-17.md))" (completed, with source link)
+     * - Task item: "- [ ] ... from [_Daily Note_](path)" (unchecked, for future work)
      */
     doPushText = async (
         tp: Templater,
         choice: string,
         line: LineInfo,
     ): Promise<void> => {
-        const type = await tp.system.suggester(this.itemPush, this.itemPush);
-        const fromDaily = this.dated.exec(line.path);
-        const isDaily = this.dated.exec(choice);
-        const lineDate = line.text.match(this.dated);
-        const pretty = line.path.contains("conversations")
-            ? `**${line.title}**`
-            : `_${line.title}_`;
+        const type = await tp.system.suggester(
+            this.pushOptions.item,
+            this.pushOptions.item,
+        );
 
-        const date = lineDate
-            ? lineDate[1]
-            : fromDaily
-              ? fromDaily[1]
-              : window.moment().format("YYYY-MM-DD");
+        const source = this.getSourceAttribution(line.path, line.title);
+        const target = this.getCompletionStatus(choice);
+        const date = this.getBestDate(line.text, line.path);
 
         console.log(
             "PUSH TEXT",
@@ -538,30 +621,135 @@ export class Templates {
             `"${date}"`,
         );
 
-        switch (type) {
-            case "Tasks item": {
-                // Tasks section
-                const from = isDaily ? "" : ` from [${pretty}](${line.path})`;
-                const addThis = `- [ ] ${line.text}${from}\n`;
-                this.addToSection(tp, choice, addThis, "Tasks");
-                break;
-            }
-            default: {
-                // Log section
-                const isWeekly = choice.endsWith("_week.md");
-                const task = !isDaily || isWeekly ? "[x] " : "";
-                //const completed = task && !lineDate ? ` (${date})` : '';
-                const from = fromDaily ? "" : `[${pretty}](${line.path}): `;
-                const completed = task
-                    ? fromDaily
-                        ? ` ([${pretty}](${line.path}))`
-                        : ` (${date})`
-                    : "";
+        if (type === "Tasks item") {
+            // Create unchecked task with source attribution
+            const from = target.isDaily
+                ? ""
+                : ` from [${source.pretty}](${line.path})`;
+            const addThis = `- [ ] ${line.text}${from}`;
+            await this.addToSection(tp, choice, addThis, "Tasks");
+        } else {
+            // Create log entry (completed if going to project file)
+            const task = target.shouldHaveCheckbox ? "[x] " : "";
+            const from = source.fromDaily
+                ? ""
+                : `[${source.pretty}](${line.path}): `;
+            const completed = task
+                ? source.fromDaily
+                    ? ` ([${source.pretty}](${line.path}))`
+                    : ` (${date})`
+                : "";
 
-                const addThis = `- ${task}${from}${line.text}${completed}`;
-                this.addToSection(tp, choice, addThis);
-                break;
+            const addThis = `- ${task}${from}${line.text}${completed}`;
+            await this.addToSection(tp, choice, addThis);
+        }
+    };
+
+    /**
+     * Parse a task line to extract mark and text
+     * Uses same pattern as tasks.ts: /^([\s>]*- )\[(.)\\ (.*)$/
+     */
+    private parseTaskLine = (
+        line: string,
+    ): {
+        prefix: string;
+        mark: string;
+        text: string;
+    } | null => {
+        const match = this.patterns.task.exec(line);
+        if (!match) {
+            return null;
+        }
+        return {
+            prefix: match[1],
+            mark: match[2],
+            text: match[3],
+        };
+    };
+
+    /**
+     * Check if text already has a completion date
+     * Uses same pattern as tasks.ts: /\((\d{4}-\d{2}-\d{2})\)/
+     */
+    private hasCompletionDate = (text: string): boolean => {
+        return this.patterns.completed.test(text);
+    };
+
+    /**
+     * Check if task mark indicates completion
+     * Uses same logic as tasks.ts: mark.match(/[x-]/)
+     */
+    private isTaskCompleted = (mark: string): boolean => {
+        return this.patterns.completedMark.test(mark);
+    };
+
+    /**
+     * PATTERN 3: Weekly planning workflow
+     *
+     * Purpose: Use weekly file as planning/staging area for project tasks
+     *
+     * Forward (Project → Weekly):
+     * - Source: Project task "- [ ] Implement user authentication"
+     * - Target: Weekly Tasks section
+     * - Output: "- [ ] [_Project Name_](path/to/project): Implement user authentication"
+     *
+     * Return (Weekly → Project):
+     * - If completed: Goes to project Log as "- [x] Implement user authentication (2025-09-25)"
+     * - If incomplete: Returns to project Tasks as "- [ ] Implement user authentication"
+     * - Preserves completion date if already present
+     */
+    doPushWeeklyTask = async (
+        tp: Templater,
+        choice: string,
+        lineInfo: LineInfo,
+    ): Promise<void> => {
+        const source = this.getSourceAttribution(lineInfo.path, lineInfo.title);
+        const isTargetWeekly = choice.endsWith("_week.md");
+        const isSourceWeekly = lineInfo.path.endsWith("_week.md");
+        const isForward = !source.fromDaily && isTargetWeekly; // Project → Weekly
+        const isReturn = isSourceWeekly && !choice.endsWith("_week.md"); // Weekly → Project
+
+        console.log(
+            "PUSH WEEKLY TASK",
+            `"${lineInfo.path}" → "${choice}"`,
+            `forward: ${isForward}, return: ${isReturn}`,
+        );
+
+        if (isForward) {
+            // Project → Weekly: Add task to weekly Tasks section with project link
+            const addThis = `- [ ] [${source.pretty}](${lineInfo.path}): ${lineInfo.text}\n`;
+            await this.addToSection(tp, choice, addThis, "Tasks");
+        } else if (isReturn) {
+            // Weekly → Project: Check if completed and route appropriately
+            const taskInfo = this.parseTaskLine(lineInfo.text || "");
+            if (!taskInfo) {
+                console.warn("Could not parse task line:", lineInfo.text);
+                return;
             }
+
+            const isCompleted = this.isTaskCompleted(taskInfo.mark);
+            const hasDate = this.hasCompletionDate(taskInfo.text);
+
+            if (isCompleted) {
+                // Completed: Add to project Log section
+                const completionDate = hasDate
+                    ? "" // Already has date, don't add weekly reference
+                    : ` (${this.getBestDate(taskInfo.text, lineInfo.path)})`;
+
+                const addThis = `- [${taskInfo.mark}] ${taskInfo.text}${completionDate}`;
+                await this.addToSection(tp, choice, addThis, "Log");
+            } else {
+                // Not completed: Return to project Tasks section
+                const addThis = `- [${taskInfo.mark}] ${taskInfo.text}`;
+                await this.addToSection(tp, choice, addThis, "Tasks");
+            }
+        } else {
+            console.warn(
+                "Weekly task push: Could not determine direction",
+                lineInfo.path,
+                "→",
+                choice,
+            );
         }
     };
 }
