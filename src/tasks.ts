@@ -46,7 +46,7 @@ export class Tasks {
             for (const l of split) {
                 const taskMatch = this.taskPattern.exec(l);
                 if (taskMatch) {
-                    console.log(taskMatch);
+                    //console.log(taskMatch);
                     tasks.push({
                         file: tfile,
                         mark: taskMatch[2],
@@ -99,7 +99,7 @@ export class Tasks {
                                 .moment(completed[1])
                                 .isBetween(begin, end, "day", "[]")
                         ) {
-                            console.log(file.path, completed);
+                            // console.log(file.path, completed);
                             const link = this.utils().markdownLink(task.file);
                             list.push(`- *${link}*: ${task.text}`);
                         }

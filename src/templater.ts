@@ -10,6 +10,7 @@ interface LineInfo {
     path: string;
     heading: string | undefined;
     text: string | undefined;
+    mark: string | undefined;
     selectedLines?: string[];
 }
 
@@ -42,7 +43,7 @@ export class Templates {
         listItem: /^\s*-\s*(?:\[.\]\s*)?(.*)$/,
         heading: /^#+\s*/,
         // Task-specific patterns
-        task: /^([\s>]*- )\[(.)\] (.*)$/,
+        task: /^(\s*-\s*)\[(.)\]\s(.*)$/,
         completedMark: /[x-]/,
     };
 
@@ -235,10 +236,18 @@ export class Templates {
 
         let heading: string | undefined;
         let text: string | undefined;
+        let mark: string | undefined;
 
         if (line?.match(/^\s*- .*/)) {
-            // Extract text from a task item
-            text = line.replace(/^\s*- (?:\[.\] )?(.*)/, "$1").trim();
+            // Extract text and mark from a task item
+            const taskMatch = this.patterns.task.exec(line);
+            if (taskMatch) {
+                mark = taskMatch[2];
+                text = taskMatch[3].trim();
+            } else {
+                // Not a task, just a list item
+                text = line.replace(/^\s*- (.*)/, "$1").trim();
+            }
         } else {
             if (!line || !line.startsWith("#")) {
                 // No line, or the line isn't a heading: Find the first h2 heading in the file
@@ -256,6 +265,7 @@ export class Templates {
             path: tp.file.path(true),
             heading,
             text,
+            mark,
             selectedLines,
         };
     };
@@ -278,6 +288,7 @@ export class Templates {
                 console.log("Checking file", file.path);
                 const isConversation = file.path.contains("conversations");
                 const isNotArchived = !file.path.contains("archive");
+                const isWeekly = file.path.contains("_week.md");
 
                 const fileHeadings = this.app.metadataCache.getCache(
                     file.path,
@@ -288,7 +299,7 @@ export class Templates {
                           .some((x) => x.heading.match(/(Log|Task)/))
                     : false;
 
-                return isConversation || (isNotArchived && hasRelevantHeadings);
+                return isWeekly || isConversation || (isNotArchived && hasRelevantHeadings);
             }, false)
             .map((f) => f.path);
 
@@ -339,9 +350,11 @@ export class Templates {
     ): {
         pretty: string;
         fromDaily: boolean;
+            fromReminders: boolean;
         date: string;
     } => {
         const fromDaily = this.patterns.dated.test(path);
+        const fromReminders = path.contains("Reminders.md");
         const pretty = path.contains("conversations")
             ? `**${title}**`
             : `_${title}_`;
@@ -349,7 +362,7 @@ export class Templates {
             ? this.patterns.dated.exec(path)?.[1] || ""
             : window.moment().format("YYYY-MM-DD");
 
-        return { pretty, fromDaily, date };
+        return { pretty, fromDaily, fromReminders, date };
     };
 
     /**
@@ -623,7 +636,7 @@ export class Templates {
 
         if (type === "Tasks item") {
             // Create unchecked task with source attribution
-            const from = target.isDaily
+            const from = target.isDaily || source.fromReminders
                 ? ""
                 : ` from [${source.pretty}](${line.path})`;
             const addThis = `- [ ] ${line.text}${from}`;
@@ -645,27 +658,6 @@ export class Templates {
         }
     };
 
-    /**
-     * Parse a task line to extract mark and text
-     * Uses same pattern as tasks.ts: /^([\s>]*- )\[(.)\\ (.*)$/
-     */
-    private parseTaskLine = (
-        line: string,
-    ): {
-        prefix: string;
-        mark: string;
-        text: string;
-    } | null => {
-        const match = this.patterns.task.exec(line);
-        if (!match) {
-            return null;
-        }
-        return {
-            prefix: match[1],
-            mark: match[2],
-            text: match[3],
-        };
-    };
 
     /**
      * Check if text already has a completion date
@@ -721,26 +713,27 @@ export class Templates {
             await this.addToSection(tp, choice, addThis, "Tasks");
         } else if (isReturn) {
             // Weekly → Project: Check if completed and route appropriately
-            const taskInfo = this.parseTaskLine(lineInfo.text || "");
-            if (!taskInfo) {
-                console.warn("Could not parse task line:", lineInfo.text);
+            if (!lineInfo.mark || !lineInfo.text) {
+                console.warn("Could not parse task line - missing mark or text:", lineInfo);
                 return;
             }
 
-            const isCompleted = this.isTaskCompleted(taskInfo.mark);
-            const hasDate = this.hasCompletionDate(taskInfo.text);
+            const isCompleted = this.isTaskCompleted(lineInfo.mark);
+            const hasDate = this.hasCompletionDate(lineInfo.text);
 
             if (isCompleted) {
                 // Completed: Add to project Log section
                 const completionDate = hasDate
                     ? "" // Already has date, don't add weekly reference
-                    : ` (${this.getBestDate(taskInfo.text, lineInfo.path)})`;
+                    : ` (${this.getBestDate(lineInfo.text, lineInfo.path)})`;
 
-                const addThis = `- [${taskInfo.mark}] ${taskInfo.text}${completionDate}`;
+                const addThis = `- [${lineInfo.mark}] ${lineInfo.text}${completionDate}`;
+                console.log("task completed", completionDate, addThis);
+
                 await this.addToSection(tp, choice, addThis, "Log");
             } else {
                 // Not completed: Return to project Tasks section
-                const addThis = `- [${taskInfo.mark}] ${taskInfo.text}`;
+                const addThis = `- [${lineInfo.mark}] ${lineInfo.text}`;
                 await this.addToSection(tp, choice, addThis, "Tasks");
             }
         } else {
