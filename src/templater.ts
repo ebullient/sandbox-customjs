@@ -285,24 +285,33 @@ export class Templates {
         console.log("Refreshing file cache");
         const files = this.utils()
             .filesMatchingCondition((file) => {
-                console.log("Checking file", file.path);
-                const isConversation = file.path.contains("conversations");
-                const isNotArchived = !file.path.contains("archive");
+                const isAssets = file.path.contains("assets/");
+                const isConversation = file.path.contains("conversations/");
+                const isChronicles = file.path.contains("chronicles/");
                 const isWeekly = file.path.contains("_week.md");
+                const isNotArchived = !file.path.contains("archives/");
+                let hasRelevantHeadings = false;
 
-                const fileHeadings = this.app.metadataCache.getCache(
-                    file.path,
-                )?.headings;
-                const hasRelevantHeadings = fileHeadings
-                    ? fileHeadings
-                          .filter((x) => x.level === 2)
-                          .some((x) => x.heading.match(/(Log|Task)/))
-                    : false;
+                if (isAssets) {
+                    return false;
+                }
 
+                if (isNotArchived) {
+                    const fileHeadings = this.app.metadataCache.getCache(
+                        file.path,
+                    )?.headings;
+                    hasRelevantHeadings = fileHeadings
+                        ? fileHeadings
+                              .filter((x) => x.level === 2)
+                              .some((x) => x.heading.match(/(Log|Task)/))
+                        : false;
+                }
+
+                // console.log("Checking file", file.path, isConversation, (isChronicles && isWeekly), (!isChronicles && isNotArchived && hasRelevantHeadings));
                 return (
-                    isWeekly ||
                     isConversation ||
-                    (isNotArchived && hasRelevantHeadings)
+                    (isChronicles && isWeekly) ||
+                    (!isChronicles && isNotArchived && hasRelevantHeadings)
                 );
             }, false)
             .map((f) => f.path);
