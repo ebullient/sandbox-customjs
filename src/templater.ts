@@ -136,7 +136,7 @@ export class Templates {
         return [
             `- [**${title}**](${file.path}#${day})`,
             `    ![${day}](${file.path}#${day})`,
-            '',
+            "",
         ].join("\n");
     };
 
@@ -299,7 +299,11 @@ export class Templates {
                           .some((x) => x.heading.match(/(Log|Task)/))
                     : false;
 
-                return isWeekly || isConversation || (isNotArchived && hasRelevantHeadings);
+                return (
+                    isWeekly ||
+                    isConversation ||
+                    (isNotArchived && hasRelevantHeadings)
+                );
             }, false)
             .map((f) => f.path);
 
@@ -350,7 +354,7 @@ export class Templates {
     ): {
         pretty: string;
         fromDaily: boolean;
-            fromReminders: boolean;
+        fromReminders: boolean;
         date: string;
     } => {
         const fromDaily = this.patterns.dated.test(path);
@@ -636,9 +640,10 @@ export class Templates {
 
         if (type === "Tasks item") {
             // Create unchecked task with source attribution
-            const from = target.isDaily || source.fromReminders
-                ? ""
-                : ` from [${source.pretty}](${line.path})`;
+            const from =
+                target.isDaily || source.fromReminders
+                    ? ""
+                    : ` from [${source.pretty}](${line.path})`;
             const addThis = `- [ ] ${line.text}${from}`;
             await this.addToSection(tp, choice, addThis, "Tasks");
         } else {
@@ -657,7 +662,6 @@ export class Templates {
             await this.addToSection(tp, choice, addThis);
         }
     };
-
 
     /**
      * Check if text already has a completion date
@@ -714,7 +718,10 @@ export class Templates {
         } else if (isReturn) {
             // Weekly → Project: Check if completed and route appropriately
             if (!lineInfo.mark || !lineInfo.text) {
-                console.warn("Could not parse task line - missing mark or text:", lineInfo);
+                console.warn(
+                    "Could not parse task line - missing mark or text:",
+                    lineInfo,
+                );
                 return;
             }
 
