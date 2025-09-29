@@ -3,19 +3,15 @@ const result = Dated.monthly(tp.file.title);
 await tp.file.move(result.dates.monthFile);
 -%><% result.header %>
 
-%% What are your goals for this month?
-What practical actions will you be taking to achieve them?
-S = Specific (What EXACTLY do you want to accomplish?)  
-M = Measurable (How will you measure success?)  
-A = Attainable (Is it within your reach?)  
-R = Resonant (Do you feel driven to accomplish it?)  
-T = Thrilling (Thrilling?)
-%%
-
-- ***Focus***:  %% one thing to focus on this month %%
-- ***Habit***:  %% one habit to focus on this month %%
-
 <% result.yearEmbed %>
+
+> [!charm] Affirmations
+> %% write these in present tense. Use positive words %%
+> - ***Relationships***: %% e.g. I am loving and giving in my relationships%%
+> - ***Career***: %% I'm always striving to develop myself professionally %%
+> - ***Health / Fitness***: %% e.g. I am in control of my physical fitness %%
+> - ***Love***: %% e.g. I have people who love me %%
+> 
 
 ## 🤓 Weekly review
 <%* const monday = result.dates.firstMonday;
@@ -23,7 +19,6 @@ T = Thrilling (Thrilling?)
   while(month === monday.month()) {
     var weekStart = monday.format("YYYY-MM-DD");
     var weekFile = Dated.weeklyFile(monday, monday);
-    var tyiwFile = Dated.tyiwFile(monday);
 %>
 ### <% weekStart %>
 - [Plan for the week](<% weekFile %>)
@@ -39,6 +34,8 @@ T = Thrilling (Thrilling?)
 -%>
 
 ## Reflection
+
+- Review / Update [ELS IDP](https://docs.google.com/document/d/14cENygECfmioPNWA5xiBenF_9hM6FoofrOINlrtOKak/edit)
 
 ### 🎉 This month's wins
 1. .

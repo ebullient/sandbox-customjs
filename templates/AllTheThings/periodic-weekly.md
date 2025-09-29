@@ -5,19 +5,12 @@
     const ghFile = result.weekFile.replace('week', 'gh');
 -%>
 <% result.header %>
-%%
-- [ ] [Reflect on last week](<% result.weeklyReflection %>)
-- [ ] Review [percolator](percolator.md) (priority, next actions, etc)
-- [ ] File any [Inbox](Inbox.md) items from last week
-<%* if(result.monthlyReflection) {-%>
-<% result.monthlyReflection %>
-<%*}-%>
-%%
 
 ### Goals / Focus
+
 **Habit**:   
 **Goal for the week**:   
-**I am excited about**:  
+**I am excited about**:   
 
 **Priorities**:
 1. .
@@ -29,24 +22,28 @@
 
 ### Tasks
 
-**Commonhaus**
-
-
-**Red Hat**
-
-
-**Other**
-
-- [ ] Run `qk` to update git repos (anduin, erebor)
-- [ ] updates on erebor
-- [ ] updates on anduin
-- [ ] updates on esgaroth
-- [ ] check on moria
-- [ ] updates on wyrmling
-- [ ] Check "missing"
-- [ ] water plants
-
 <% tp.file.include(tp.file.find_tfile("assets/templates/weekly-leftovers.md")) %>
+
+#### Self care
+
+- [ ] [Reflect on last week](<% result.weeklyReflection %>)
+<%* if(result.monthlyReflection) {-%>
+<% result.monthlyReflection %>
+<%*}-%>
+- [ ] Update activity rings, review status/progress
+
+#### Maintenance
+
+- [ ] Check "missing"
+- [ ] Review [All Tasks](all-tasks.md) (priority, next actions, etc)
+- [ ] File any [Inbox](Inbox.md) items from last week
+- [ ] `qk`  and updates on anduin
+- [ ] `qk` and updates on erebor
+- [ ] updates on esgaroth
+- [ ] updates on commonhus
+- [ ] updates on wyrmling
+- [ ] check on moria
+- [ ] water plants
 
 ---
 

@@ -3,18 +3,27 @@
     await tp.file.move(result.dailyFile);
     const today = result.dates.day.isoWeekday();
 -%><% result.header %>
-**Goals for today** 
-- .
 
-<%* if (1 <= today && today <= 5 ) { -%>
+> [!charm] Journaling
+> - *I am grateful for*
+> - *What would make today great?*
+> - *Affirmation of the day*
+^daily-am
+
 %% agenda %%
 
-## Day Planner
+<%* if (1 <= today && today <= 5 ) { -%>
+**Top Priority** 
+1. .
+2. .
+3. .
+
+## ❧ Day Planner
 %%
 - 🎉 Focused for the entire time block
 - 🎠 Got a little distracted
 %%
-### Morning
+### ❧ Morning
 - [ ] 06:50 Kids to the bus
 - [ ] 07:30 Reflection / Planning
 - [ ] 08:00 Start : GH Notifications / Email
@@ -26,13 +35,13 @@
 - [ ] 11:00 Start : 
 - [ ] 11:45 Lunch
 
-### After Lunch
+### ❧ After Lunch
 - [ ] 12:30 Meditation
 - [ ] 12:45 BREAK / chat
 - [ ] 13:00 Start : 
 - [ ] 13:45 BREAK / chat
 
-### Afternoon
+### ❧ Afternoon
 - [ ] 14:00 Start : 
 - [ ] 14:45 BREAK / chat
 - [ ] 15:00 Start : 
@@ -40,7 +49,7 @@
 - [ ] 16:00 Start : 
 - [ ] 16:45 BREAK / chat
 
-### Wrap up
+### ❧ Wrap up
 - [ ] 17:00 Preview tomorrow's Agenda
 - [ ] 17:30 Reflection
 - [ ] 18:00 END
@@ -48,6 +57,11 @@
 <%* } else { -%>
 %% %%
 <%* } -%>
+
+> [!charm] Journaling
+> - *Today's highlight*
+> - *Insight of today*
+^daily-pm
 
 ## Log
 
