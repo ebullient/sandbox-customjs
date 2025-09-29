@@ -207,7 +207,7 @@ export class Dated {
 
         if (dates.monday.month() !== dates.nextMonday.month()) {
             header += `, [${dates.nextMonday.format("MMMM")}](${this.monthlyFile(dates.nextMonday)})`;
-            upcoming += `\n> ![Upcoming](${dates.nextMonday.format("YYYY")}.md#${dates.nextMonday.format("MMMM")})`;
+            upcoming += `>\n> ![Upcoming](${dates.nextMonday.format("YYYY")}.md#${dates.nextMonday.format("MMMM")})`;
             const thisMonth = dates.nextMonday.format("MMMM");
             console.log(thisMonth, lastMonth);
             monthlyReflection =

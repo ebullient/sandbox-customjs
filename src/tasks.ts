@@ -12,7 +12,7 @@ export class Tasks {
     taskPattern = /^([\s>]*- )\[(.)\] (.*)$/;
     completedPattern = /\((\d{4}-\d{2}-\d{2})\)/;
     dailyNotePattern = /(\d{4}-\d{2}-\d{2})\.md/;
-    chroniclesPattern = /^chronicles\/\d{4}\/\d{4}\.md$/;
+    //chroniclesPattern = /^chronicles\/\d{4}\/\d{4}\.md$/;
     taskPaths = ["demesne", "quests"];
 
     app: App;
@@ -82,8 +82,8 @@ export class Tasks {
                 continue;
             }
             if (
-                this.taskPaths.some((x) => file.path.includes(x)) ||
-                this.chroniclesPattern.test(file.path)
+                this.taskPaths.some((x) => file.path.includes(x))
+                // || this.chroniclesPattern.test(file.path)
             ) {
                 const tasks = await this.fileTasks(file);
                 for (const task of tasks) {
