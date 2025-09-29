@@ -19,6 +19,14 @@ export type RenderFn = () => string;
 export type SegmentFn = (tag: string) => string;
 export type Tags = string | string[];
 
+/**
+ * Cache for push target files
+ */
+interface PushTargetCache {
+    data: string[];
+    timestamp: number;
+}
+
 interface CleanLink {
     link: string;
     text?: string;
@@ -38,6 +46,8 @@ export class Utils {
     ];
 
     app: App;
+    private fileCache: PushTargetCache | null = null;
+    private readonly cacheTTL = 5 * 60 * 1000; // Cache valid for 5 minutes
 
     constructor() {
         this.app = window.customJS.app;
@@ -76,9 +86,9 @@ export class Utils {
             anchorPos < 0
                 ? ""
                 : link
-                      .substring(anchorPos + 1)
-                      .replace(/%20/g, " ")
-                      .trim();
+                    .substring(anchorPos + 1)
+                    .replace(/%20/g, " ")
+                    .trim();
         link = (anchorPos < 0 ? link : link.substring(0, anchorPos))
             .replace(/%20/g, " ")
             .trim();
@@ -355,11 +365,11 @@ export class Utils {
 
         return all
             ? targetFiles.every((t) =>
-                  links.some((linkTarget) => t.path === linkTarget?.path),
-              )
+                links.some((linkTarget) => t.path === linkTarget?.path),
+            )
             : targetFiles.some((t) =>
-                  links.some((linkTarget) => t.path === linkTarget?.path),
-              );
+                links.some((linkTarget) => t.path === linkTarget?.path),
+            );
     };
 
     /**
@@ -569,8 +579,8 @@ export class Utils {
         return files == null || files.length === 0
             ? engine.markdown.create("None")
             : engine.markdown.create(
-                  files.map((f) => this.fileListItem(f)).join("\n"),
-              );
+                files.map((f) => this.fileListItem(f)).join("\n"),
+            );
     };
 
     /**
@@ -586,8 +596,8 @@ export class Utils {
         return files == null || files.length === 0
             ? engine.markdown.create("None")
             : engine.markdown.create(
-                  files.map((f) => this.fileListItem(f)).join("\n"),
-              );
+                files.map((f) => this.fileListItem(f)).join("\n"),
+            );
     };
 
     /**
@@ -688,8 +698,8 @@ export class Utils {
         return files == null || files.length === 0
             ? engine.markdown.create("None")
             : engine.markdown.create(
-                  files.map((f) => this.scopedFileListItem(f)).join("\n"),
-              );
+                files.map((f) => this.scopedFileListItem(f)).join("\n"),
+            );
     };
 
     /**
@@ -847,5 +857,123 @@ export class Utils {
     tagFilterRegex = (tag: string): RegExp => {
         const cleanedTag = this.removeLeadingHashtag(tag);
         return this.segmentFilterRegex(cleanedTag);
+    };
+
+    /**
+     * Show a file suggester modal to let the user choose from a list of files
+     * Replaces tp.system.suggester() functionality
+     */
+    async showFileSuggester(
+        files: string[],
+        placeholder = "Choose file",
+    ): Promise<string | null> {
+        return new Promise((resolve, reject) => {
+            let submitted = false;
+
+            const modal = new (class extends window.customJS.obsidian
+                .SuggestModal<string> {
+                getSuggestions(query: string): string[] {
+                    return files.filter((file) =>
+                        file.toLowerCase().includes(query.toLowerCase()),
+                    );
+                }
+
+                renderSuggestion(file: string, el: HTMLElement) {
+                    el.createEl("div", { text: file });
+                }
+
+                selectSuggestion(
+                    value: string,
+                    evt: MouseEvent | KeyboardEvent,
+                ) {
+                    submitted = true;
+                    this.close();
+                    resolve(value);
+                }
+
+                onChooseSuggestion(
+                    file: string,
+                    evt: MouseEvent | KeyboardEvent,
+                ) {
+                    // This is called after selectSuggestion
+                }
+
+                onClose() {
+                    if (!submitted) {
+                        resolve(null);
+                    }
+                }
+            })(this.app);
+
+            modal.setPlaceholder(placeholder);
+            modal.open();
+        });
+    }
+
+    /**
+     * Get the current active selection or empty string
+     * Provides consistent selection handling across commands
+     */
+    getActiveSelection(): { text: string; hasSelection: boolean } {
+        const activeView = this.app.workspace.getActiveViewOfType(
+            window.customJS.obsidian.MarkdownView,
+        );
+
+        if (!activeView?.editor) {
+            return { text: "", hasSelection: false };
+        }
+
+        const hasSelection = activeView.editor.somethingSelected();
+        const text = hasSelection ? activeView.editor.getSelection() : "";
+
+        return { text, hasSelection };
+    }
+
+    /**
+     * Get cached list of files that can be push targets.
+     * Pre-finds matched headings to avoid re-searching when cache is stale.
+     * Moved from Templates class to Utils for reusability
+     */
+    getCachedPushTargets = async (): Promise<string[]> => {
+        const now = Date.now();
+
+        if (this.fileCache && now - this.fileCache.timestamp < this.cacheTTL) {
+            console.log("Using cached files");
+            return this.fileCache.data;
+        }
+
+        console.log("Refreshing file cache");
+        const files = this.filesMatchingCondition((file) => {
+            const isAssets = file.path.contains("assets/");
+            const isConversation = file.path.contains("conversations/");
+            const isChronicles = file.path.contains("chronicles/");
+            const isWeekly = file.path.contains("_week.md");
+            const isNotArchived = !file.path.contains("archives/");
+            let hasRelevantHeadings = false;
+
+            if (isAssets) {
+                return false;
+            }
+
+            if (isNotArchived) {
+                const fileHeadings = this.app.metadataCache.getCache(
+                    file.path,
+                )?.headings;
+                hasRelevantHeadings = fileHeadings
+                    ? fileHeadings
+                        .filter((x) => x.level === 2)
+                        .some((x) => x.heading.match(/(Log|Task)/))
+                    : false;
+            }
+
+            return (
+                isConversation ||
+                (isChronicles && isWeekly) ||
+                (!isChronicles && isNotArchived && hasRelevantHeadings)
+            );
+        }, false).map((f) => f.path);
+
+        this.fileCache = { data: files, timestamp: now };
+        return files;
     };
 }
