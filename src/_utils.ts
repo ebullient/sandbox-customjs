@@ -86,9 +86,9 @@ export class Utils {
             anchorPos < 0
                 ? ""
                 : link
-                    .substring(anchorPos + 1)
-                    .replace(/%20/g, " ")
-                    .trim();
+                      .substring(anchorPos + 1)
+                      .replace(/%20/g, " ")
+                      .trim();
         link = (anchorPos < 0 ? link : link.substring(0, anchorPos))
             .replace(/%20/g, " ")
             .trim();
@@ -365,11 +365,11 @@ export class Utils {
 
         return all
             ? targetFiles.every((t) =>
-                links.some((linkTarget) => t.path === linkTarget?.path),
-            )
+                  links.some((linkTarget) => t.path === linkTarget?.path),
+              )
             : targetFiles.some((t) =>
-                links.some((linkTarget) => t.path === linkTarget?.path),
-            );
+                  links.some((linkTarget) => t.path === linkTarget?.path),
+              );
     };
 
     /**
@@ -579,8 +579,8 @@ export class Utils {
         return files == null || files.length === 0
             ? engine.markdown.create("None")
             : engine.markdown.create(
-                files.map((f) => this.fileListItem(f)).join("\n"),
-            );
+                  files.map((f) => this.fileListItem(f)).join("\n"),
+              );
     };
 
     /**
@@ -596,8 +596,8 @@ export class Utils {
         return files == null || files.length === 0
             ? engine.markdown.create("None")
             : engine.markdown.create(
-                files.map((f) => this.fileListItem(f)).join("\n"),
-            );
+                  files.map((f) => this.fileListItem(f)).join("\n"),
+              );
     };
 
     /**
@@ -698,8 +698,8 @@ export class Utils {
         return files == null || files.length === 0
             ? engine.markdown.create("None")
             : engine.markdown.create(
-                files.map((f) => this.scopedFileListItem(f)).join("\n"),
-            );
+                  files.map((f) => this.scopedFileListItem(f)).join("\n"),
+              );
     };
 
     /**
@@ -961,8 +961,8 @@ export class Utils {
                 )?.headings;
                 hasRelevantHeadings = fileHeadings
                     ? fileHeadings
-                        .filter((x) => x.level === 2)
-                        .some((x) => x.heading.match(/(Log|Task)/))
+                          .filter((x) => x.level === 2)
+                          .some((x) => x.heading.match(/(Log|Task)/))
                     : false;
             }
 
