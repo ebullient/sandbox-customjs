@@ -3,6 +3,12 @@ import type { RenderFn, Utils } from "./_utils";
 
 type FileReferences = Record<string, number>;
 
+interface MissingConfig {
+    ignoreAnchors: string[];
+    ignoreFiles: string[];
+    ignoreUnreferencedPath: string[];
+}
+
 export class Missing {
     RENDER_MISSING =
         /([\s\S]*?<!--MISSING BEGIN-->)[\s\S]*?(<!--MISSING END-->[\s\S]*?)/i;
@@ -10,8 +16,10 @@ export class Missing {
     app: App;
 
     targetFile = "assets/no-sync/missing.md";
+    configFile = "assets/missing-config.yaml";
 
-    ignoreAnchors = [
+    // Default values (fallback if config file can't be loaded)
+    ignoreAnchors: string[] = [
         "card",
         "center",
         "callout",
@@ -22,64 +30,13 @@ export class Missing {
         "token",
     ];
 
-    // add additional files to ignore here
-    ignoreFiles = [
+    ignoreFiles: string[] = [
         this.targetFile,
-        "${result.lastSession}",
-        "${result}",
-        "${file.path}",
-        "${y[0].file.path}",
-        "/${p.file.path}",
-
-        "assets/Publications.bib",
-        "assets/Readit.bib",
-        "assets/birthdays.json",
-        "assets/pandoc",
-        "assets/templates/periodic-daily.md",
-        "assets/templates/encounter-create.md",
-        "assets/templates/group-create.md",
-        "assets/templates/img-full-width.md",
-        "assets/templates/img-portrait.md",
-        "assets/templates/indent-block.md",
-        "assets/templates/location-area-create.md",
-        "assets/templates/location-create.md",
-        "assets/templates/location-shop-create.md",
-        "assets/templates/mood-roll.md",
-        "assets/templates/note-create-rename.md",
-        "assets/templates/note-prev-next.md",
-        "assets/templates/note-preview-mode.md",
-        "assets/templates/note-rename.md",
-        "assets/templates/npc-block.md",
-        "assets/templates/npc-create.md",
-        "assets/templates/npc-mood-block.md",
-        "assets/templates/npc-mood-roll.md",
-        "assets/templates/pc-skill-check.md",
-        "assets/templates/scene-option.md",
-        "assets/templates/scene.md",
-        "assets/templates/session-create.md",
-        "assets/templates/session-recap.md",
-        "assets/templates/session-scene-option.md",
-        "assets/templates/statblock-create.md",
-        "assets/templates/statblock.md",
-        "assets/templates/tyrant-of-zhentil-keep.md",
-        "assets/templates/waterdeep-new-day.md",
-        "assets/templates/waterdeep-news.md",
-        "assets/templates/waterdeep-random-encounter.md",
-        "assets/templates/waterdeep-rumor.md",
-        "assets/templates/waterdeep-session.md",
-        "assets/templates/waterdeep-tavern-funds.md",
-        "assets/templates/waterdeep-tavern-patron.md",
-        "assets/templates/waterdeep-tavern-time.md",
-        "assets/templates/waterdeep-timeline.md",
-        "assets/templates/waterdeep-weather-10.md",
-        "assets/templates/waterdeep-weather.md",
-        "assets/templates/witchlight-session.md",
-
-        "quests/obsidian-theme-plugins/ebullientworks-theme/links.md",
-        "quests/obsidian-theme-plugins/ebullientworks-theme/obsidian-theme-test.md",
     ];
 
-    ignoreUnreferencedPath = ["compendium/5e"];
+    ignoreUnreferencedPath: string[] = [
+        "compendium/5e",
+    ];
 
     constructor() {
         this.app = window.customJS.app;
@@ -89,11 +46,47 @@ export class Missing {
     utils = (): Utils => window.customJS.Utils;
 
     /**
+     * Load configuration from YAML file
+     */
+    async loadConfig(): Promise<void> {
+        try {
+            const configFile = this.app.vault.getFileByPath(this.configFile);
+            if (!configFile) {
+                console.warn(`Missing config file ${this.configFile}, using defaults`);
+                return;
+            }
+
+            const configText = await this.app.vault.cachedRead(configFile);
+            const config = window.customJS.obsidian.parseYaml(configText);
+
+            if (config.ignoreAnchors) {
+                this.ignoreAnchors = config.ignoreAnchors;
+            }
+            if (config.ignoreFiles) {
+                // Always include the target file
+                this.ignoreFiles = [this.targetFile, ...config.ignoreFiles];
+            }
+            if (config.ignoreUnreferencedPath) {
+                this.ignoreUnreferencedPath = config.ignoreUnreferencedPath;
+            }
+
+            console.log("Loaded missing configuration from", this.configFile);
+        } catch (error) {
+            console.error("Failed to load missing configuration:", error);
+            console.log("Using default configuration");
+        }
+    }
+
+    /**
      * Find all missing references and update the target file with the results.
      * @returns {Promise<void>}
      */
     async invoke(): Promise<void> {
         console.log("Finding lost things");
+
+        // Load configuration from YAML file
+        await this.loadConfig();
+
         const missing = this.app.vault.getFileByPath(this.targetFile);
         if (!missing) {
             console.log(`${this.targetFile} file not found`);
@@ -346,20 +339,29 @@ export class Missing {
                     ]);
                 }
             } else {
-                const lower = cleanLink.anchor
-                    .toLowerCase()
-                    .replace(/[.]/g, "");
+                // Handle URL decoding and normalization for heading comparison
+                const decodeAndNormalize = (text: string): string => {
+                    return decodeURIComponent(text)
+                        .toLowerCase()
+                        .replace(/[?:.#]/g, "")
+                        .replace(/\s+/g, " ")
+                        .trim();
+                };
+
+                const normalizedAnchor = decodeAndNormalize(cleanLink.anchor);
                 const tgtHeading = tgtFileCache.headings
                     ? tgtFileCache.headings.find(
-                          (x) =>
-                              lower ===
-                              x.heading
-                                  .toLowerCase()
-                                  .replace(/[?:.]/g, "")
-                                  .replace("#", " "),
-                      )
+                        (x) => normalizedAnchor === decodeAndNormalize(x.heading)
+                    )
                     : "";
                 if (!tgtHeading) {
+                    console.log(
+                        "MISSING HEADING DEBUG:",
+                        "anchor:", cleanLink.anchor,
+                        "normalized:", normalizedAnchor,
+                        "available headings:", tgtFileCache.headings?.map(h => h.heading),
+                        "file:", tgtFile.path
+                    );
                     console.log(
                         "MISSING:",
                         `${tgtFile.path}#${anchor}`,
