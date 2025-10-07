@@ -61,6 +61,7 @@ export class Activity {
         "🔵": ["🔵"],
         "💚": ["🟢", "🏊", "💃"],
         "💦": ["✨", "🍀", "💧", "☘️"],
+        "✍️": ["✍️", "📖"],
     };
 
     colors = [
@@ -94,35 +95,61 @@ export class Activity {
         const count = keys.map(() => 0);
         const prefix = "me/✅/";
 
-        const tags = await this.utils().tagsForDates(begin, end);
-        for (const t of tags) {
-            if (t.startsWith(prefix)) {
-                const value = t.slice(prefix.length);
-                console.log(begin.format("MM-DD"), "checking", t, value);
+        // Track unique days for each activity category
+        const daysPerActivity: Set<string>[] = keys.map(() => new Set());
 
-                for (const [i, key] of keys.entries()) {
-                    if (this.activities[key].includes(value)) {
-                        count[i]++;
+        // Get daily note files and their tags within the date range
+        const tagsByFile = this.utils().tagsForDatesByFile(begin, end, []);
+
+        // Process tags for each file
+        for (const [f, tags] of tagsByFile) {
+            const day = f.name.replace(".md", "");
+
+            for (const t of tags) {
+                if (t.startsWith(prefix)) {
+                    const value = t.slice(prefix.length);
+                    //console.log(day, "checking", t, value);
+
+                    for (const [i, key] of keys.entries()) {
+                        if (this.activities[key].includes(value)) {
+                            daysPerActivity[i].add(day);
+                        }
                     }
                 }
             }
         }
 
-        const weeks = end.diff(begin, "weeks");
-        // console.log(begin.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'),
-        //     count, weeks);
+        // Convert sets to counts
+        for (const [i, daySet] of daysPerActivity.entries()) {
+            count[i] = daySet.size;
+        }
+
+        const days = end.diff(begin, "days");
+        const weeks = days < 7 ? 1 : Math.round(days / 7);
+        console.debug(
+            "Range:",
+            begin.format("YYYY-MM-DD"),
+            "to",
+            end.format("YYYY-MM-DD"),
+            "| Raw counts:",
+            count,
+            "| Days:",
+            days,
+            "| Weeks:",
+            weeks,
+        );
 
         if (weeks > 1) {
             count.forEach((c, i) => {
                 count[i] = Math.round(c / weeks);
             });
-            // console.log("averaged per week", count, weeks);
+            console.debug("Averaged per week:", count);
         }
 
         return {
             activities: keys,
             count,
-            weeks: weeks === 0 ? 1 : weeks,
+            weeks,
         };
     };
 
@@ -261,7 +288,7 @@ export class Activity {
             monday,
             window.moment(monday).day(7),
         );
-        console.log("this week", dataWeek);
+        console.debug("this week", dataWeek);
         const lastWeek = await this.countTags(
             lastMonday,
             window.moment(lastMonday).day(7),

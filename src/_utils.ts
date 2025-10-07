@@ -829,7 +829,25 @@ export class Utils {
      * @returns {Array} A list of tags found in daily notes for the date range.
      */
     tagsForDates = async (begin: Moment, end: Moment): Promise<string[]> => {
-        return this.app.vault
+        const tagsByFile = this.tagsForDatesByFile(begin, end, []);
+        return Array.from(tagsByFile.values()).flat();
+    };
+
+    /**
+     * Returns tags grouped by file for daily notes within the chronicles directory.
+     * @param {Moment} begin The beginning date (inclusive).
+     * @param {Moment} end The ending date (inclusive).
+     * @param {string | string[]} conditions Additional conditions to filter files (currently unused but kept for future extensibility).
+     * @returns {Map<TFile, string[]>} A map of TFile to tags for that file.
+     */
+    tagsForDatesByFile = (
+        begin: Moment,
+        end: Moment,
+        conditions: string | string[],
+    ): Map<TFile, string[]> => {
+        const result = new Map<TFile, string[]>();
+
+        const files = this.app.vault
             .getMarkdownFiles()
             .filter(
                 (f) =>
@@ -842,10 +860,14 @@ export class Utils {
                     day.isSameOrAfter(begin, "day") &&
                     day.isSameOrBefore(end, "day")
                 );
-            })
-            .flatMap((element) => {
-                return this.fileTags(element);
             });
+
+        for (const file of files) {
+            const tags = this.fileTags(file);
+            result.set(file, tags);
+        }
+
+        return result;
     };
 
     /**
