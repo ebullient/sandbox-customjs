@@ -2,8 +2,14 @@
     const result = Dated.daily(tp.file.title);
     await tp.file.move(result.dailyFile);
     const today = result.dates.day.isoWeekday();
+    const copingCard = window.simpleFlashcards?.api
+        ? window.simpleFlashcards.api.embedCard()
+        : "";
 -%><% result.header %>
+%% %%
+<% copingCard %>
 
+%% %%
 > [!charm] Journaling
 > - *I am grateful for*
 > - *What would make today great?*
@@ -53,9 +59,6 @@
 - [ ] 17:00 Preview tomorrow's Agenda
 - [ ] 17:30 Reflection
 - [ ] 18:00 END
-
-<%* } else { -%>
-%% %%
 <%* } -%>
 
 > [!charm] Journaling

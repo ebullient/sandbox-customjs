@@ -10,6 +10,7 @@ export class LinkJournal {
 
     /**
      * Insert a link to the journal entry for the current file's date
+     * Handles both daily (YYYY-MM-DD) and weekly (YYYY-MM-DD_week) files
      * Replaces the Templater template: templates/AllTheThings/link-journal.md
      */
     async invoke(): Promise<void> {
@@ -29,19 +30,23 @@ export class LinkJournal {
         }
 
         const editor = activeView.editor;
+        const filename = activeFile.basename;
 
-        // Parse the file title as a date using moment
-        const date = window.moment(activeFile.basename);
+        // Check if it's a weekly file (ends with _week)
+        const isWeekly = filename.endsWith("_week");
+        const dateString = isWeekly ? filename.replace("_week", "") : filename;
+
+        // Parse the date using moment
+        const date = window.moment(dateString);
         if (!date.isValid()) {
-            console.log("File title is not a valid date:", activeFile.basename);
+            console.log("File title is not a valid date:", filename);
             return;
         }
 
-        // Format the path as YYYY/YYYY-MM-DD
+        // Format the path as YYYY/YYYY-MM-DD (common for both daily and weekly)
         const path = date.format("YYYY/YYYY-MM-DD");
-
-        // Create the link text: [📖](demesne/self/journal/YYYY/YYYY-MM-DD) #me/✅/✍️
-        const linkText = `[📖](demesne/self/journal/${path}) #me/✅/✍️`;
+        const weekSuffix = isWeekly ? "_week" : "";
+        const linkText = `[📖](demesne/self/journal/${path}${weekSuffix}) #me/✅/✍️`;
 
         // Insert the text at the cursor position
         editor.replaceSelection(linkText);

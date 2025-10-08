@@ -56,4 +56,6 @@
 
 ---
 
+## Logs
+
 <% result.log %>
