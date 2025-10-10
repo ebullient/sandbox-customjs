@@ -299,7 +299,7 @@ return await Tasks.thisWeekTasks(engine);`;
 
         return {
             dates: dates,
-            yearEmbed: `![${dates.month}](${this.yearlyFile(dates.firstMonday)}#${dates.month})`,
+            yearEmbed: `> [!tldr] Upcoming\n> ![invisible-embed](${this.yearlyFile(dates.firstMonday)}#${dates.month})`,
             header: header,
         };
     };
