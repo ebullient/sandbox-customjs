@@ -104,7 +104,7 @@ function runCommand(command, args, name) {
 
 // Function to run both development processes concurrently
 function startDevelopment() {
-    console.log("🔄 Starting development mode for both customjs and plugin...");
+    console.log("🔄 Starting development mode for customjs, plugin, and plugin-tasks...");
 
     // Start TypeScript in watch mode for customjs
     const tscProcess = runCommand("tsc", ["-w"], "tsc");
@@ -119,11 +119,19 @@ function startDevelopment() {
         "plugin",
     );
 
+    // Start plugin-tasks development
+    const pluginTasksProcess = runCommand(
+        "node",
+        ["./plugin-tasks/esbuild.config.mjs"],
+        "plugin-tasks",
+    );
+
     // Handle process termination
     process.on("SIGINT", () => {
         console.log("\n🛑 Shutting down all processes...");
         tscProcess.kill();
         pluginProcess.kill();
+        pluginTasksProcess.kill();
         process.exit(0);
     });
 }

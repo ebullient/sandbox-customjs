@@ -43,6 +43,34 @@ For each file in there, I define 1..n places it should get pushed. Works for me,
 
 The scripts that achieve this are in `build/`
 
+## Plugins
+
+In addition to CustomJS scripts, this repository contains Obsidian plugins that provide additional functionality:
+
+### Task Index Plugin (`plugin-tasks/`)
+
+A GTD-style task management plugin for the AllTheThings vault that helps with project review and task triage.
+
+**Features:**
+- **Project Indexing**: Scans quest/area files for tasks and metadata
+- **Review Detection**: Flags projects needing review based on:
+  - No #next tasks (projects stalled)
+  - Stale projects (not modified in N weeks)
+  - Long-waiting tasks (#waiting tasks older than N days)
+  - Missing sphere assignment
+  - Current sphere focus
+- **Review Modal**: Interactive UI for triaging projects during review
+  - Edit project sphere and purpose
+  - Quick task actions via dropdown (mark #next, #waiting, #someday, complete, cancel)
+  - Purpose tag picker for aligning projects with goals/values (e.g., `#me/🎯/🤓`)
+  - Bulk task editing via raw markdown editor
+- **Settings**: Configure spheres, review thresholds, file locations, and purpose tags
+
+**Integration with AllTheThings vault:**
+- Works with PARA-style quest/area files
+- Supports GTD task tags (#next, #waiting, #someday)
+- Complements the priority.ts and tasks.ts CustomJS scripts
+
 ## Repository structure
 
 ### AllTheThings

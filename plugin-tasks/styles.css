@@ -1,1 +1,196 @@
 /* Task Index Plugin Styles */
+
+.task-review-modal {
+	padding: 20px;
+}
+
+/* Make modal wider on larger screens */
+@media (min-width: 800px) {
+	.task-review-modal .modal {
+		width: 90vw;
+		max-width: 1200px;
+	}
+}
+
+.review-section {
+	margin-bottom: 30px;
+}
+
+.review-section h3 {
+	margin-bottom: 10px;
+	color: var(--text-accent);
+}
+
+/* Purpose section */
+.purpose-textarea {
+	width: 100%;
+	min-height: 150px;
+	padding: 10px;
+	font-family: var(--font-text);
+	font-size: var(--font-ui-medium);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	resize: vertical;
+}
+
+.purpose-textarea:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+/* Purpose tag picker */
+.purpose-tag-picker {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: 8px;
+}
+
+.tag-picker-label {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	font-weight: 500;
+}
+
+.tag-picker-select {
+	padding: 4px 8px;
+	font-size: var(--font-ui-small);
+	font-family: var(--font-monospace);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 3px;
+	cursor: pointer;
+	min-width: 200px;
+}
+
+.tag-picker-select:hover {
+	background: var(--background-modifier-hover);
+}
+
+.tag-picker-select:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+/* Task section header */
+.task-section-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 10px;
+}
+
+.task-edit-toggle {
+	padding: 4px 12px;
+	font-size: var(--font-ui-small);
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 3px;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.task-edit-toggle:hover {
+	background: var(--interactive-hover);
+}
+
+/* Task editor (edit mode) */
+.task-editor {
+	width: 100%;
+	min-height: 300px;
+	padding: 10px;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	resize: vertical;
+	line-height: 1.5;
+}
+
+.task-editor:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+/* Task list */
+.task-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.task-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px;
+	background: var(--background-secondary);
+	border-radius: 4px;
+}
+
+.task-text {
+	flex: 1;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+}
+
+.task-content {
+	color: var(--text-normal);
+}
+
+.task-empty {
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+/* Task action dropdown */
+.task-action-select {
+	padding: 4px 8px;
+	font-size: var(--font-ui-small);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 3px;
+	cursor: pointer;
+	min-width: 150px;
+}
+
+.task-action-select:hover {
+	background: var(--background-modifier-hover);
+}
+
+.task-action-select:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+.task-due-date {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+/* Modal buttons */
+.modal-button-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: 20px;
+	padding-top: 20px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.modal-button-spacer {
+	flex: 1;
+}
+
+.modal-button-row button {
+	padding: 8px 16px;
+	border-radius: 4px;
+	cursor: pointer;
+}
