@@ -1,6 +1,7 @@
 <%* const { Dated } = await window.cJS();
     const result = Dated.weekly(tp.file.title);
     await tp.file.move(result.weekFile);
+    const upcoming = await Dated.weeklyEvents(tp.file.title);
     const monday = result.dates.monday.format("YYYY-MM-DD");
     const ghFile = result.weekFile.replace('week', 'gh');
 -%>

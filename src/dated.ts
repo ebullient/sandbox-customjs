@@ -54,7 +54,6 @@ interface WeekInfo {
     header: string;
     log: string;
     weeklyProjects: string;
-    upcoming: string;
     weekFile: string;
     lastWeekFile: string;
     monthName: string;
@@ -182,7 +181,7 @@ export class Dated {
     /**
      * Create information for the weekly note template for a specific date.
      * @param {string} filename The filename to parse.
-     * @returns {Object} An object containing the dates, header, log, weekly projects, upcoming, week file path, last week file path, month name, monthly reflection, and weekly reflection.
+     * @returns {Object} An object containing the dates, header, log, weekly projects, week file path, last week file path, month name, monthly reflection, and weekly reflection.
      */
     weekly = (filename: string): WeekInfo => {
         const dates = this.parseDate(filename);
@@ -192,7 +191,6 @@ export class Dated {
         const lastMonthFile = this.monthlyFile(dates.lastMonday);
         const lastMonth = dates.lastMonday.format("MMMM");
         let monthlyReflection = "";
-        let upcoming = `> ![Upcoming](${this.yearlyFile(dates.monday)}#${dates.monday.format("MMMM")})\n`;
 
         let header =
             `# Week of ${dates.monday.format("MMM D")}\n` +
@@ -207,7 +205,6 @@ export class Dated {
 
         if (dates.monday.month() !== dates.nextMonday.month()) {
             header += `, [${dates.nextMonday.format("MMMM")}](${this.monthlyFile(dates.nextMonday)})`;
-            upcoming += `>\n> ![Upcoming](${dates.nextMonday.format("YYYY")}.md#${dates.nextMonday.format("MMMM")})`;
             const thisMonth = dates.nextMonday.format("MMMM");
             console.log(thisMonth, lastMonth);
             monthlyReflection =
@@ -246,7 +243,6 @@ return await Tasks.thisWeekTasks(engine);`;
             header,
             log,
             weeklyProjects,
-            upcoming,
             weekFile: weekFile.replace(".md", ""),
             lastWeekFile,
             monthName: `${dates.monday.format("MMMM")}`,
@@ -375,5 +371,107 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
      */
     filterLeftoverTasks = (line: string): boolean => {
         return line.match(/- \[[^x-]\] /) !== null;
+    };
+
+    weeklyEvents = async (filename: string): Promise<string> => {
+        const dates = this.parseDate(filename);
+        const yearFiles = new Set([
+            this.yearlyFile(dates.monday),
+            this.yearlyFile(dates.nextMonday),
+        ]);
+
+        const weekEntries: string[] = [];
+
+        for (const yearFilePath of yearFiles) {
+            const yearFile = this.app.vault.getAbstractFileByPath(
+                yearFilePath,
+            ) as TFile;
+            if (!yearFile) {
+                continue;
+            }
+            const content = await this.app.vault.cachedRead(yearFile);
+            const lines = content.split("\n");
+
+            const year = Number.parseInt(
+                yearFilePath.match(/(\d{4})\.md$/)?.[1] || "0",
+                10,
+            );
+
+            // Calculate the date range we care about for this specific year file
+            const yearStart = window.moment([year, 0, 1]); // Jan 1 of year
+            const yearEnd = window.moment([year, 11, 31]); // Dec 31 of year
+
+            // Only look for dates within the year AND within our week
+            const searchStart = window.moment.max(dates.monday, yearStart);
+            const searchEnd = window.moment.min(
+                dates.nextMonday.clone().subtract(1, "day"),
+                yearEnd,
+            );
+
+            // Skip this file if no overlap
+            if (searchStart.isAfter(searchEnd)) {
+                continue;
+            }
+
+            let currentMonth = -1;
+            let inTargetMonth = false;
+            const searchStartMonth = searchStart.month();
+            const searchEndMonth = searchEnd.month();
+
+            console.log(
+                "Upcoming",
+                yearFilePath,
+                searchStart.format("YYYY-MM-DD"),
+                searchEnd.format("YYYY-MM-DD"),
+                searchStartMonth,
+                searchEndMonth,
+            );
+
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                const monthMatch = trimmedLine.match(
+                    /^## (January|February|March|April|May|June|July|August|September|October|November|December)$/,
+                );
+                if (monthMatch) {
+                    currentMonth = window.moment(monthMatch[1], "MMMM").month();
+                    inTargetMonth =
+                        currentMonth >= searchStartMonth &&
+                        currentMonth <= searchEndMonth;
+                    console.log(
+                        "currentMonth",
+                        currentMonth,
+                        monthMatch[1],
+                        inTargetMonth,
+                    );
+                    continue;
+                }
+                // Only process day entries if we're in a target month
+                if (inTargetMonth && trimmedLine.startsWith("- ")) {
+                    const dayMatch = trimmedLine.match(/^- (\d{1,2})/);
+                    if (dayMatch) {
+                        const day = Number.parseInt(dayMatch[1]);
+                        const entryDate = window.moment([
+                            year,
+                            currentMonth,
+                            day,
+                        ]);
+
+                        // Check if this date falls within our search range
+                        if (
+                            entryDate.isBetween(
+                                searchStart,
+                                searchEnd,
+                                "day",
+                                "[]",
+                            )
+                        ) {
+                            weekEntries.push(`> ${trimmedLine}`);
+                        }
+                    }
+                }
+            }
+        }
+
+        return weekEntries.join("\n");
     };
 }

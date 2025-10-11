@@ -44,9 +44,9 @@ export class LinkJournal {
         }
 
         // Format the path as YYYY/YYYY-MM-DD (common for both daily and weekly)
-        const path = date.format("YYYY/YYYY-MM-DD");
+        const path = date.format("YYYY/[journal-]YYYY-MM-DD");
         const weekSuffix = isWeekly ? "_week" : "";
-        const linkText = `[📖](demesne/self/journal/${path}${weekSuffix}) #me/✅/✍️`;
+        const linkText = `[📖](chronicles/journal/${path}${weekSuffix}) #me/✅/✍️`;
 
         // Insert the text at the cursor position
         editor.replaceSelection(linkText);

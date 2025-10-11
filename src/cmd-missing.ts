@@ -30,13 +30,9 @@ export class Missing {
         "token",
     ];
 
-    ignoreFiles: string[] = [
-        this.targetFile,
-    ];
+    ignoreFiles: string[] = [this.targetFile];
 
-    ignoreUnreferencedPath: string[] = [
-        "compendium/5e",
-    ];
+    ignoreUnreferencedPath: string[] = ["compendium/5e"];
 
     constructor() {
         this.app = window.customJS.app;
@@ -52,7 +48,9 @@ export class Missing {
         try {
             const configFile = this.app.vault.getFileByPath(this.configFile);
             if (!configFile) {
-                console.warn(`Missing config file ${this.configFile}, using defaults`);
+                console.warn(
+                    `Missing config file ${this.configFile}, using defaults`,
+                );
                 return;
             }
 
@@ -351,16 +349,22 @@ export class Missing {
                 const normalizedAnchor = decodeAndNormalize(cleanLink.anchor);
                 const tgtHeading = tgtFileCache.headings
                     ? tgtFileCache.headings.find(
-                        (x) => normalizedAnchor === decodeAndNormalize(x.heading)
-                    )
+                          (x) =>
+                              normalizedAnchor ===
+                              decodeAndNormalize(x.heading),
+                      )
                     : "";
                 if (!tgtHeading) {
                     console.log(
                         "MISSING HEADING DEBUG:",
-                        "anchor:", cleanLink.anchor,
-                        "normalized:", normalizedAnchor,
-                        "available headings:", tgtFileCache.headings?.map(h => h.heading),
-                        "file:", tgtFile.path
+                        "anchor:",
+                        cleanLink.anchor,
+                        "normalized:",
+                        normalizedAnchor,
+                        "available headings:",
+                        tgtFileCache.headings?.map((h) => h.heading),
+                        "file:",
+                        tgtFile.path,
                     );
                     console.log(
                         "MISSING:",

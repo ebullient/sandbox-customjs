@@ -7,11 +7,10 @@ await tp.file.move(result.dates.monthFile);
 
 > [!charm] Affirmations
 > %% write these in present tense. Use positive words %%
-> - ***Relationships***: %% e.g. I am loving and giving in my relationships%%
-> - ***Career***: %% I'm always striving to develop myself professionally %%
-> - ***Health / Fitness***: %% e.g. I am in control of my physical fitness %%
-> - ***Love***: %% e.g. I have people who love me %%
 > 
+
+## Goals
+
 
 ## 🤓 Weekly review
 <%* const monday = result.dates.firstMonday;
