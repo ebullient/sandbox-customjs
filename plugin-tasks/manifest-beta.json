@@ -1,0 +1,10 @@
+{
+  "id": "ebullient-task-index",
+  "name": "Task Index",
+  "version": "0.1.0-beta",
+  "minAppVersion": "0.13.10",
+  "description": "Task data index (beta)",
+  "author": "ebullient",
+  "authorUrl": "https://github.com/ebullient",
+  "isDesktopOnly": false
+}
