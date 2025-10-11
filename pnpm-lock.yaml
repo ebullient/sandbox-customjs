@@ -28,8 +28,8 @@ importers:
         specifier: ^4.0.3
         version: 4.0.3
       dotenv:
-        specifier: ^16.6.1
-        version: 16.6.1
+        specifier: ^17.2.2
+        version: 17.2.2
       esbuild:
         specifier: ^0.25.10
         version: 0.25.10
@@ -286,8 +286,8 @@ packages:
     resolution: {integrity: sha512-Qgzu8kfBvo+cA4962jnP1KkS6Dop5NS6g7R5LFYJr4b8Ub94PPQXUksCw9PvXoeXPRRddRNC5C1JQUR2SMGtnA==}
     engines: {node: '>= 14.16.0'}
 
-  dotenv@16.6.1:
-    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+  dotenv@17.2.2:
+    resolution: {integrity: sha512-Sf2LSQP+bOlhKWWyhFsn0UsfdK/kCWRv1iuA2gXAwt3dyNabr6QSj00I2V10pidqz69soatm9ZwZvpQMTIOd5Q==}
     engines: {node: '>=12'}
 
   esbuild-plugin-tsc@0.5.0:
@@ -484,7 +484,7 @@ snapshots:
     dependencies:
       readdirp: 4.1.2
 
-  dotenv@16.6.1: {}
+  dotenv@17.2.2: {}
 
   esbuild-plugin-tsc@0.5.0(typescript@5.9.2):
     dependencies:
