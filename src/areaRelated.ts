@@ -1,61 +1,23 @@
-import type { App, FrontMatterCache, TFile } from "obsidian";
+import type { App, TFile } from "obsidian";
 import type { EngineAPI } from "./@types/jsengine.types";
 import type { Templater } from "./@types/templater.types";
-import type { CompareFn, Conditions, FileFilterFn, Utils } from "./_utils";
+import type { Conditions, FileFilterFn, Utils } from "./_utils";
 
-export class AreaPriority {
+export class AreaRelated {
     app: App;
 
-    urgent = ["yes", "no"];
-    important = ["yes", "no"];
     role = ["owner", "collaborator", "observer"];
     unknown = "??";
-
-    priorityVisual: string[];
 
     roleVisual: Record<string, string> = {
         owner: "🖐",
         collaborator: "🤝",
         observer: "👀",
     };
-    status = [
-        "active",
-        "ongoing",
-        "brainstorming",
-        "blocked",
-        "inactive",
-        "complete",
-        "ignore",
-    ];
-    statusVisual: Record<string, string> = {
-        active: "\ud83c\udfca\u200d\u2640\ufe0f", // 🏊‍♀️
-        blocked: "🧱",
-        brainstorming: "🧠",
-        ongoing: "\ud83d\udd1b", // 🔛
-        inactive: "\ud83d\udca4", // 💤
-        complete: "\ud83c\udfc1", // '🏁',
-        ignore: "\ud83e\udee3", // 🫣
-    };
 
     constructor() {
         this.app = window.customJS.app;
-
-        const urgent = "\u23f0"; // ⏰
-        const important = "!!"; // ‼️
-        const one = "\u0031\ufe0f\u20e3";
-        const two = "\u0032\ufe0f\u20e3";
-        const three = "\u0033\ufe0f\u20e3";
-        const four = "\u0034\ufe0f\u20e3";
-
-        this.priorityVisual = [
-            this.unknown,
-            `${one}${important}${urgent}`,
-            `${two}${important}`,
-            `${three}${urgent}`,
-            `${four}`,
-        ];
-
-        console.log("loaded AreaPriority");
+        console.log("loaded AreaRelated");
     }
 
     utils = (): Utils => window.customJS.Utils;
@@ -80,45 +42,15 @@ export class AreaPriority {
         archived: boolean,
         orOther: Conditions = "",
     ) => {
-        const list = this.priorityFilesMatchingCondition(
+        const list = this.filesMatchingCondition(
             (tfile: TFile) =>
                 this.isProject(tfile) && this.isArchived(tfile, archived),
         ).map(
             (tfile: TFile) =>
-                `- ${this.showPriority(tfile)}${this.showStatus(tfile)}${this.showRole(tfile)} ${this.utils().markdownLink(tfile)}`,
+                `- ${this.showRole(tfile)} ${this.utils().markdownLink(tfile)}`,
         );
 
         return engine.markdown.create(list.join("\n"));
-    };
-
-    /**
-     * Templater prompt with suggester to choose whether a task is urgent.
-     * @param {Tp} tp The templater plugin instance.
-     * @returns {Promise<string>} The user's choice of urgency.
-     */
-    chooseUrgent = async (tp: Templater): Promise<string> => {
-        return await tp.system.suggester(["urgent", "not urgent"], this.urgent);
-    };
-
-    /**
-     * Templater prompt with suggester to choose whether a task is important.
-     * @param {Tp} tp The templater plugin instance.
-     * @returns {Promise<string>} The user's choice of importance.
-     */
-    chooseImportant = async (tp: Templater): Promise<string> => {
-        return await tp.system.suggester(
-            ["important", "not important"],
-            this.important,
-        );
-    };
-
-    /**
-     * Templater prompt with suggester to choose a status for a task.
-     * @param {Tp} tp The templater plugin instance.
-     * @returns {Promise<string>} The user's choice of status.
-     */
-    chooseStatus = async (tp: Templater) => {
-        return await tp.system.suggester(this.status, this.status);
     };
 
     /**
@@ -131,18 +63,6 @@ export class AreaPriority {
     };
 
     /**
-     * Retrieves the priority visual representation for a file.
-     * @param {TFile} tfile The file to examine.
-     * @returns {string} The priority visual representation for the file.
-     * @see priorityVisual
-     * @see utils.frontmatter
-     */
-    filePriority = (tfile: TFile): string => {
-        const fm = this.utils().frontmatter(tfile);
-        return this.priorityVisual[this.priority(fm)];
-    };
-
-    /**
      * Retrieves the role visual representation for a file.
      * @param {TFile} tfile The file to examine.
      * @returns {string} The role visual representation for the file.
@@ -152,21 +72,6 @@ export class AreaPriority {
     fileRole = (tfile: TFile): string => {
         const fm = this.utils().frontmatter(tfile);
         return fm.role ? this.roleVisual[fm.role] : this.unknown;
-    };
-
-    /**
-     * Retrieves the status visual representation for a file.
-     * @param {TFile} tfile The file to examine.
-     * @returns {string} The status visual representation for the file.
-     * @see statusVisual
-     * @see utils.frontmatter
-     */
-    fileStatus = (tfile: TFile): string => {
-        const fm = this.utils().frontmatter(tfile);
-        if (fm.status?.match(/(completed|closed|done)/)) {
-            fm.status = "complete";
-        }
-        return fm.status ? this.statusVisual[fm.status] : this.unknown;
     };
 
     /**
@@ -234,24 +139,12 @@ export class AreaPriority {
     };
 
     /**
-     * Determine the priority level of a file based on its frontmatter.
-     * @param {FrontMatterCache} fm The frontmatter of the file.
-     * @returns {number} The priority level of the file.
-     */
-    priority = (fm: FrontMatterCache): number => {
-        if (fm.important === "yes") {
-            return fm.urgent === "yes" ? 1 : 2;
-        }
-        return fm.urgent === "yes" ? 3 : 4;
-    };
-
-    /**
-     * Retrieve files matching a specified condition and sorts them by priority.
+     * Retrieve files matching a specified condition and sorts them by role and name.
      * @param {FileFilterFn} fn The filter function to apply to files.
-     * @returns {Array<TFile>} An array of files matching the specified condition, sorted by priority.
+     * @returns {Array<TFile>} An array of files matching the specified condition, sorted by role and name.
      * @see sortProjects
      */
-    priorityFilesMatchingCondition = (fn: FileFilterFn): Array<TFile> => {
+    filesMatchingCondition = (fn: FileFilterFn): Array<TFile> => {
         const current = this.app.workspace.getActiveFile();
         return this.app.vault
             .getMarkdownFiles()
@@ -323,7 +216,7 @@ export class AreaPriority {
         const compiledConditions =
             this.utils().createFileConditionFilter(conditions);
 
-        const list = this.priorityFilesMatchingCondition((tfile: TFile) => {
+        const list = this.filesMatchingCondition((tfile: TFile) => {
             const areaIncluded =
                 this.isArea(tfile) && this.isArchived(tfile, archived);
             const inFolder = this.utils().filterByPath(tfile, pathRegex);
@@ -402,7 +295,7 @@ export class AreaPriority {
         const compiledConditions =
             this.utils().createFileConditionFilter(conditions);
 
-        const list = this.priorityFilesMatchingCondition((tfile: TFile) => {
+        const list = this.filesMatchingCondition((tfile: TFile) => {
             const projectIncluded =
                 this.isProject(tfile) && this.isArchived(tfile, archived);
             const inFolder = this.utils().filterByPath(tfile, pathRegex);
@@ -411,21 +304,10 @@ export class AreaPriority {
                 : projectIncluded && inFolder;
         }).map(
             (tfile: TFile) =>
-                `- ${this.showPriority(tfile)}${this.showStatus(tfile)}${this.showRole(tfile)} ${this.utils().markdownLink(tfile)}`,
+                `- ${this.showRole(tfile)} ${this.utils().markdownLink(tfile)}`,
         );
 
         return engine.markdown.create(list.join("\n"));
-    };
-
-    /**
-     * Generates the HTML for displaying the priority of a file.
-     * @param {TFile} tfile The file to examine.
-     * @returns {string} The HTML for displaying the priority of the file.
-     * @see priorityVisual
-     */
-    showPriority = (tfile: TFile): string => {
-        const fm = this.utils().frontmatter(tfile);
-        return `<span class="ap-priority">${this.priorityVisual[this.priority(fm)]}</span>`;
     };
 
     /**
@@ -436,104 +318,31 @@ export class AreaPriority {
      */
     showRole = (tfile: TFile): string => {
         const fm = this.utils().frontmatter(tfile);
+        const sphere = fm.sphere ? `<span class="ap-sphere">${fm.sphere}</span>` : "";
         const role = fm.role ? this.roleVisual[fm.role] : this.unknown;
-        return `<span class="ap-role">${role}</span>`;
+        return `<span class="ap-role">${role}</span>${sphere}`;
     };
 
     /**
-     * Generates the HTML for displaying the status of a file.
-     * @param {TFile} tfile The file to examine.
-     * @returns {string} The HTML for displaying the status of the file.
-     * @see statusVisual
-     */
-    showStatus = (tfile: TFile): string => {
-        const fm = this.utils().frontmatter(tfile);
-        if (fm.status?.match(/(completed|closed|done)/)) {
-            fm.status = "complete";
-        }
-        const status = fm.status ? this.statusVisual[fm.status] : this.unknown;
-        return `<span class="ap-status">${status}</span>`;
-    };
-
-    /**
-     * Sorts projects based on priority, status, role, and name.
+     * Sorts projects based on role and name.
      * @param {TFile} tfile1 The first file to compare.
      * @param {TFile} tfile2 The second file to compare.
      * @returns {number} A negative number if tfile1 should come before tfile2,
      *      a positive number if tfile1 should come after tfile2,
      *      or 0 if they are considered equal.
-     * @see test
-     * @see testName
-     * @see testPriority
      */
     sortProjects = (tfile1: TFile, tfile2: TFile): number => {
         const fm1 = this.utils().frontmatter(tfile1);
         const fm2 = this.utils().frontmatter(tfile2);
-        return this.testPriority(fm1, fm2, () =>
-            this.test(fm1, fm2, this.status, "status", () =>
-                this.test(fm1, fm2, this.role, "role", () =>
-                    this.testName(tfile1, tfile2),
-                ),
-            ),
-        );
-    };
 
-    /**
-     * Compares two files based on a specified field and fallback function.
-     * @param {Object} fm1 The frontmatter of the first file.
-     * @param {Object} fm2 The frontmatter of the second file.
-     * @param {Array} values The array of possible values for the field.
-     * @param {string} field The field to compare.
-     * @param {CompareFn} fallback The fallback function to use if the field values are equal.
-     * @returns {number} A negative number if fm1 should come before fm2,
-     *      a positive number if fm1 should come after fm2,
-     *      or the result of the fallback function if they are considered equal.
-     */
-    test = (
-        fm1: FrontMatterCache,
-        fm2: FrontMatterCache,
-        values: string[],
-        field: string,
-        fallback: CompareFn,
-    ): number => {
-        const test1 = values.indexOf(fm1[field]);
-        const test2 = values.indexOf(fm2[field]);
-        if (test1 === test2) {
-            return fallback();
+        // Sort by role first
+        const role1 = this.role.indexOf(fm1.role);
+        const role2 = this.role.indexOf(fm2.role);
+        if (role1 !== role2) {
+            return role1 - role2;
         }
-        return test1 - test2;
-    };
 
-    /**
-     * Compares two files based on priority and a fallback function.
-     * @param {Object} fm1 The frontmatter of the first file.
-     * @param {Object} fm2 The frontmatter of the second file.
-     * @param {CompareFn} fallback The fallback function to use if the priority values are equal.
-     * @returns {number} A negative number if fm1 should come before fm2,
-     *      a positive number if fm1 should come after fm2,
-     *      or the result of the fallback function if they are considered equal.
-     */
-    testPriority = (
-        fm1: FrontMatterCache,
-        fm2: FrontMatterCache,
-        fallback: CompareFn,
-    ): number => {
-        const test1 = this.priority(fm1);
-        const test2 = this.priority(fm2);
-        if (test1 === test2) {
-            return fallback();
-        }
-        return test1 - test2;
-    };
-    /**
-     * Compares two files based on their names.
-     * @param {TFile} tfile1 The first file to compare.
-     * @param {TFile} tfile2 The second file to compare.
-     * @returns {number} A negative number if tfile1 should come before tfile2,
-     *      a positive number if tfile1 should come after tfile2,
-     *      or 0 if they are considered equal.
-     */
-    testName = (tfile1: TFile, tfile2: TFile): number => {
+        // Then by name
         return tfile1.name.localeCompare(tfile2.name);
     };
 }

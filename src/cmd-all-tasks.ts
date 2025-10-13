@@ -1,6 +1,6 @@
 import type { App, FrontMatterCache, HeadingCache, TFile } from "obsidian";
 import type { CompareFn, Utils } from "./_utils";
-import type { AreaPriority } from "./priority";
+import type { AreaRelated } from "./areaRelated";
 
 interface FileCacheInfo {
     file: TFile;
@@ -30,12 +30,12 @@ export class AllTasks {
     /**
      * Find all "Tasks" sections in the specified paths.
      * Replace the TASKS section of of the "All Tasks" file with the
-     * list of embedded sections sorted by status and priority
+     * list of embedded sections sorted by role and name
      * @returns {Promise<void>} A promise that resolves when the operation is complete.
      */
     async invoke(): Promise<void> {
         console.log("Finding all tasks");
-        const ap = window.customJS.AreaPriority;
+        const ar = window.customJS.AreaRelated;
 
         const allTasks = this.app.vault.getFileByPath(this.targetFile);
         if (!allTasks) {
@@ -49,23 +49,19 @@ export class AllTasks {
             .filter((x) => this.includePaths.some((p) => x.path.startsWith(p)))
             .filter((x) => !this.ignoreFiles.includes(x.path))
             .map((file) => this.getFileCacheInfo(file))
-            .filter(
-                (cacheInfo) =>
-                    cacheInfo.taskHeading &&
-                    cacheInfo.frontmatter.status !== "ignore",
-            )
-            .sort((a, b) => this.sortProjects(ap, a, b))
+            .filter((cacheInfo) => cacheInfo.taskHeading)
+            .sort((a, b) => this.sortProjects(ar, a, b))
             .map((cacheInfo) => {
-                const priority = ap.filePriority(cacheInfo.file);
-                const status = ap.fileStatus(cacheInfo.file);
-                const role = ap.fileRole(cacheInfo.file);
+                const role = ar.fileRole(cacheInfo.file);
+                const sphere = cacheInfo.frontmatter.sphere || "";
                 const title = this.utils().fileTitle(cacheInfo.file);
                 const linkPath = this.utils().markdownLinkPath(
                     cacheInfo.file,
                     cacheInfo.taskHeading.heading,
                 );
                 console.log("task section", title, linkPath, cacheInfo);
-                return `\n#### <span class="project-status">[${status}&nbsp;${priority}&nbsp;${role}](${linkPath})</span> ${title}\n\n![invisible-embed](${linkPath})\n`;
+                const metadata = sphere ? `${role}&nbsp;${sphere}` : role;
+                return `\n#### <span class="project-status">[${metadata}](${linkPath})</span> ${title}\n\n![invisible-embed](${linkPath})\n`;
             })
             .join("\n");
 
@@ -97,7 +93,7 @@ export class AllTasks {
     }
 
     /**
-     * Sorts projects based on priority, status, group, and name.
+     * Sorts projects based on role, group, and name.
      * @param {FileCacheInfo} a The first project to compare.
      * @param {FileCacheInfo} b The second project to compare.
      * @returns {number} A negative number if a should come before b,
@@ -105,16 +101,21 @@ export class AllTasks {
      *      0 if they are considered equal.
      */
     sortProjects = (
-        ap: AreaPriority,
+        ar: AreaRelated,
         a: FileCacheInfo,
         b: FileCacheInfo,
     ): number => {
-        return ap.testPriority(a.frontmatter, b.frontmatter, () =>
-            ap.test(a.frontmatter, b.frontmatter, ap.status, "status", () =>
-                this.testGroup(a.frontmatter, b.frontmatter, () =>
-                    ap.testName(a.file, b.file),
-                ),
-            ),
+        // First sort by role
+        const role1 = ar.role.indexOf(a.frontmatter.role);
+        const role2 = ar.role.indexOf(b.frontmatter.role);
+        if (role1 !== role2) {
+            return role1 - role2;
+        }
+
+        // Then by group
+        return this.testGroup(a.frontmatter, b.frontmatter, () =>
+            // Finally by name
+            a.file.name.localeCompare(b.file.name),
         );
     };
 

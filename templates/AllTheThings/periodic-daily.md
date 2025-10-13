@@ -30,7 +30,8 @@
 - 🎠 Got a little distracted
 %%
 ### ❧ Morning
-- [ ] 06:50 Kids to the bus
+- [ ] 06:40 Kids to the bus
+- [ ] 07:15 Meditation / Mindfulness
 - [ ] 07:30 Reflection / Planning
 - [ ] 08:00 Start : GH Notifications / Email
 - [ ] 08:45 BREAK / chat
@@ -42,7 +43,7 @@
 - [ ] 11:45 Lunch
 
 ### ❧ After Lunch
-- [ ] 12:30 Meditation
+- [ ] 12:00 Start : 
 - [ ] 12:45 BREAK / chat
 - [ ] 13:00 Start : 
 - [ ] 13:45 BREAK / chat

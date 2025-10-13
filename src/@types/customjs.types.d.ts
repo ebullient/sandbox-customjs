@@ -1,8 +1,8 @@
 import type * as obsidian from "obsidian";
 import type { Utils } from "src/_utils";
+import type { AreaRelated } from "src/areaRelated";
 import type { Campaign } from "src/campaign";
 import type { Timeline } from "src/cmd-timeline";
-import type { AreaPriority } from "src/priority";
 import type { Reference } from "src/reference";
 
 // Note: Partial CustomJS API
@@ -12,7 +12,7 @@ export type CustomJSType = {
     app?: obsidian.App;
     state?: Record<string, unknown>;
     [scriptName: string]: unknown;
-    AreaPriority: AreaPriority;
+    AreaRelated: AreaRelated;
     Campaign: Campaign;
     Reference: Reference;
     Timeline: Timeline;

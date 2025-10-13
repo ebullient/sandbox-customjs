@@ -1,6 +1,7 @@
 import { type App, Modal, Setting } from "obsidian";
 import type {
     QuestFile,
+    ReviewReason,
     Task,
     TaskAction,
     TaskIndexSettings,
@@ -15,7 +16,13 @@ export class ReviewModal extends Modal {
     private quest: QuestFile;
     private settings: TaskIndexSettings;
     private onSave: (updated: QuestFile) => Promise<void>;
-    private onSkip?: () => void;
+    private onNext?: () => void;
+    private onDefer?: () => void;
+
+    // Progress tracking
+    private currentItem: number;
+    private totalItems: number;
+    private reviewReasons: ReviewReason[];
 
     // Form state
     private selectedSphere?: string;
@@ -36,13 +43,21 @@ export class ReviewModal extends Modal {
         quest: QuestFile,
         settings: TaskIndexSettings,
         onSave: (updated: QuestFile) => Promise<void>,
-        onSkip?: () => void,
+        onNext?: () => void,
+        onDefer?: () => void,
+        currentItem = 1,
+        totalItems = 1,
+        reviewReasons: ReviewReason[] = [],
     ) {
         super(app);
         this.quest = quest;
         this.settings = settings;
         this.onSave = onSave;
-        this.onSkip = onSkip;
+        this.onNext = onNext;
+        this.onDefer = onDefer;
+        this.currentItem = currentItem;
+        this.totalItems = totalItems;
+        this.reviewReasons = reviewReasons;
 
         this.selectedSphere = quest.sphere;
         this.purposeText = quest.purpose;
@@ -57,8 +72,27 @@ export class ReviewModal extends Modal {
         contentEl.empty();
         contentEl.addClass("task-review-modal");
 
+        // Progress indicator
+        const progressEl = contentEl.createDiv({ cls: "review-progress" });
+        progressEl.createSpan({
+            text: `Reviewing ${this.currentItem} of ${this.totalItems}`,
+            cls: "review-progress-text",
+        });
+        const percentage = Math.round(
+            ((this.currentItem - 1) / this.totalItems) * 100,
+        );
+        progressEl.createDiv({
+            text: `${percentage}% complete`,
+            cls: "review-progress-percent",
+        });
+
         // Title
         contentEl.createEl("h2", { text: `Review: ${this.quest.title}` });
+
+        // Review reasons - Why does this need attention?
+        if (this.reviewReasons.length > 0) {
+            this.renderReviewReasons(contentEl);
+        }
 
         // Sphere selection
         this.renderSphereSection(contentEl);
@@ -71,6 +105,35 @@ export class ReviewModal extends Modal {
 
         // Buttons
         this.renderButtons(contentEl);
+    }
+
+    private renderReviewReasons(container: HTMLElement) {
+        const reasonsSection = container.createDiv({ cls: "review-reasons" });
+        reasonsSection.createEl("h3", { text: "⚠️ Needs Attention:" });
+
+        const reasonList = reasonsSection.createEl("ul", {
+            cls: "review-reasons-list",
+        });
+
+        const reasonLabels: Record<ReviewReason, string> = {
+            "no-next-tasks":
+                "No #next tasks - What's the immediate next action?",
+            "stale-project":
+                "Not updated recently - Is this still active or should it be archived?",
+            "long-waiting":
+                "Tasks waiting too long - Can you follow up or unblock?",
+            "no-sphere":
+                "Missing sphere - Which area of life does this belong to?",
+            "sphere-focus":
+                "In your current focus sphere - Time to make progress!",
+        };
+
+        for (const reason of this.reviewReasons) {
+            const li = reasonList.createEl("li", {
+                cls: `review-reason review-reason-${reason}`,
+            });
+            li.createSpan({ text: reasonLabels[reason] });
+        }
     }
 
     private renderSphereSection(container: HTMLElement) {
@@ -449,12 +512,24 @@ export class ReviewModal extends Modal {
         // Spacer to push remaining buttons to the right
         buttonRow.createDiv({ cls: "modal-button-spacer" });
 
-        // Skip button - moves to next without saving
+        // Defer button - skip for now, will come back later at the end
+        const deferBtn = buttonRow.createEl("button", {
+            text: "Defer",
+            cls: "mod-warning",
+        });
+        deferBtn.addEventListener("click", () => {
+            this.close();
+            if (this.onDefer) {
+                this.onDefer();
+            }
+        });
+
+        // Skip button - moves to next without saving (marks as reviewed)
         const skipBtn = buttonRow.createEl("button", { text: "Skip" });
         skipBtn.addEventListener("click", () => {
             this.close();
-            if (this.onSkip) {
-                this.onSkip();
+            if (this.onNext) {
+                this.onNext();
             }
         });
 
@@ -466,17 +541,16 @@ export class ReviewModal extends Modal {
         saveBtn.addEventListener("click", async () => {
             await this.saveChanges();
             this.close();
-            if (this.onSkip) {
-                this.onSkip();
+            if (this.onNext) {
+                this.onNext();
             }
         });
     }
 
     private async saveChanges() {
         // Get current tasks (edited or original)
-        const currentTasks = this.editedTasks.length > 0
-            ? this.editedTasks
-            : this.quest.tasks;
+        const currentTasks =
+            this.editedTasks.length > 0 ? this.editedTasks : this.quest.tasks;
 
         // Apply any pending dropdown edits to tasks
         const updatedTasks = currentTasks.map((task) => {

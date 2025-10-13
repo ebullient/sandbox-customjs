@@ -1,12 +1,12 @@
 ---
-<%* const { Templates, AreaPriority, Utils } = await window.cJS();
-const title = await tp.system.prompt("Enter Name"); 
-const lower = Utils.lowerKebab(title); 
+<%* const { Templates, AreaRelated, Utils } = await window.cJS();
+const title = await tp.system.prompt("Enter Name");
+const lower = Utils.lowerKebab(title);
 const folder = await Templates.chooseFolder(tp, tp.file.folder(true));
 console.log(title, lower, folder);
-await tp.file.move(`${folder}/${lower}`); 
+await tp.file.move(`${folder}/${lower}`);
 
-const role = await AreaPriority.chooseRole(tp);
+const role = await AreaRelated.chooseRole(tp);
 tR += `aliases: ["${title}"]`;
 %>
 type: decision

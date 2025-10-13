@@ -6,12 +6,14 @@ import { ReviewDetector } from "./ReviewDetector";
 import { ReviewModal } from "./ReviewModal";
 import { DEFAULT_SETTINGS } from "./Settings";
 import { TaskIndexSettingsTab } from "./SettingsTab";
+import { TaskIndexAPI } from "./TaskIndex-Api";
 
 export default class TaskIndexPlugin extends Plugin {
     settings: TaskIndexSettings;
     index: QuestIndex;
     detector: ReviewDetector;
     updater: FileUpdater;
+    api: TaskIndexAPI;
 
     async onload() {
         console.log("Loading Task Index plugin");
@@ -22,6 +24,13 @@ export default class TaskIndexPlugin extends Plugin {
         this.index = new QuestIndex(this.app, this.settings);
         this.detector = new ReviewDetector(this.settings);
         this.updater = new FileUpdater(this.app);
+        this.api = new TaskIndexAPI(this.index, this.settings);
+
+        // Expose API to window for CustomJS scripts
+        if (!window.taskIndex) {
+            window.taskIndex = {};
+        }
+        window.taskIndex.api = this.api;
 
         // Add settings tab
         this.addSettingTab(new TaskIndexSettingsTab(this.app, this));
@@ -139,8 +148,9 @@ export default class TaskIndexPlugin extends Plugin {
             return;
         }
 
-        const remaining = reviewItems.length - currentIndex - 1;
-        const quest = reviewItems[currentIndex].quest;
+        const totalItems = reviewItems.length;
+        const reviewItem = reviewItems[currentIndex];
+        const quest = reviewItem.quest;
 
         const modal = new ReviewModal(
             this.app,
@@ -156,14 +166,17 @@ export default class TaskIndexPlugin extends Plugin {
                 new Notice("Quest updated");
             },
             () => {
-                // Skip/Next callback - move to next item
-                if (remaining > 0) {
-                    new Notice(`${remaining} more projects to review`);
-                    this.processReviewQueue(reviewItems, currentIndex + 1);
-                } else {
-                    new Notice("All done with reviews! 🎉");
-                }
+                // Next callback - move to next item (skip this one)
+                this.processReviewQueue(reviewItems, currentIndex + 1);
             },
+            () => {
+                // Defer callback - move current item to end of queue and continue
+                reviewItems.push(reviewItems[currentIndex]);
+                this.processReviewQueue(reviewItems, currentIndex + 1);
+            },
+            currentIndex + 1,
+            totalItems,
+            reviewItem.reasons,
         );
         modal.open();
     }
