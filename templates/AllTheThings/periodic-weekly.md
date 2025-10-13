@@ -17,12 +17,13 @@
 1. .
 2. .
 3. .
+<%* if (upcoming && upcoming.trim()) { -%>
 
 > [!tldr] Upcoming
-<% result.upcoming %>
+<% upcoming %>
 
+<%* } -%>
 ### Tasks
-
 <% tp.file.include(tp.file.find_tfile("assets/templates/weekly-leftovers.md")) %>
 
 #### Self care
