@@ -10,7 +10,8 @@ const daily = `![invisible-embed](chronicles/${dateStem}`;
 const am = `${daily}#^daily-am)`;
 const pm = `${daily}#^daily-pm)`;
 const log = `${daily}#Log)`;
-const path  = `/demesne/self/journal/${dateStem}`;
+const journal = today.format("YYYY/[journal-]YYYY-MM-DD");
+const path  = `/chronicles/journal/${journal}`;
 await tp.file.move(path);
 tR += `tags: ["me/✅/✍️ "]`;
 %>
