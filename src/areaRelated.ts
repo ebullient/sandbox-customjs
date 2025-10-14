@@ -335,20 +335,22 @@ export class AreaRelated {
         const fm1 = this.utils().frontmatter(tfile1);
         const fm2 = this.utils().frontmatter(tfile2);
 
-        // Sort by sphere first
-        const missingSpheres = !fm1.sphere || !fm2.sphere;
-        const sphere = fm1.sphere?.localeCompare(fm2.sphere);
-        if (missingSpheres || sphere == 0) {
-            // Sort by role
-            const role1 = this.role.indexOf(fm1.role);
-            const role2 = this.role.indexOf(fm2.role);
-            if (role1 !== role2) {
-                return role1 - role2;
+        // Sort by sphere first (only if both have spheres)
+        if (fm1.sphere && fm2.sphere) {
+            const sphere = fm1.sphere.localeCompare(fm2.sphere);
+            if (sphere !== 0) {
+                return sphere;
             }
-
-            // Then by name
-            return tfile1.name.localeCompare(tfile2.name);
         }
-        return sphere;
+
+        // Sort by role
+        const role1 = this.role.indexOf(fm1.role);
+        const role2 = this.role.indexOf(fm2.role);
+        if (role1 !== role2) {
+            return role1 - role2;
+        }
+
+        // Then by name
+        return tfile1.name.localeCompare(tfile2.name);
     };
 }
