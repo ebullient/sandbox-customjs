@@ -118,6 +118,8 @@ export default class TaskIndexPlugin extends Plugin {
 
     /**
      * Show the review list modal
+     * IMPORTANT: Review list is FROZEN at session start to prevent loops.
+     * Items won't reappear even if they still need review after updates.
      */
     private showReviewList() {
         const quests = this.index.getAllQuests();
@@ -132,12 +134,18 @@ export default class TaskIndexPlugin extends Plugin {
             `${reviewItems.length} projects need review. Opening first one...`,
         );
 
-        // Start review queue
+        // Start review queue with frozen list
         this.processReviewQueue(reviewItems, 0);
     }
 
     /**
      * Process the review queue, showing one item at a time
+     *
+     * Button behaviors:
+     * - Save & Next: Saves changes, moves to next
+     * - Skip: Just moves to next (marks as "reviewed" for this session)
+     * - Defer: Pushes item to END of queue, moves to next (try again later)
+     * - Cancel: Exits review session entirely
      */
     private processReviewQueue(
         reviewItems: ReviewItem[],
@@ -157,7 +165,7 @@ export default class TaskIndexPlugin extends Plugin {
             quest,
             this.settings,
             async (updated) => {
-                // Save changes
+                // onSave: Save changes to file and re-index
                 await this.updater.updateQuestFile(updated);
                 const file = this.app.vault.getFileByPath(updated.path);
                 if (file) {
@@ -166,11 +174,14 @@ export default class TaskIndexPlugin extends Plugin {
                 new Notice("Quest updated");
             },
             () => {
-                // Next callback - move to next item (skip this one)
+                // onNext (Skip button): Move to next item without saving
+                // This item won't come back in this review session
                 this.processReviewQueue(reviewItems, currentIndex + 1);
             },
             () => {
-                // Defer callback - move current item to end of queue and continue
+                // onDefer (Defer button): Not ready to decide now
+                // Push current item to END of queue and move forward
+                // You'll see it again after reviewing everything else
                 reviewItems.push(reviewItems[currentIndex]);
                 this.processReviewQueue(reviewItems, currentIndex + 1);
             },

@@ -318,7 +318,9 @@ export class AreaRelated {
      */
     showRole = (tfile: TFile): string => {
         const fm = this.utils().frontmatter(tfile);
-        const sphere = fm.sphere ? `<span class="ap-sphere">${fm.sphere}</span>` : "";
+        const sphere = fm.sphere
+            ? `<span class="ap-sphere">${fm.sphere}</span>`
+            : "";
         const role = fm.role ? this.roleVisual[fm.role] : this.unknown;
         return `<span class="ap-role">${role}</span>${sphere}`;
     };

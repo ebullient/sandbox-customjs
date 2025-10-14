@@ -2,9 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-This project has two main parts:
+This project has three main parts:
 - **`src/`** - CustomJS scripts
-- **`plugin/`** - Obsidian plugin (bundled with esbuild, provides APIs to CustomJS scripts)
+- **`plugin/`** - Campaign Notes Obsidian plugin (bundled with esbuild, provides APIs to CustomJS scripts)
+- **`plugin-tasks/`** - Task Index Obsidian plugin with ADHD-friendly review workflow
 
 All sources are compiled to JavaScript, then deployed as vault assets.
 
@@ -69,19 +70,20 @@ This project creates tools for working with Obsidian notes, relying on several p
 
 ## Architecture
 
-This repository contains two main components:
+This repository contains three main components:
 
 ### 1. CustomJS Scripts (`src/`)
 
 TypeScript scripts that replace Dataview functionality in Obsidian vaults. These are compiled to JavaScript and deployed to vault assets directories. Key modules:
 
 - **_utils.ts** - Core utility functions used across all scripts
+- **areaRelated.ts** - Quest/area relationship management (renamed from priority.ts, removed priority/status/urgency fields)
 - **Command modules** (`cmd-*.ts`) - CustomJS commands for vault operations like task cleanup, timeline generation, and content indexing
 - **Domain modules** - Specialized functionality for different vault types:
-    - AllTheThings vault: activity.ts, dated.ts, priority.ts, tasks.ts, templater.ts
+    - AllTheThings vault: activity.ts, dated.ts, tasks.ts, templater.ts
     - Campaign Notes vault: campaign.ts, reference.ts
 
-### 2. Obsidian Plugin (`plugin/`)
+### 2. Campaign Notes Plugin (`plugin/`)
 
 "Campaign Index" plugin that provides APIs and indexing for campaign note management:
 
@@ -92,6 +94,24 @@ TypeScript scripts that replace Dataview functionality in Obsidian vaults. These
     - EntitySelectorService - Entity selection UI components
     - TableGenerationService - Dynamic table generation
 - **API layer** (`src/CampaignNotes-Api.ts`) - Exposes plugin functionality to CustomJS scripts via `window.campaignNotes.api`
+
+### 3. Task Index Plugin (`plugin-tasks/`)
+
+"Task Index" plugin providing ADHD-friendly quest/project review workflow:
+
+- **Main plugin** (`src/main.ts`) - Plugin entry point with review queue management
+- **Core services**:
+    - QuestIndex - Indexes quest/area files with tasks and metadata
+    - ReviewDetector - Identifies projects needing attention (stale, no #next tasks, missing sphere)
+    - ReviewModal - Interactive review UI with progress tracking and defer functionality
+    - TaskParser - Parses markdown tasks with GTD tags (#next, #waiting, #someday)
+    - FileUpdater - Updates quest files with changes from review
+- **API layer** (`src/TaskIndex-Api.ts`) - Exposes quest data and configuration via `window.taskIndex.api`
+- **ADHD Features**:
+    - Frozen review list (no loops)
+    - Progress indicators (X of Y, percentage)
+    - Defer button (push to end of queue for later)
+    - Clear action prompts explaining why each project needs review
 
 ### Build System
 
@@ -109,10 +129,13 @@ The scripts support two distinct vault structures:
 
 ### Integration Points
 
-- CustomJS scripts can access plugin functionality through the global `window.campaignNotes.api`
+- CustomJS scripts can access plugin functionality through:
+    - `window.campaignNotes.api` - Campaign notes indexing and entity management
+    - `window.taskIndex.api` - Quest/area data, role/sphere configuration
 - Scripts work with Templater for interactive note creation
 - Deep integration with Calendarium for timeline and event management
 - Support for complex tagging hierarchies and cross-referencing systems
+- Task Index plugin provides review workflow command: "What needs review?"
 
 ## Content Management Workflows
 
