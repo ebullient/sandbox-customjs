@@ -494,7 +494,7 @@ export class PushText {
     /**
      * Delete the current line or selection from the source file
      */
-    private async deleteCurrentLine(sourceFile: TFile): Promise<void> {
+    private async deleteCurrentLine(_sourceFile: TFile): Promise<void> {
         const activeView = this.app.workspace.getActiveViewOfType(
             window.customJS.obsidian.MarkdownView,
         );

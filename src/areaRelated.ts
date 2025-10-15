@@ -42,9 +42,12 @@ export class AreaRelated {
         archived: boolean,
         orOther: Conditions = "",
     ) => {
+        const testFn = this.utils().createFileConditionFilter(orOther);
         const list = this.filesMatchingCondition(
             (tfile: TFile) =>
-                this.isProject(tfile) && this.isArchived(tfile, archived),
+                this.isProject(tfile) &&
+                this.isArchived(tfile, archived) &&
+                testFn(tfile),
         ).map(
             (tfile: TFile) =>
                 `- ${this.showRole(tfile)} ${this.utils().markdownLink(tfile)}`,

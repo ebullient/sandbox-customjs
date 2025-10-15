@@ -1,9 +1,4 @@
-import {
-    type App,
-    type Editor,
-    type FuzzyMatch,
-    FuzzySuggestModal,
-} from "obsidian";
+import { type App, type Editor, type FuzzyMatch, FuzzySuggestModal } from "obsidian";
 import { type CampaignEntity, EntityType } from "./@types";
 import type CampaignNotesPlugin from "./main";
 
@@ -67,11 +62,7 @@ class EntitySelectorModal extends FuzzySuggestModal<CampaignEntity> {
 
         this.scope.register([], "Tab", this.acceptSuggestion.bind(this));
         this.scope.register(["Shift"], "Tab", this.acceptSuggestion.bind(this));
-        this.scope.register(
-            ["Shift"],
-            "Enter",
-            this.acceptSuggestion.bind(this),
-        );
+        this.scope.register(["Shift"], "Enter", this.acceptSuggestion.bind(this));
     }
 
     acceptSuggestion(evt: KeyboardEvent): boolean {
@@ -109,25 +100,12 @@ class EntitySelectorModal extends FuzzySuggestModal<CampaignEntity> {
         });
     }
 
-    onChooseItem(
-        entity: CampaignEntity,
-        evt: MouseEvent | KeyboardEvent,
-    ): void {
-        console.log(
-            "onChooseItem",
-            evt.type,
-            (evt as KeyboardEvent).key,
-            (evt as KeyboardEvent).shiftKey,
-        );
+    onChooseItem(entity: CampaignEntity, evt: MouseEvent | KeyboardEvent): void {
+        console.log("onChooseItem", evt.type, (evt as KeyboardEvent).key, (evt as KeyboardEvent).shiftKey);
         this.chosen = entity;
 
         // If Tab key is pressed (and we're in an editor), create a link
-        if (
-            this.editor &&
-            this.chosen &&
-            evt instanceof KeyboardEvent &&
-            evt.key === "Tab"
-        ) {
+        if (this.editor && this.chosen && evt instanceof KeyboardEvent && evt.key === "Tab") {
             let name = entity.name;
             if (evt.shiftKey && entity.type === EntityType.NPC) {
                 // If Shift+Enter is pressed and the entity is an NPC, use only the first name
@@ -139,10 +117,7 @@ class EntitySelectorModal extends FuzzySuggestModal<CampaignEntity> {
             return;
         }
 
-        const isEnterKey =
-            evt instanceof KeyboardEvent
-                ? evt.key === "Enter"
-                : evt.type === "click";
+        const isEnterKey = evt instanceof KeyboardEvent ? evt.key === "Enter" : evt.type === "click";
 
         if (isEnterKey) {
             this.plugin.app.workspace.openLinkText(entity.id, "", evt.shiftKey);

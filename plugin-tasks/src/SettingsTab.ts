@@ -20,9 +20,7 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName("Valid spheres")
-            .setDesc(
-                "Comma-separated list of valid sphere values (e.g., work, home, community)",
-            )
+            .setDesc("Comma-separated list of valid sphere values (e.g., work, home, community)")
             .addText((text) =>
                 text
                     .setPlaceholder("work, home, community")
@@ -38,20 +36,15 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName("Current sphere focus")
-            .setDesc(
-                "Optional: Highlight projects in this sphere during review",
-            )
+            .setDesc("Optional: Highlight projects in this sphere during review")
             .addDropdown((dropdown) => {
                 dropdown.addOption("", "-- None --");
                 for (const sphere of this.plugin.settings.validSpheres) {
                     dropdown.addOption(sphere, sphere);
                 }
-                dropdown.setValue(
-                    this.plugin.settings.currentSphereFocus || "",
-                );
+                dropdown.setValue(this.plugin.settings.currentSphereFocus || "");
                 dropdown.onChange(async (value) => {
-                    this.plugin.settings.currentSphereFocus =
-                        value || undefined;
+                    this.plugin.settings.currentSphereFocus = value || undefined;
                     await this.plugin.saveSettings();
                 });
             });
@@ -67,7 +60,7 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
                     .setPlaceholder("4")
                     .setValue(String(this.plugin.settings.staleProjectWeeks))
                     .onChange(async (value) => {
-                        const num = Number.parseInt(value);
+                        const num = Number.parseInt(value, 10);
                         if (!Number.isNaN(num) && num > 0) {
                             this.plugin.settings.staleProjectWeeks = num;
                             await this.plugin.saveSettings();
@@ -83,7 +76,7 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
                     .setPlaceholder("14")
                     .setValue(String(this.plugin.settings.waitingTaskDays))
                     .onChange(async (value) => {
-                        const num = Number.parseInt(value);
+                        const num = Number.parseInt(value, 10);
                         if (!Number.isNaN(num) && num > 0) {
                             this.plugin.settings.waitingTaskDays = num;
                             await this.plugin.saveSettings();
@@ -96,9 +89,7 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName("Quest folders")
-            .setDesc(
-                "Comma-separated list of folders to scan for quest/area files",
-            )
+            .setDesc("Comma-separated list of folders to scan for quest/area files")
             .addText((text) =>
                 text
                     .setPlaceholder("areas, projects")
@@ -114,9 +105,7 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName("Valid frontmatter types")
-            .setDesc(
-                "Comma-separated list of valid 'type' values in frontmatter (e.g., quest, area, project, demesne)",
-            )
+            .setDesc("Comma-separated list of valid 'type' values in frontmatter (e.g., quest, area, project, demesne)")
             .addText((text) =>
                 text
                     .setPlaceholder("quest, area, project, demesne")

@@ -1,15 +1,5 @@
-import {
-    addToMappedMap,
-    lowerKebab,
-    markdownLinkPath,
-    scopeToRegex,
-} from "CampaignNotes-utils";
-import {
-    type FrontMatterCache,
-    type TAbstractFile,
-    TFile,
-    getAllTags,
-} from "obsidian";
+import { addToMappedMap, lowerKebab, markdownLinkPath, scopeToRegex } from "CampaignNotes-utils";
+import { type FrontMatterCache, getAllTags, type TAbstractFile, TFile } from "obsidian";
 import {
     type Area,
     type CampaignEntity,
@@ -19,8 +9,8 @@ import {
     type GroupStatus,
     type Item,
     type NPC,
-    type NPCStatus,
     type NPC_IFF,
+    type NPCStatus,
     type PC,
     type Place,
 } from "./@types";
@@ -57,11 +47,7 @@ export class CampaignNotesIndex {
     constructor(plugin: CampaignNotesPlugin) {
         this.plugin = plugin;
         this.tagPrefixes = Array.from(
-            new Set([
-                ...plugin.settings.campaignScopes,
-                ...plugin.settings.keepTagPrefix,
-                ...generalTagPrefixes,
-            ]),
+            new Set([...plugin.settings.campaignScopes, ...plugin.settings.keepTagPrefix, ...generalTagPrefixes]),
         );
     }
 
@@ -123,9 +109,7 @@ export class CampaignNotesIndex {
      */
     getEntities(scopePattern: string): CampaignEntity[] {
         const scopeRegex = scopeToRegex(scopePattern);
-        const result = Array.from(this.uniqueIndex.values()).filter((v) =>
-            scopeRegex.test(v.scope),
-        );
+        const result = Array.from(this.uniqueIndex.values()).filter((v) => scopeRegex.test(v.scope));
         return result;
     }
 
@@ -146,14 +130,9 @@ export class CampaignNotesIndex {
     /**
      * Get entities of a specific type
      */
-    getEntitiesByType<T extends CampaignEntity>(
-        type: EntityType,
-        scopePattern?: string,
-    ): T[] {
+    getEntitiesByType<T extends CampaignEntity>(type: EntityType, scopePattern?: string): T[] {
         const entitiesOfType = this.typeToEntities.get(type);
-        const values = entitiesOfType
-            ? Array.from(entitiesOfType.values())
-            : [];
+        const values = entitiesOfType ? Array.from(entitiesOfType.values()) : [];
         if (scopePattern) {
             // Filter by scope if provided
             const scopeRegex = scopeToRegex(scopePattern);
@@ -170,9 +149,7 @@ export class CampaignNotesIndex {
 
         return this.plugin.app.vault
             .getMarkdownFiles()
-            .filter((file) =>
-                includeFolders.some((folder) => file.path.startsWith(folder)),
-            );
+            .filter((file) => includeFolders.some((folder) => file.path.startsWith(folder)));
     }
 
     /**
@@ -202,10 +179,7 @@ export class CampaignNotesIndex {
     /**
      * Determine all entity types for a file based on frontmatter and/or tags
      */
-    getTypesForFile(
-        frontmatter: FrontMatterCache | undefined,
-        tags: string[],
-    ): string[] {
+    getTypesForFile(frontmatter: FrontMatterCache | undefined, tags: string[]): string[] {
         if (this.skipFileFrontmatter(frontmatter)) {
             return []; // Skip files marked as not indexable
         }
@@ -310,46 +284,29 @@ export class CampaignNotesIndex {
      */
     isFileInIncludedFolders(file: TFile): boolean {
         const { includeFolders } = this.plugin.settings;
-        return includeFolders.some(
-            (folder) =>
-                file.path === folder || file.path.startsWith(`${folder}/`),
-        );
+        return includeFolders.some((folder) => file.path === folder || file.path.startsWith(`${folder}/`));
     }
 
     /**
      * Process areas in a file
      */
-    private processAreas(
-        file: TFile,
-        frontmatter: FrontMatterCache | undefined,
-        tags: string[],
-    ): void {
-        this.processEntityFrontmatter<Place>(
-            file,
-            EntityType.AREA,
-            frontmatter,
-            tags,
-            (entity, _fm) => {
-                this.findSubType(entity, "type/area/");
-                this.findIdTag(entity, "area/");
-                if (!entity.idTag) {
-                    this.findIdTag(entity, "place/");
-                }
-                if (!entity.idTag) {
-                    this.findIdTag(entity, "region/");
-                }
-            },
-        );
+    private processAreas(file: TFile, frontmatter: FrontMatterCache | undefined, tags: string[]): void {
+        this.processEntityFrontmatter<Place>(file, EntityType.AREA, frontmatter, tags, (entity, _fm) => {
+            this.findSubType(entity, "type/area/");
+            this.findIdTag(entity, "area/");
+            if (!entity.idTag) {
+                this.findIdTag(entity, "place/");
+            }
+            if (!entity.idTag) {
+                this.findIdTag(entity, "region/");
+            }
+        });
     }
 
     /**
      * Process encounters in a file
      */
-    private processEncounters(
-        file: TFile,
-        frontmatter: FrontMatterCache | undefined,
-        tags: string[],
-    ): void {
+    private processEncounters(file: TFile, frontmatter: FrontMatterCache | undefined, tags: string[]): void {
         // Single encounter per note
         // Always scoped
         // Properties directly in frontmatter or file name
@@ -358,11 +315,7 @@ export class CampaignNotesIndex {
         if (!encounterFM) {
             return;
         }
-        const encounter = this.createBasicEntity(
-            file,
-            EntityType.ENCOUNTER,
-            tags,
-        ) as Partial<Encounter>;
+        const encounter = this.createBasicEntity(file, EntityType.ENCOUNTER, tags) as Partial<Encounter>;
         if (!encounter.scope) {
             this.logDebug("Encounter outside of scope", file, encounterFM);
             return;
@@ -394,9 +347,7 @@ export class CampaignNotesIndex {
             return; // Skip files marked as not indexable
         }
 
-        const tags = (getAllTags(metadata) || []).map((tag) =>
-            tag.startsWith("#") ? tag.substring(1) : tag,
-        );
+        const tags = (getAllTags(metadata) || []).map((tag) => (tag.startsWith("#") ? tag.substring(1) : tag));
 
         // Extract types from frontmatter and/or tags
         const types = this.getTypesForFile(frontmatter, tags);
@@ -439,189 +390,111 @@ export class CampaignNotesIndex {
     /**
      * Process groups in a file
      */
-    private processGroups(
-        file: TFile,
-        frontmatter: FrontMatterCache | undefined,
-        tags: string[],
-    ): void {
-        this.processEntityFrontmatter<Group>(
-            file,
-            EntityType.GROUP,
-            frontmatter,
-            tags,
-            (entity, fm) => {
-                this.findIdTag(entity, "group/");
-                this.findSubType(entity, "type/group/");
+    private processGroups(file: TFile, frontmatter: FrontMatterCache | undefined, tags: string[]): void {
+        this.processEntityFrontmatter<Group>(file, EntityType.GROUP, frontmatter, tags, (entity, fm) => {
+            this.findIdTag(entity, "group/");
+            this.findSubType(entity, "type/group/");
 
-                // there are some shortcuts to avoid complicated structures
-                // for data entry on scoped groups.
+            // there are some shortcuts to avoid complicated structures
+            // for data entry on scoped groups.
 
-                // biome-ignore lint/complexity/useLiteralKeys: convenience, untyped
-                const entityStatus = entity["status"];
-                this.deleteAttribute(entity, "status");
+            // biome-ignore lint/complexity/useLiteralKeys: convenience, untyped
+            const entityStatus = entity["status"];
+            this.deleteAttribute(entity, "status");
 
-                // biome-ignore lint/complexity/useLiteralKeys: convenience, untyped
-                const entityRenown = entity["renown"];
-                this.deleteAttribute(entity, "renown");
+            // biome-ignore lint/complexity/useLiteralKeys: convenience, untyped
+            const entityRenown = entity["renown"];
+            this.deleteAttribute(entity, "renown");
 
-                // Values in the frontmatter apply to all scopes
-                const scope = entity.scope || "*";
-                entity.state[scope] = entity.state[scope] || {};
+            // Values in the frontmatter apply to all scopes
+            const scope = entity.scope || "*";
+            entity.state[scope] = entity.state[scope] || {};
 
-                entity.state[scope].status =
-                    entity.state[scope].status || entityStatus || fm?.status;
-                entity.state[scope].renown =
-                    entity.state[scope].renown || entityRenown || fm?.renown;
+            entity.state[scope].status = entity.state[scope].status || entityStatus || fm?.status;
+            entity.state[scope].renown = entity.state[scope].renown || entityRenown || fm?.renown;
 
-                // look for tags (these are aggregated for entity and frontmatter)
-                // the tags include the scope and type: heist/renown/6, witchlight/renown/2
-                for (const tag of entity.tags) {
-                    const scopeRenown = tag.match(/([^/]+)\/renown\/(\d+)/);
-                    if (scopeRenown) {
-                        const state = this.setAttributeIfMissing(
-                            entity.state,
-                            scopeRenown[1],
-                            {},
-                        );
-                        state.renown = state.renown || Number(scopeRenown[2]);
-                    }
-                    const scopeStatus = tag.match(/([^/]+)\/group\/(.*)/);
-                    if (scopeStatus) {
-                        const state = this.setAttributeIfMissing(
-                            entity.state,
-                            scopeStatus[1],
-                            {},
-                        );
-                        state.status =
-                            state.status || (scopeStatus[2] as GroupStatus);
-                    }
+            // look for tags (these are aggregated for entity and frontmatter)
+            // the tags include the scope and type: heist/renown/6, witchlight/renown/2
+            for (const tag of entity.tags) {
+                const scopeRenown = tag.match(/([^/]+)\/renown\/(\d+)/);
+                if (scopeRenown) {
+                    const state = this.setAttributeIfMissing(entity.state, scopeRenown[1], {});
+                    state.renown = state.renown || Number(scopeRenown[2]);
                 }
-            },
-        );
+                const scopeStatus = tag.match(/([^/]+)\/group\/(.*)/);
+                if (scopeStatus) {
+                    const state = this.setAttributeIfMissing(entity.state, scopeStatus[1], {});
+                    state.status = state.status || (scopeStatus[2] as GroupStatus);
+                }
+            }
+        });
     }
 
     /**
      * Process items in a file
      */
-    private processItems(
-        file: TFile,
-        frontmatter: FrontMatterCache | undefined,
-        tags: string[],
-    ): void {
-        this.processEntityFrontmatter<Item>(
-            file,
-            EntityType.ITEM,
-            frontmatter,
-            tags,
-            (_e, _fm) => {},
-        );
+    private processItems(file: TFile, frontmatter: FrontMatterCache | undefined, tags: string[]): void {
+        this.processEntityFrontmatter<Item>(file, EntityType.ITEM, frontmatter, tags, (_e, _fm) => {});
     }
 
-    private processNPCs(
-        file: TFile,
-        frontmatter: FrontMatterCache | undefined,
-        tags: string[],
-    ): void {
-        this.processEntityFrontmatter<NPC>(
-            file,
-            EntityType.NPC,
-            frontmatter,
-            tags,
-            (entity, fm) => {
-                const scope = entity.scope || "*";
-                entity.state[scope] = entity.state[scope] || {};
+    private processNPCs(file: TFile, frontmatter: FrontMatterCache | undefined, tags: string[]): void {
+        this.processEntityFrontmatter<NPC>(file, EntityType.NPC, frontmatter, tags, (entity, fm) => {
+            const scope = entity.scope || "*";
+            entity.state[scope] = entity.state[scope] || {};
 
-                // there are some shortcuts to avoid complicated structures
-                // for data entry on scoped npcs.
+            // there are some shortcuts to avoid complicated structures
+            // for data entry on scoped npcs.
 
-                // biome-ignore lint/complexity/useLiteralKeys: not typed / partial
-                const entityStatus = entity["status"];
-                this.deleteAttribute(entity, "status");
+            // biome-ignore lint/complexity/useLiteralKeys: not typed / partial
+            const entityStatus = entity["status"];
+            this.deleteAttribute(entity, "status");
 
-                // biome-ignore lint/complexity/useLiteralKeys: not typed / partial
-                const entityIff = entity["iff"];
-                this.deleteAttribute(entity, "iff");
+            // biome-ignore lint/complexity/useLiteralKeys: not typed / partial
+            const entityIff = entity["iff"];
+            this.deleteAttribute(entity, "iff");
 
-                entity.state[scope].iff =
-                    entity.state[scope].iff || entityIff || fm?.iff;
-                entity.state[scope].status =
-                    entity.state[scope].status || entityStatus || fm?.status;
+            entity.state[scope].iff = entity.state[scope].iff || entityIff || fm?.iff;
+            entity.state[scope].status = entity.state[scope].status || entityStatus || fm?.status;
 
-                // look for tags (these are aggregated for entity and frontmatter)
-                // the tags include the scope and type: heist/iff/ally, witchlight/npc/dead
-                for (const tag of entity.tags) {
-                    const scopeStatus = tag.match(/([^/]+)\/npc\/(.*)/);
-                    if (scopeStatus) {
-                        const state = this.setAttributeIfMissing(
-                            entity.state,
-                            scopeStatus[1],
-                            {},
-                        );
-                        state.status =
-                            state.status || (scopeStatus[2] as NPCStatus);
-                    }
-                    const iffStatus = tag.match(/([^/]+)\/iff\/(.*)/);
-                    if (iffStatus) {
-                        const state = this.setAttributeIfMissing(
-                            entity.state,
-                            iffStatus[1],
-                            {},
-                        );
-                        state.iff = state.iff || (iffStatus[2] as NPC_IFF);
-                    }
+            // look for tags (these are aggregated for entity and frontmatter)
+            // the tags include the scope and type: heist/iff/ally, witchlight/npc/dead
+            for (const tag of entity.tags) {
+                const scopeStatus = tag.match(/([^/]+)\/npc\/(.*)/);
+                if (scopeStatus) {
+                    const state = this.setAttributeIfMissing(entity.state, scopeStatus[1], {});
+                    state.status = state.status || (scopeStatus[2] as NPCStatus);
                 }
-            },
-        );
+                const iffStatus = tag.match(/([^/]+)\/iff\/(.*)/);
+                if (iffStatus) {
+                    const state = this.setAttributeIfMissing(entity.state, iffStatus[1], {});
+                    state.iff = state.iff || (iffStatus[2] as NPC_IFF);
+                }
+            }
+        });
     }
 
-    private processPCs(
-        file: TFile,
-        frontmatter: FrontMatterCache | undefined,
-        tags: string[],
-    ): void {
-        this.processEntityFrontmatter<PC>(
-            file,
-            EntityType.PC,
-            frontmatter,
-            tags,
-            (_e, _fm) => {},
-        );
+    private processPCs(file: TFile, frontmatter: FrontMatterCache | undefined, tags: string[]): void {
+        this.processEntityFrontmatter<PC>(file, EntityType.PC, frontmatter, tags, (_e, _fm) => {});
     }
 
     /**
      * Process locations in a file
      */
-    private processPlaces(
-        file: TFile,
-        frontmatter: FrontMatterCache | undefined,
-        tags: string[],
-    ): void {
-        this.processEntityFrontmatter<Place>(
-            file,
-            EntityType.PLACE,
-            frontmatter,
-            tags,
-            (entity, _fm) => {
-                this.findSubType(entity, "type/place/");
-                this.findIdTag(entity, "place/");
-                entity.area = entity.tags.find((t) => t.startsWith("area/"));
-                if (!entity.area) {
-                    entity.area = entity.tags.find((t) =>
-                        t.startsWith("region/"),
-                    );
-                }
-            },
-        );
+    private processPlaces(file: TFile, frontmatter: FrontMatterCache | undefined, tags: string[]): void {
+        this.processEntityFrontmatter<Place>(file, EntityType.PLACE, frontmatter, tags, (entity, _fm) => {
+            this.findSubType(entity, "type/place/");
+            this.findIdTag(entity, "place/");
+            entity.area = entity.tags.find((t) => t.startsWith("area/"));
+            if (!entity.area) {
+                entity.area = entity.tags.find((t) => t.startsWith("region/"));
+            }
+        });
     }
 
     /**
      * Create a basic entity with common properties
      */
-    private createBasicEntity(
-        file: TFile,
-        type: EntityType,
-        tags: string[],
-    ): CampaignEntity {
+    private createBasicEntity(file: TFile, type: EntityType, tags: string[]): CampaignEntity {
         const path = file.path;
         const entity: CampaignEntity = {
             id: markdownLinkPath(file.path),
@@ -635,47 +508,33 @@ export class CampaignNotesIndex {
         return entity;
     }
 
-    private copyEntity<T extends CampaignEntity>(
-        entity: Partial<T>,
-    ): Partial<T> {
+    private copyEntity<T extends CampaignEntity>(entity: Partial<T>): Partial<T> {
         return JSON.parse(JSON.stringify(entity)) as Partial<T>;
     }
 
     private finalizeEntity<T extends CampaignEntity>(
         entity: Partial<T>,
         frontmatter: FrontMatterCache | undefined,
-        resolveProps?: (
-            entity: Partial<T>,
-            frontmatter: FrontMatterCache | undefined,
-        ) => void,
+        resolveProps?: (entity: Partial<T>, frontmatter: FrontMatterCache | undefined) => void,
     ): void {
         if (resolveProps) {
             resolveProps(entity, frontmatter);
         }
 
         const scope = entity.scope || "*";
-        const entityState = this.setAttribute(
-            entity.state,
-            scope,
-            entity.state[scope] || {},
-        );
+        const _entityState = this.setAttribute(entity.state, scope, entity.state[scope] || {});
 
         // biome-ignore lint/complexity/useLiteralKeys: partial/untyped
         const entityNotes = entity["notes"];
         this.deleteAttribute(entity, "notes");
 
-        entity.state[scope].notes =
-            entity.state[entity.scope].notes ||
-            entityNotes ||
-            frontmatter?.notes;
+        entity.state[scope].notes = entity.state[entity.scope].notes || entityNotes || frontmatter?.notes;
 
         // biome-ignore lint/complexity/useLiteralKeys: partial/untyped
         const remove: string[] = entity["remove"];
         this.deleteAttribute(entity, "remove");
 
-        entity.tags = (entity.tags || []).filter(
-            (tag) => !tag.startsWith(typeTagPrefix) && !remove?.includes(tag),
-        );
+        entity.tags = (entity.tags || []).filter((tag) => !tag.startsWith(typeTagPrefix) && !remove?.includes(tag));
     }
 
     private findIdTag(entity: Partial<CampaignEntity>, tagRoot: string): void {
@@ -683,36 +542,20 @@ export class CampaignNotesIndex {
             return; // already set
         }
         const tagName = lowerKebab(entity.name);
-        entity.idTag = (entity.tags || []).find(
-            (tag) => tag.startsWith(tagRoot) && tag.endsWith(tagName),
-        );
+        entity.idTag = (entity.tags || []).find((tag) => tag.startsWith(tagRoot) && tag.endsWith(tagName));
     }
 
-    private findSubType(
-        entity: Partial<CampaignEntity>,
-        tagRoot: string,
-    ): void {
+    private findSubType(entity: Partial<CampaignEntity>, tagRoot: string): void {
         const typeTags = entity.tags.filter((tag) => tag.startsWith(tagRoot));
         if (!entity.subtype) {
             if (typeTags.length === 0) {
-                console.warn(
-                    "No type tag found for",
-                    tagRoot,
-                    entity.name,
-                    entity.tags,
-                );
+                console.warn("No type tag found for", tagRoot, entity.name, entity.tags);
                 return;
             }
             const typeTag = typeTags[0];
             entity.subtype = typeTag.substring(typeTag.lastIndexOf("/") + 1);
             if (typeTags.length > 1) {
-                console.warn(
-                    "Multiple type tags found for",
-                    entity.name,
-                    typeTags,
-                    "using",
-                    entity.subtype,
-                );
+                console.warn("Multiple type tags found for", entity.name, typeTags, "using", entity.subtype);
             }
         }
 
@@ -731,10 +574,7 @@ export class CampaignNotesIndex {
         type: EntityType,
         frontmatter: FrontMatterCache | undefined,
         tags: string[],
-        resolveProps?: (
-            entity: Partial<T>,
-            frontmatter: FrontMatterCache | undefined,
-        ) => void,
+        resolveProps?: (entity: Partial<T>, frontmatter: FrontMatterCache | undefined) => void,
     ): void {
         // Create the base entity
         const init = this.createBasicEntity(file, type, tags) as Partial<T>;
@@ -763,24 +603,12 @@ export class CampaignNotesIndex {
                 // Create a fresh copy of the entity for the array item
                 const entity = this.copyEntity(init);
                 entity.scopeStatePrefix = `${type}[${i++}].state`;
-                this.processEntityValue<T>(
-                    entity,
-                    fm,
-                    pageTitle,
-                    frontmatter,
-                    resolveProps,
-                );
+                this.processEntityValue<T>(entity, fm, pageTitle, frontmatter, resolveProps);
                 this.addEntityToIndexes(entity as T);
             }
         } else {
             init.scopeStatePrefix = `${type}.state`;
-            this.processEntityValue<T>(
-                init,
-                fieldValue,
-                pageTitle,
-                frontmatter,
-                resolveProps,
-            );
+            this.processEntityValue<T>(init, fieldValue, pageTitle, frontmatter, resolveProps);
             this.addEntityToIndexes(init as T);
         }
     }
@@ -798,10 +626,7 @@ export class CampaignNotesIndex {
         value: string | Partial<T>,
         pageTitle: string,
         frontmatter: FrontMatterCache | undefined,
-        resolveProps?: (
-            entity: Partial<T>,
-            frontmatter: FrontMatterCache | undefined,
-        ) => void,
+        resolveProps?: (entity: Partial<T>, frontmatter: FrontMatterCache | undefined) => void,
     ): void {
         // Handle either string or object values
         if (value && typeof value === "object") {
@@ -816,11 +641,7 @@ export class CampaignNotesIndex {
         }
 
         const scope = entity.scope || "*";
-        const state = this.setAttribute(
-            entity.state,
-            scope,
-            entity.state[scope] || {},
-        );
+        const state = this.setAttribute(entity.state, scope, entity.state[scope] || {});
 
         // biome-ignore lint/complexity/useLiteralKeys: partial/untyped
         const notes = entity["notes"];
@@ -855,12 +676,7 @@ export class CampaignNotesIndex {
         }
 
         // Add to file path index
-        addToMappedMap(
-            this.filePathToEntities,
-            entity.filePath,
-            entity.id,
-            entity,
-        );
+        addToMappedMap(this.filePathToEntities, entity.filePath, entity.id, entity);
         addToMappedMap(this.typeToEntities, entity.type, entity.id, entity);
 
         // Add to tag indexes
@@ -886,10 +702,7 @@ export class CampaignNotesIndex {
                 if (entity.id) {
                     this.removeEntityFromIndexes(entity.id);
                 } else {
-                    console.warn(
-                        `Found invalid entity for file ${path}`,
-                        entity,
-                    );
+                    console.warn(`Found invalid entity for file ${path}`, entity);
                 }
             }
 
@@ -905,10 +718,7 @@ export class CampaignNotesIndex {
     private removeEntityFromIndexes(entityId: string): void {
         const entity = this.entities.get(entityId);
         if (!entity) {
-            console.warn(
-                `Entity with ID ${entityId} not found in index`,
-                this.entities,
-            );
+            console.warn(`Entity with ID ${entityId} not found in index`, this.entities);
             return;
         }
         this.logDebug("Remove entity from index", entity.type, entityId);
@@ -953,9 +763,7 @@ export class CampaignNotesIndex {
     }
 
     fileIncluded(path: string): boolean {
-        return this.plugin.settings.includeFolders.some((folder) =>
-            path.startsWith(folder),
-        );
+        return this.plugin.settings.includeFolders.some((folder) => path.startsWith(folder));
     }
 
     fileExcluded(path: string): boolean {
@@ -968,16 +776,10 @@ export class CampaignNotesIndex {
     }
 
     skipFileFrontmatter(frontmatter: FrontMatterCache | undefined): boolean {
-        return (
-            frontmatter?.index === false || frontmatter?.index === "generated"
-        );
+        return frontmatter?.index === false || frontmatter?.index === "generated";
     }
 
-    private setAttributeIfMissing<T>(
-        obj: Record<string, T>,
-        key: string,
-        value: T,
-    ): T {
+    private setAttributeIfMissing<T>(obj: Record<string, T>, key: string, value: T): T {
         obj[key] = obj[key] || value;
         return obj[key];
     }

@@ -104,10 +104,7 @@ export interface CampaignState {
     lastSeen?: string; // Optional last seen session (computed)
 }
 
-type CampaignFrontMatter =
-    | string
-    | Array<string | Partial<CampaignEntity>>
-    | Partial<CampaignEntity>;
+// type CampaignFrontMatter = string | Array<string | Partial<CampaignEntity>> | Partial<CampaignEntity>;
 
 export interface Area extends CampaignEntity {
     region?: string; // Optional region for the area

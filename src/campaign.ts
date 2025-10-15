@@ -240,7 +240,7 @@ export class Campaign {
             };
         }
         const session = lastFile.name.replace(/^(\d+).*$/g, "$1");
-        const next = Number.parseInt(session) + 1;
+        const next = Number.parseInt(session, 10) + 1;
         const nextPrefix = `${next}`.padStart(padSize, "0");
         return {
             next: nextPrefix,

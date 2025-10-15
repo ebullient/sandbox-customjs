@@ -55,7 +55,9 @@ export class Missing {
             }
 
             const configText = await this.app.vault.cachedRead(configFile);
-            const config = window.customJS.obsidian.parseYaml(configText);
+            const config = window.customJS.obsidian.parseYaml(
+                configText,
+            ) as MissingConfig;
 
             if (config.ignoreAnchors) {
                 this.ignoreAnchors = config.ignoreAnchors;

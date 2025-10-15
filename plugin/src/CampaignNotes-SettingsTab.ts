@@ -17,9 +17,7 @@ export class CampaignNotesSettingsTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName("Include Folders")
-            .setDesc(
-                "Specify folders to include in the campaign notes index (comma-separated)",
-            )
+            .setDesc("Specify folders to include in the campaign notes index (comma-separated)")
             .addText((text) =>
                 text
                     .setPlaceholder("campaign-notes")
@@ -52,9 +50,7 @@ export class CampaignNotesSettingsTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName("Default scope pattern")
-            .setDesc(
-                "Default scope pattern used for entity selector (should match a cache pattern)",
-            )
+            .setDesc("Default scope pattern used for entity selector (should match a cache pattern)")
             .addText((text) =>
                 text
                     .setPlaceholder("(faerûn|heist)")
@@ -70,9 +66,7 @@ export class CampaignNotesSettingsTab extends PluginSettingTab {
             .setDesc("Prefixes for additional tags to keep in index")
             .addText((text) =>
                 text
-                    .setPlaceholder(
-                        "default: npc, group, area, location, item, encounter",
-                    )
+                    .setPlaceholder("default: npc, group, area, location, item, encounter")
                     .setValue(this.plugin.settings.keepTagPrefix.join(", "))
                     .onChange(async (value) => {
                         this.plugin.settings.keepTagPrefix = value
@@ -87,12 +81,10 @@ export class CampaignNotesSettingsTab extends PluginSettingTab {
             .setName("Debug")
             .setDesc("Enable debug messages")
             .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.debug)
-                    .onChange(async (value) => {
-                        this.plugin.settings.debug = value;
-                        await this.plugin.saveSettings();
-                    }),
+                toggle.setValue(this.plugin.settings.debug).onChange(async (value) => {
+                    this.plugin.settings.debug = value;
+                    await this.plugin.saveSettings();
+                }),
             );
     }
 }

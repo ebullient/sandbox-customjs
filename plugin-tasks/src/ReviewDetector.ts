@@ -1,9 +1,4 @@
-import type {
-    QuestFile,
-    ReviewItem,
-    ReviewReason,
-    TaskIndexSettings,
-} from "./@types";
+import type { QuestFile, ReviewItem, ReviewReason, TaskIndexSettings } from "./@types";
 
 /**
  * Detects which projects need review
@@ -47,10 +42,7 @@ export class ReviewDetector {
         }
 
         // Check sphere focus match
-        if (
-            this.settings.currentSphereFocus &&
-            quest.sphere === this.settings.currentSphereFocus
-        ) {
+        if (this.settings.currentSphereFocus && quest.sphere === this.settings.currentSphereFocus) {
             reasons.push("sphere-focus");
             priority += 2;
         }

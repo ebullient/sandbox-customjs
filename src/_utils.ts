@@ -3,9 +3,9 @@ import type {
     App,
     FrontMatterCache,
     LinkCache,
+    TagCache,
     TFile,
     TFolder,
-    TagCache,
 } from "obsidian";
 import type { EngineAPI } from "./@types/jsengine.types";
 
@@ -111,6 +111,12 @@ export class Utils {
         inputConditions: string | string[],
     ): FileFilterFn => {
         let conditions = inputConditions;
+        if (
+            !conditions ||
+            (Array.isArray(conditions) && conditions.length === 0)
+        ) {
+            return (_tfile: TFile) => true;
+        }
         if (!Array.isArray(conditions)) {
             conditions = [conditions];
         }
@@ -490,7 +496,7 @@ export class Utils {
         fn: FileGroupByFn,
     ): Record<string, TFile[]> =>
         collection.reduce(
-            (accumulator: Record<string, TFile[]>, currentElement, index) => {
+            (accumulator: Record<string, TFile[]>, currentElement) => {
                 // Determine the key for the current element using the provided function
                 const key = fn(currentElement);
 
@@ -575,7 +581,7 @@ export class Utils {
         pathPattern: RegExp,
         includeCurrent = false,
     ): string => {
-        const files = this.filesWithPath(pathPattern);
+        const files = this.filesWithPath(pathPattern, includeCurrent);
         return files == null || files.length === 0
             ? engine.markdown.create("None")
             : engine.markdown.create(
@@ -843,7 +849,7 @@ export class Utils {
     tagsForDatesByFile = (
         begin: Moment,
         end: Moment,
-        conditions: string | string[],
+        _conditions: string | string[],
     ): Map<TFile, string[]> => {
         const result = new Map<TFile, string[]>();
 
@@ -889,7 +895,7 @@ export class Utils {
         files: string[],
         placeholder = "Choose file",
     ): Promise<string | null> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, _reject) => {
             let submitted = false;
 
             const modal = new (class extends window.customJS.obsidian
@@ -906,7 +912,7 @@ export class Utils {
 
                 selectSuggestion(
                     value: string,
-                    evt: MouseEvent | KeyboardEvent,
+                    _evt: MouseEvent | KeyboardEvent,
                 ) {
                     submitted = true;
                     this.close();
@@ -914,8 +920,8 @@ export class Utils {
                 }
 
                 onChooseSuggestion(
-                    file: string,
-                    evt: MouseEvent | KeyboardEvent,
+                    _file: string,
+                    _evt: MouseEvent | KeyboardEvent,
                 ) {
                     // This is called after selectSuggestion
                 }

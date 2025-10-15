@@ -85,12 +85,7 @@ export interface QuestFile {
 /**
  * Reasons a project needs review
  */
-export type ReviewReason =
-    | "no-next-tasks"
-    | "stale-project"
-    | "long-waiting"
-    | "no-sphere"
-    | "sphere-focus";
+export type ReviewReason = "no-next-tasks" | "stale-project" | "long-waiting" | "no-sphere" | "sphere-focus";
 
 /**
  * Project flagged for review

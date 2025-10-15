@@ -1,12 +1,5 @@
 import type { App, TFile } from "obsidian";
-import type {
-    CampaignEntity,
-    Encounter,
-    EntityType,
-    Group,
-    NPC,
-    Place,
-} from "../plugin/src/@types";
+import type { CampaignEntity, EntityType } from "../plugin/src/@types";
 import type { CampaignReferenceAPI } from "../plugin/src/@types/api";
 import type { EngineAPI } from "./@types/jsengine.types";
 import type { Conditions, Tags, Utils } from "./_utils";

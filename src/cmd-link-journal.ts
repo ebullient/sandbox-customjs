@@ -1,4 +1,4 @@
-import type { App, Editor } from "obsidian";
+import type { App } from "obsidian";
 
 export class LinkJournal {
     app: App;

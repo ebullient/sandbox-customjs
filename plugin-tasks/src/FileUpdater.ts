@@ -1,6 +1,5 @@
 import type { App, TFile } from "obsidian";
 import type { QuestFile, Task } from "./@types";
-import { TaskParser } from "./TaskParser";
 
 /**
  * Handles writing quest changes back to files
@@ -30,11 +29,7 @@ export class FileUpdater {
         const lines = content.split("\n");
 
         // Update frontmatter
-        lines.splice(
-            0,
-            lines.length,
-            ...this.updateFrontmatter(lines, quest.sphere),
-        );
+        lines.splice(0, lines.length, ...this.updateFrontmatter(lines, quest.sphere));
 
         // Update purpose section
         const updatedLines = this.updatePurpose(lines, quest.purpose);
@@ -124,12 +119,7 @@ export class FileUpdater {
         }
 
         // Replace purpose section
-        const result = [
-            ...lines.slice(0, startIdx),
-            ...purpose.split("\n"),
-            "",
-            ...lines.slice(tasksIdx),
-        ];
+        const result = [...lines.slice(0, startIdx), ...purpose.split("\n"), "", ...lines.slice(tasksIdx)];
 
         return result;
     }
@@ -142,9 +132,7 @@ export class FileUpdater {
 
         // Update each task line
         // Work backwards to preserve line numbers
-        const sortedTasks = [...tasks].sort(
-            (a, b) => b.lineNumber - a.lineNumber,
-        );
+        const sortedTasks = [...tasks].sort((a, b) => b.lineNumber - a.lineNumber);
 
         for (const task of sortedTasks) {
             result = this.updateTaskLine(result, task);
@@ -200,12 +188,7 @@ export class FileUpdater {
     /**
      * Push a task from project to weekly note
      */
-    async pushTaskToWeekly(
-        projectPath: string,
-        projectTitle: string,
-        task: Task,
-        weeklyPath: string,
-    ): Promise<void> {
+    async pushTaskToWeekly(projectPath: string, projectTitle: string, task: Task, weeklyPath: string): Promise<void> {
         const weeklyFile = this.app.vault.getFileByPath(weeklyPath);
         if (!weeklyFile) {
             console.error(`Weekly file not found: ${weeklyPath}`);
@@ -228,11 +211,7 @@ export class FileUpdater {
     /**
      * Add content to a section in a file
      */
-    private async addToSection(
-        file: TFile,
-        sectionName: string,
-        content: string,
-    ): Promise<void> {
+    private async addToSection(file: TFile, sectionName: string, content: string): Promise<void> {
         const fileCache = this.app.metadataCache.getFileCache(file);
 
         if (!fileCache?.headings) {
@@ -240,9 +219,7 @@ export class FileUpdater {
             return;
         }
 
-        const heading = fileCache.headings
-            .filter((h) => h.level === 2)
-            .find((h) => h.heading.includes(sectionName));
+        const heading = fileCache.headings.filter((h) => h.level === 2).find((h) => h.heading.includes(sectionName));
 
         if (!heading) {
             console.warn(`Section "${sectionName}" not found in ${file.path}`);
@@ -259,10 +236,7 @@ export class FileUpdater {
     /**
      * Remove a task line from a file
      */
-    private async removeTaskLine(
-        file: TFile,
-        lineNumber: number,
-    ): Promise<void> {
+    private async removeTaskLine(file: TFile, lineNumber: number): Promise<void> {
         await this.app.vault.process(file, (content) => {
             const lines = content.split("\n");
             lines.splice(lineNumber, 1);

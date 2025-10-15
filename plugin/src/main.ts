@@ -1,4 +1,4 @@
-import { Plugin, type TAbstractFile, debounce } from "obsidian";
+import { debounce, Plugin, type TAbstractFile } from "obsidian";
 import type { CampaignNotesSettings } from "./@types/settings";
 import { CampaignReference } from "./CampaignNotes-Api";
 import { EntitySelectorService } from "./CampaignNotes-EntitySelector";
@@ -7,7 +7,6 @@ import { CampaignNotesSettingsTab } from "./CampaignNotes-SettingsTab";
 import { TableGenerationService } from "./CampaignNotes-TableGeneration";
 import "./window-type";
 import { CampaignNotesCache } from "CampaignNotes-Cache";
-import { EntityType } from "./@types";
 
 export default class CampaignNotesPlugin extends Plugin {
     settings: CampaignNotesSettings;
@@ -25,20 +24,11 @@ export default class CampaignNotesPlugin extends Plugin {
         // Initialize the index
         this.index = new CampaignNotesIndex(this);
         this.cache = new CampaignNotesCache(this.app, this.index);
-        this.tableService = new TableGenerationService(
-            this.app,
-            this.index,
-            this.cache,
-        );
+        this.tableService = new TableGenerationService(this.app, this.index, this.cache);
         this.entitySelector = new EntitySelectorService(this.app, this);
 
         // Initialize the API
-        this.api = new CampaignReference(
-            this,
-            this.index,
-            this.cache,
-            this.entitySelector,
-        );
+        this.api = new CampaignReference(this, this.index, this.cache, this.entitySelector);
         console.log("Campaign Notes API initialized", this.api);
 
         if (!window.campaignNotes) {
@@ -83,11 +73,7 @@ export default class CampaignNotesPlugin extends Plugin {
             this.index.rebuildIndex();
 
             // Register for file events to keep index updated
-            this.registerEvent(
-                this.app.vault.on("create", (file) =>
-                    this.index.handleFileCreated(file),
-                ),
-            );
+            this.registerEvent(this.app.vault.on("create", (file) => this.index.handleFileCreated(file)));
 
             this.registerEvent(
                 this.app.vault.on(
@@ -141,11 +127,7 @@ export default class CampaignNotesPlugin extends Plugin {
     }
 
     async loadSettings() {
-        this.settings = Object.assign(
-            {},
-            DEFAULT_SETTINGS,
-            await this.loadData(),
-        );
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
         console.log("Campaign Notes settings", this.settings);
     }
 

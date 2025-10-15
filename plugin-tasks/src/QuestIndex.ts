@@ -1,9 +1,4 @@
-import {
-    type App,
-    type CachedMetadata,
-    type TAbstractFile,
-    TFile,
-} from "obsidian";
+import { type App, type CachedMetadata, type TAbstractFile, TFile } from "obsidian";
 import type { QuestFile, Task, TaskIndexSettings, TaskTag } from "./@types";
 import { TaskParser } from "./TaskParser";
 
@@ -44,9 +39,7 @@ export class QuestIndex {
         }
 
         // Check if file is in a quest folder
-        return this.settings.questFolders.some((folder) =>
-            file.path.startsWith(folder),
-        );
+        return this.settings.questFolders.some((folder) => file.path.startsWith(folder));
     }
 
     /**
@@ -84,16 +77,11 @@ export class QuestIndex {
      * Parse tasks from content
      * Returns both parsed tasks and raw content
      */
-    private parseTasks(
-        content: string,
-        cache: CachedMetadata | null,
-    ): { tasks: Task[]; rawContent: string } {
+    private parseTasks(content: string, cache: CachedMetadata | null): { tasks: Task[]; rawContent: string } {
         const lines = content.split("\n");
 
         // Find Tasks section
-        const tasksHeading = cache?.headings?.find(
-            (h) => h.level === 2 && h.heading.includes("Tasks"),
-        );
+        const tasksHeading = cache?.headings?.find((h) => h.level === 2 && h.heading.includes("Tasks"));
 
         if (!tasksHeading) {
             return { tasks: [], rawContent: "" };
@@ -104,9 +92,7 @@ export class QuestIndex {
         let endLine = lines.length;
 
         const nextHeading = cache?.headings?.find(
-            (h) =>
-                h.level <= 2 &&
-                h.position.start.line > tasksHeading.position.start.line,
+            (h) => h.level <= 2 && h.position.start.line > tasksHeading.position.start.line,
         );
 
         if (nextHeading) {
@@ -158,9 +144,7 @@ export class QuestIndex {
         // Compute flags
         const hasNextTasks = tasks.some((t) => t.tags.includes("next"));
         const hasWaitingTasks = tasks.some((t) => t.tags.includes("waiting"));
-        const untriagedCount = tasks.filter(
-            (t) => !TaskParser.isTaskTriaged(t),
-        ).length;
+        const untriagedCount = tasks.filter((t) => !TaskParser.isTaskTriaged(t)).length;
 
         // TODO: Track oldest waiting date properly
         const oldestWaitingDate = undefined;
@@ -256,8 +240,6 @@ export class QuestIndex {
      * Get all quests in a specific sphere
      */
     getQuestsBySphere(sphere: string): QuestFile[] {
-        return Array.from(this.quests.values()).filter(
-            (q) => q.sphere === sphere,
-        );
+        return Array.from(this.quests.values()).filter((q) => q.sphere === sphere);
     }
 }

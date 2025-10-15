@@ -1,21 +1,8 @@
 import type { CampaignNotesCache } from "CampaignNotes-Cache";
 import type { Editor, Plugin, TFile } from "obsidian";
-import type {
-    Area,
-    CampaignEntity,
-    CleanLink,
-    Encounter,
-    EntityType,
-    Group,
-    Item,
-    NPC,
-    Place,
-} from "./@types";
-import type { CampaignReferenceAPI } from "./@types/api";
-import type {
-    EntityLinkOptions,
-    EntitySelectorService,
-} from "./CampaignNotes-EntitySelector";
+import type { Area, CampaignEntity, Encounter, EntityType, Group, Item, NPC, Place } from "./@types";
+import type { CampaignReferenceAPI, EntityLinkOptions } from "./@types/api";
+import type { EntitySelectorService } from "./CampaignNotes-EntitySelector";
 import type { CampaignNotesIndex } from "./CampaignNotes-Index";
 
 /**
@@ -99,10 +86,7 @@ export class CampaignReference implements CampaignReferenceAPI {
     /**
      * Get entities by type
      */
-    getEntitiesByType(
-        type: EntityType,
-        scopePattern?: string,
-    ): CampaignEntity[] {
+    getEntitiesByType(type: EntityType, scopePattern?: string): CampaignEntity[] {
         return this.index.getEntitiesByType(type, scopePattern);
     }
 
@@ -153,15 +137,10 @@ export class CampaignReference implements CampaignReferenceAPI {
      */
     openEntitySelector(
         editor: Editor | null = null,
-        type?: EntityType,
-        scopePattern?: string,
-        options: EntityLinkOptions = {},
+        _type?: EntityType,
+        _scopePattern?: string,
+        _options: EntityLinkOptions = {},
     ): void {
-        this.entitySelector.openEntitySelector(
-            editor,
-            type,
-            scopePattern,
-            options,
-        );
+        this.entitySelector.openEntitySelector(editor);
     }
 }

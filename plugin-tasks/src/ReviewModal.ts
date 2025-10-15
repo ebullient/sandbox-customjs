@@ -1,12 +1,5 @@
 import { type App, Modal, Setting } from "obsidian";
-import type {
-    QuestFile,
-    ReviewReason,
-    Task,
-    TaskAction,
-    TaskIndexSettings,
-    TaskTag,
-} from "./@types";
+import type { QuestFile, ReviewReason, Task, TaskAction, TaskIndexSettings, TaskTag } from "./@types";
 import { TaskParser } from "./TaskParser";
 
 /**
@@ -27,10 +20,7 @@ export class ReviewModal extends Modal {
     // Form state
     private selectedSphere?: string;
     private purposeText: string;
-    private taskEdits = new Map<
-        number,
-        { tag?: TaskTag | null; dueDate?: string | null; status?: string }
-    >();
+    private taskEdits = new Map<number, { tag?: TaskTag | null; dueDate?: string | null; status?: string }>();
 
     // Edit mode state
     private isEditMode = false;
@@ -78,9 +68,7 @@ export class ReviewModal extends Modal {
             text: `Reviewing ${this.currentItem} of ${this.totalItems}`,
             cls: "review-progress-text",
         });
-        const percentage = Math.round(
-            ((this.currentItem - 1) / this.totalItems) * 100,
-        );
+        const percentage = Math.round(((this.currentItem - 1) / this.totalItems) * 100);
         progressEl.createDiv({
             text: `${percentage}% complete`,
             cls: "review-progress-percent",
@@ -116,16 +104,11 @@ export class ReviewModal extends Modal {
         });
 
         const reasonLabels: Record<ReviewReason, string> = {
-            "no-next-tasks":
-                "No #next tasks - What's the immediate next action?",
-            "stale-project":
-                "Not updated recently - Is this still active or should it be archived?",
-            "long-waiting":
-                "Tasks waiting too long - Can you follow up or unblock?",
-            "no-sphere":
-                "Missing sphere - Which area of life does this belong to?",
-            "sphere-focus":
-                "In your current focus sphere - Time to make progress!",
+            "no-next-tasks": "No #next tasks - What's the immediate next action?",
+            "stale-project": "Not updated recently - Is this still active or should it be archived?",
+            "long-waiting": "Tasks waiting too long - Can you follow up or unblock?",
+            "no-sphere": "Missing sphere - Which area of life does this belong to?",
+            "sphere-focus": "In your current focus sphere - Time to make progress!",
         };
 
         for (const reason of this.reviewReasons) {
@@ -268,8 +251,7 @@ export class ReviewModal extends Modal {
     }
 
     private renderTaskList(container: HTMLElement) {
-        const tasks =
-            this.editedTasks.length > 0 ? this.editedTasks : this.quest.tasks;
+        const tasks = this.editedTasks.length > 0 ? this.editedTasks : this.quest.tasks;
 
         if (tasks.length === 0) {
             container.createEl("p", {
@@ -328,8 +310,7 @@ export class ReviewModal extends Modal {
         }
 
         // Get current tasks to edit
-        const currentTasks =
-            this.editedTasks.length > 0 ? this.editedTasks : this.quest.tasks;
+        const currentTasks = this.editedTasks.length > 0 ? this.editedTasks : this.quest.tasks;
 
         // Apply edits to tasks and update the corresponding lines
         for (const task of currentTasks) {
@@ -368,9 +349,7 @@ export class ReviewModal extends Modal {
         const checkbox = `[${task.status}]`;
 
         // Strip existing GTD tags from text (they'll be re-added based on task.tags)
-        const cleanText = task.text
-            .replace(/#(next|waiting|someday)/g, "")
-            .trim();
+        const cleanText = task.text.replace(/#(next|waiting|someday)/g, "").trim();
 
         // Build the line
         let line = `${indent}- ${checkbox} ${cleanText}`;
@@ -420,10 +399,7 @@ export class ReviewModal extends Modal {
         });
 
         // Determine current action based on task state
-        const effectiveTag =
-            currentEdit?.tag !== undefined
-                ? currentEdit.tag
-                : task.tags[0] || null;
+        const effectiveTag = currentEdit?.tag !== undefined ? currentEdit.tag : task.tags[0] || null;
 
         const actionOptions: Array<{ value: string; label: string }> = [
             { value: "", label: "-- Action --" },
@@ -549,8 +525,7 @@ export class ReviewModal extends Modal {
 
     private async saveChanges() {
         // Get current tasks (edited or original)
-        const currentTasks =
-            this.editedTasks.length > 0 ? this.editedTasks : this.quest.tasks;
+        const currentTasks = this.editedTasks.length > 0 ? this.editedTasks : this.quest.tasks;
 
         // Apply any pending dropdown edits to tasks
         const updatedTasks = currentTasks.map((task) => {

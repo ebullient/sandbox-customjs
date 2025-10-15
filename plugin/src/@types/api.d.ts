@@ -1,15 +1,5 @@
 import type { Editor, TFile } from "obsidian";
-import type {
-    Area,
-    CampaignEntity,
-    CleanLink,
-    Encounter,
-    EntityType,
-    Group,
-    Item,
-    NPC,
-    Place,
-} from ".";
+import type { Area, CampaignEntity, Encounter, EntityType, Group, Item, NPC, Place } from ".";
 
 export interface EntityLinkOptions {
     useFirstName?: boolean;
@@ -60,10 +50,7 @@ export interface CampaignReferenceAPI {
     /**
      * Get entities by tag
      */
-    getEntitiesByType(
-        type: EntityType,
-        scopePattern?: string,
-    ): CampaignEntity[];
+    getEntitiesByType(type: EntityType, scopePattern?: string): CampaignEntity[];
 
     /**
      * Get an entity by ID

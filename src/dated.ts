@@ -449,7 +449,7 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
                 if (inTargetMonth && trimmedLine.startsWith("- ")) {
                     const dayMatch = trimmedLine.match(/^- (\d{1,2})/);
                     if (dayMatch) {
-                        const day = Number.parseInt(dayMatch[1]);
+                        const day = Number.parseInt(dayMatch[1], 10);
                         const entryDate = window.moment([
                             year,
                             currentMonth,

@@ -3,7 +3,6 @@ import type { Task, TaskStatus, TaskTag } from "./@types";
 /**
  * Utilities for parsing tasks from markdown
  */
-// biome-ignore lint/complexity/noStaticOnlyClass: Utility class pattern preferred for organization
 export class TaskParser {
     private static readonly TASK_REGEX = /^(\s*)-\s*\[(.)\]\s*(.*)$/;
     private static readonly TAG_REGEX = /#(next|waiting|someday)/g;

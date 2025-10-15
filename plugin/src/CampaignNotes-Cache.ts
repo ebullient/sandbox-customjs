@@ -65,9 +65,7 @@ export class CampaignNotesCache {
     }
 
     precomputeRelationshipsForScope(scopePattern: string): void {
-        this.index.logDebug(
-            `Precomputing relationships for scope: ${scopePattern}`,
-        );
+        this.index.logDebug(`Precomputing relationships for scope: ${scopePattern}`);
 
         this.prepareScopeCache(scopePattern);
 
@@ -83,10 +81,7 @@ export class CampaignNotesCache {
         const npcs = this.getNPCs(scopePattern);
         this.populateRelatedEntities(npcs, scopePattern);
 
-        this.index.logDebug(
-            `Precomputed relationships for scope: ${scopePattern}`,
-            this.getCache(scopePattern),
-        );
+        this.index.logDebug(`Precomputed relationships for scope: ${scopePattern}`, this.getCache(scopePattern));
     }
 
     getActiveByType<T>(type: EntityType, dataScope: DataScope): T[] {
@@ -116,10 +111,7 @@ export class CampaignNotesCache {
         return renownMap ? Array.from(renownMap.values()) : undefined;
     }
 
-    getGroupStatus(
-        dataScope: DataScope,
-        groupId: string,
-    ): GroupStatus | undefined {
+    getGroupStatus(dataScope: DataScope, groupId: string): GroupStatus | undefined {
         const scopeCache = this.getCache(dataScope.pattern);
         const statusMap = scopeCache.data.groupStatus?.get(dataScope.active);
         return statusMap?.get(groupId);
@@ -147,25 +139,16 @@ export class CampaignNotesCache {
         return scopeCache.data.entityByType.get(EntityType.PLACE);
     }
 
-    getRelatedOfType(
-        scopePattern: string,
-        entityId: string,
-        type: EntityType,
-    ): string[] | undefined {
+    getRelatedOfType(scopePattern: string, entityId: string, type: EntityType): string[] | undefined {
         const related = this.getRelatedByType(scopePattern, entityId);
         if (related) {
             const relatedOfType = related.get(type);
-            return relatedOfType
-                ? Array.from(relatedOfType.values())
-                : undefined;
+            return relatedOfType ? Array.from(relatedOfType.values()) : undefined;
         }
         return undefined;
     }
 
-    getRelatedByType(
-        scopePattern: string,
-        entityId: string,
-    ): Map<string, StringMap> | undefined {
+    getRelatedByType(scopePattern: string, entityId: string): Map<string, StringMap> | undefined {
         const cache = this.getCache(scopePattern);
         // Value relies on pre-warmed cache data
         // see precomputeRelationshipsForScope and populateRelatedEntities
@@ -173,10 +156,7 @@ export class CampaignNotesCache {
         return cache.data.related.get(entityId);
     }
 
-    private populateRelatedEntities(
-        entityList: CampaignEntity[],
-        scopePattern: string,
-    ): void {
+    private populateRelatedEntities(entityList: CampaignEntity[], scopePattern: string): void {
         const scopeCache = this.getCache(scopePattern);
         scopeCache.data.related = scopeCache.data.related || new Map();
 
@@ -188,17 +168,8 @@ export class CampaignNotesCache {
             for (const tag of entity.tags) {
                 const tagEntity = this.index.getEntityById(tag);
                 if (tagEntity && tagEntity.id !== entity.id) {
-                    addToMappedMap(
-                        references,
-                        tagEntity.type,
-                        tagEntity.id,
-                        entityToLink(tagEntity),
-                    );
-                    if (
-                        lastSeen &&
-                        entity.type === EntityType.NPC &&
-                        tagEntity.type === EntityType.GROUP
-                    ) {
+                    addToMappedMap(references, tagEntity.type, tagEntity.id, entityToLink(tagEntity));
+                    if (lastSeen && entity.type === EntityType.NPC && tagEntity.type === EntityType.GROUP) {
                         this.updateLastSeen(tagEntity, lastSeen, scopePattern);
                     }
                 }
@@ -206,12 +177,7 @@ export class CampaignNotesCache {
             for (const link of this.getLinks(entity)) {
                 const linkEntity = this.index.getEntityById(link);
                 if (linkEntity) {
-                    addToMappedMap(
-                        references,
-                        linkEntity.type,
-                        linkEntity.id,
-                        entityToLink(linkEntity),
-                    );
+                    addToMappedMap(references, linkEntity.type, linkEntity.id, entityToLink(linkEntity));
                 }
             }
             if (
@@ -223,12 +189,7 @@ export class CampaignNotesCache {
                 const parentId = entity.idTag.split("/").slice(0, -1).join("/");
                 const parentEntity = this.index.getEntityById(parentId);
                 if (parentEntity) {
-                    addToMappedMap(
-                        references,
-                        parentEntity.type,
-                        parentEntity.id,
-                        entityToLink(parentEntity),
-                    );
+                    addToMappedMap(references, parentEntity.type, parentEntity.id, entityToLink(parentEntity));
                 }
             }
 
@@ -240,19 +201,15 @@ export class CampaignNotesCache {
         const scopeCache = this.getCache(scopePattern);
         const regex = scopeToRegex(scopePattern);
 
-        scopeCache.data.activeByType =
-            scopeCache.data.activeByType || new Map();
-        scopeCache.data.entityByType =
-            scopeCache.data.entityByType || new Map();
+        scopeCache.data.activeByType = scopeCache.data.activeByType || new Map();
+        scopeCache.data.entityByType = scopeCache.data.entityByType || new Map();
         scopeCache.data.groupRenown = scopeCache.data.groupRenown || new Map();
         scopeCache.data.groupStatus = scopeCache.data.groupStatus || new Map();
         scopeCache.data.npcIff = scopeCache.data.npcIff || new Map();
         scopeCache.data.npcStatus = scopeCache.data.npcStatus || new Map();
 
         // populate group/npc filtered indices
-        const entities = this.index
-            .getEntities(scopePattern)
-            .sort((a, b) => a.name.localeCompare(b.name));
+        const entities = this.index.getEntities(scopePattern).sort((a, b) => a.name.localeCompare(b.name));
 
         for (const entity of entities) {
             addToMappedArray(scopeCache.data.entityByType, entity.type, entity);
@@ -270,31 +227,16 @@ export class CampaignNotesCache {
                         const groupFallback = group.state?.["*"];
 
                         if (groupState?.renown) {
-                            addToMappedMap(
-                                scopeCache.data.groupRenown,
-                                scope,
-                                group.id,
-                                group,
-                            );
+                            addToMappedMap(scopeCache.data.groupRenown, scope, group.id, group);
                         }
 
                         const status = groupState
                             ? groupState.status || GroupStatus.ACTIVE
                             : groupFallback?.status || GroupStatus.UNKNOWN;
 
-                        addToMappedMap(
-                            scopeCache.data.groupStatus,
-                            scope,
-                            group.id,
-                            status,
-                        );
+                        addToMappedMap(scopeCache.data.groupStatus, scope, group.id, status);
                         if (status !== GroupStatus.DEFUNCT) {
-                            addToMappedNestedArray(
-                                scopeCache.data.activeByType,
-                                scope,
-                                EntityType.GROUP,
-                                group,
-                            );
+                            addToMappedNestedArray(scopeCache.data.activeByType, scope, EntityType.GROUP, group);
                         }
                         break;
                     }
@@ -303,40 +245,17 @@ export class CampaignNotesCache {
                         const npcState = npc.state?.[scope];
                         const npcFallback = npc.state?.["*"];
 
-                        addToMappedNestedArray(
-                            scopeCache.data.npcIff,
-                            scope,
-                            npcToIffGroup(npcState?.iff),
-                            npc,
-                        );
+                        addToMappedNestedArray(scopeCache.data.npcIff, scope, npcToIffGroup(npcState?.iff), npc);
 
-                        const status =
-                            npcState?.status ||
-                            npcFallback?.status ||
-                            NPCStatus.ALIVE;
-                        addToMappedMap(
-                            scopeCache.data.npcStatus,
-                            scope,
-                            npc.id,
-                            status,
-                        );
+                        const status = npcState?.status || npcFallback?.status || NPCStatus.ALIVE;
+                        addToMappedMap(scopeCache.data.npcStatus, scope, npc.id, status);
                         if (status !== NPCStatus.DEAD) {
-                            addToMappedNestedArray(
-                                scopeCache.data.activeByType,
-                                scope,
-                                EntityType.NPC,
-                                npc,
-                            );
+                            addToMappedNestedArray(scopeCache.data.activeByType, scope, EntityType.NPC, npc);
                         }
                         break;
                     }
                     default: {
-                        addToMappedNestedArray(
-                            scopeCache.data.activeByType,
-                            scope,
-                            entity.type,
-                            entity,
-                        );
+                        addToMappedNestedArray(scopeCache.data.activeByType, scope, entity.type, entity);
                         break;
                     }
                 }
@@ -364,10 +283,7 @@ export class CampaignNotesCache {
                 }
                 return l1 - l2;
             });
-        scopeCache.data.entityByType.set(
-            EntityType.ENCOUNTER,
-            sortedEncounters,
-        );
+        scopeCache.data.entityByType.set(EntityType.ENCOUNTER, sortedEncounters);
     }
 
     private sortNPCStatus(a: NPC, b: NPC, currentScope: string): number {
@@ -399,9 +315,7 @@ export class CampaignNotesCache {
             icons.add(entity.icon);
         }
         if (entity.type === EntityType.NPC) {
-            const groupTags = entity.tags.filter((tag) =>
-                tag.startsWith("group/"),
-            );
+            const groupTags = entity.tags.filter((tag) => tag.startsWith("group/"));
             for (const tag of groupTags) {
                 const group = this.index.getEntityById(tag);
                 if (group?.icon) {
@@ -434,19 +348,14 @@ export class CampaignNotesCache {
         return value;
     }
 
-    updateLastSeen(
-        entity: CampaignEntity,
-        lastSeen: string,
-        scopePattern?: string,
-    ): void {
+    updateLastSeen(entity: CampaignEntity, lastSeen: string, scopePattern?: string): void {
         const cache = this.getCache(scopePattern);
         const lastSeenMap = cache.data.lastSeen || new Map();
         cache.data.lastSeen = lastSeenMap;
 
         const value = lastSeenMap.get(entity.id);
         if (value) {
-            const highest =
-                lastSeen.localeCompare(value) > 0 ? lastSeen : value;
+            const highest = lastSeen.localeCompare(value) > 0 ? lastSeen : value;
             lastSeenMap.set(entity.id, highest);
         } else {
             lastSeenMap.set(entity.id, lastSeen);
@@ -460,8 +369,7 @@ export class CampaignNotesCache {
         if (!(file instanceof TFile)) {
             return [];
         }
-        const files =
-            this.backlinksIndex.get(filePath) || this.findBacklinks(file);
+        const files = this.backlinksIndex.get(filePath) || this.findBacklinks(file);
 
         if (scopePattern) {
             // Filter by scope if provided
@@ -501,32 +409,16 @@ export class CampaignNotesCache {
         const cleanLinks = Array.from(
             new Set(
                 linkRefs
-                    .filter(
-                        (ref) =>
-                            !ref.link.startsWith("#") &&
-                            !ref.link.match(/^(http|mailto|view-source)/),
-                    )
+                    .filter((ref) => !ref.link.startsWith("#") && !ref.link.match(/^(http|mailto|view-source)/))
                     .map((linkRef) => cleanLinkTarget(linkRef))
                     .filter((linkRef) => linkRef.path)
                     .map((linkRef) => {
-                        const linkTarget =
-                            this.app.metadataCache.getFirstLinkpathDest(
-                                linkRef.path,
-                                file.path,
-                            );
+                        const linkTarget = this.app.metadataCache.getFirstLinkpathDest(linkRef.path, file.path);
                         if (!linkTarget) {
-                            console.log(
-                                "Link target not found",
-                                linkRef.path,
-                                "from",
-                                file.path,
-                            );
+                            console.log("Link target not found", linkRef.path, "from", file.path);
                             return null; // Skip if target not found
                         }
-                        linkRef.mdLink = markdownLinkPath(
-                            linkTarget.path,
-                            linkRef.anchor,
-                        );
+                        linkRef.mdLink = markdownLinkPath(linkTarget.path, linkRef.anchor);
                         linkRef.path = linkTarget.path;
                         return linkRef;
                     })
@@ -572,9 +464,7 @@ export class CampaignNotesCache {
         this.linksIndex.delete(filePath);
         this.backlinksIndex.delete(filePath);
         for (const [path, backlinks] of this.backlinksIndex.entries()) {
-            const updatedBacklinks = backlinks.filter(
-                (file) => file.path !== filePath,
-            );
+            const updatedBacklinks = backlinks.filter((file) => file.path !== filePath);
             this.backlinksIndex.set(path, updatedBacklinks);
         }
     }
