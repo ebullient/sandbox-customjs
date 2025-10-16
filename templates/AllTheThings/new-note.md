@@ -7,7 +7,7 @@ const folder = await Templates.chooseFolder(tp, current);
 console.log("pre-move", title, lower, folder);
 await tp.file.move(`/${folder}/${lower}`);
 
-tR += `aliases: ["${title}"]`;
+tR += `aliases:\n- "${title}"`;
 %>
 ---
 # <% title %>

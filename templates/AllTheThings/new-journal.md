@@ -11,8 +11,7 @@ const year = fileDate.format("YYYY");
 const journalPath = `/chronicles/journal/${year}/${tp.file.title}`;
 await tp.file.move(journalPath);
 
-tR += `tags: ["me/✅/✍️ "]`;
-
+tR += `tags:\n- "me/✅/✍️ "`;
 if (isWeekly) {
     // Weekly template
 %>

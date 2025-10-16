@@ -3,16 +3,15 @@
 const title = await tp.system.prompt("Enter Name");
 const lower = Utils.lowerKebab(title);
 const folder = await Templates.chooseFolder(tp, tp.file.folder(true));
-console.log(title, lower, folder);
+console.log("new area", title, lower, folder);
 await tp.file.move(`${folder}/${lower}`);
-
 const role = await AreaRelated.chooseRole(tp);
-console.log(role);
-
-tR += `aliases: ["${title}"]`;
+const sphere = await AreaRelated.chooseSphere(tp);
+tR += `aliases:\n- "${title}"`;
 %>
 type: area
 role: <%role %>
+sphere: <%sphere %>
 ---
 # <% title %>
 
