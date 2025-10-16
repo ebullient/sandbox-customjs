@@ -96,10 +96,8 @@ For PARA-esque areas and projects (with funner names), I fall back to a Franklin
 ---
 aliases: ["Note Alias"]
 type: quest
-important: yes
-urgent: no
-status: active
 role: owner
+sphere: community
 ---
 ```
 
