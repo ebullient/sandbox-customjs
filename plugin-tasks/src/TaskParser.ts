@@ -60,36 +60,6 @@ export class TaskParser {
     }
 
     /**
-     * Add or update a tag on a task line
-     */
-    static updateTaskTag(line: string, tag: TaskTag | null): string {
-        // Remove all existing GTD tags
-        let updated = line.replace(/#(next|waiting|someday)/g, "").trim();
-
-        // Add new tag if specified
-        if (tag) {
-            updated = `${updated} #${tag}`;
-        }
-
-        return updated;
-    }
-
-    /**
-     * Add or update due date on a task line
-     */
-    static updateTaskDueDate(line: string, dueDate: string | null): string {
-        // Remove existing due date
-        let updated = line.replace(/\s*\{\d{4}-\d{2}-\d{2}\}/g, "");
-
-        // Add new due date if specified
-        if (dueDate) {
-            updated = `${updated} {${dueDate}}`;
-        }
-
-        return updated.trim();
-    }
-
-    /**
      * Check if task has any GTD tags
      */
     static isTaskTriaged(task: Task): boolean {
@@ -97,17 +67,19 @@ export class TaskParser {
     }
 
     /**
-     * Get the oldest date a task was marked #waiting
-     * Returns timestamp or undefined if not waiting
+     * Check if task has a due date that is today or in the past
      */
-    static getWaitingSince(task: Task, _file: string): number | undefined {
-        if (!task.tags.includes("waiting")) {
-            return undefined;
+    static isOverdueOrDueToday(task: Task): boolean {
+        if (!task.dueDate) {
+            return false;
         }
 
-        // TODO: Track when tags were added
-        // For now, use a simple heuristic: assume waiting since last file modification
-        // This will be enhanced later with proper tag tracking
-        return undefined;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const dueDate = new Date(task.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+
+        return dueDate <= today;
     }
 }

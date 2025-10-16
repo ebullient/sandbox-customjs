@@ -1,10 +1,12 @@
-import type { App, TFile } from "obsidian";
-import type { QuestFile, Task } from "./@types";
+import type { App, CachedMetadata } from "obsidian";
+import type { QuestFile } from "./@types";
 
 /**
  * Handles writing quest changes back to files
  */
 export class FileUpdater {
+    private static readonly TASKS_SECTION = "Tasks";
+
     constructor(private app: App) {}
 
     /**
@@ -13,29 +15,67 @@ export class FileUpdater {
     async updateQuestFile(quest: QuestFile): Promise<void> {
         const file = this.app.vault.getFileByPath(quest.path);
         if (!file) {
-            console.error(`File not found: ${quest.path}`);
+            console.error(`[FileUpdater] File not found: ${quest.path}`);
+            return;
+        }
+
+        const cache = this.app.metadataCache.getFileCache(file);
+        if (!cache) {
+            console.error(`[FileUpdater] No metadata cache for: ${quest.path}`);
             return;
         }
 
         await this.app.vault.process(file, (content) => {
-            return this.updateContent(content, quest);
+            return this.updateContent(content, quest, cache);
         });
     }
 
     /**
      * Update file content with quest changes
      */
-    private updateContent(content: string, quest: QuestFile): string {
+    private updateContent(content: string, quest: QuestFile, cache: CachedMetadata): string {
         const lines = content.split("\n");
 
         // Update frontmatter
-        lines.splice(0, lines.length, ...this.updateFrontmatter(lines, quest.sphere));
+        const withFrontmatter = this.updateFrontmatter(lines, quest.sphere);
 
         // Update purpose section
-        const updatedLines = this.updatePurpose(lines, quest.purpose);
+        const withPurpose = this.updatePurpose(withFrontmatter, quest.purpose, cache);
 
-        // Update tasks
-        return this.updateTasks(updatedLines.join("\n"), quest.tasks);
+        // Update tasks section with raw content
+        return this.replaceTaskSection(withPurpose, quest.rawTaskContent, cache);
+    }
+
+    /**
+     * Replace the entire Tasks section with new content
+     */
+    private replaceTaskSection(lines: string[], taskContent: string, cache: CachedMetadata): string {
+        // Find Tasks section using metadata cache
+        const tasksHeading = cache.headings?.find(
+            (h) => h.level === 2 && h.heading.includes(FileUpdater.TASKS_SECTION),
+        );
+
+        if (!tasksHeading) {
+            console.warn("[FileUpdater] No Tasks section found");
+            return lines.join("\n");
+        }
+
+        // Content starts after heading
+        const startIdx = tasksHeading.position.start.line + 1;
+
+        // Find next heading at same or higher level
+        let endIdx = lines.length;
+        const nextHeading = cache.headings?.find(
+            (h) => h.level <= 2 && h.position.start.line > tasksHeading.position.start.line,
+        );
+        if (nextHeading) {
+            endIdx = nextHeading.position.start.line;
+        }
+
+        // Replace the task section
+        const result = [...lines.slice(0, startIdx), ...taskContent.split("\n"), ...lines.slice(endIdx)];
+
+        return result.join("\n");
     }
 
     /**
@@ -91,156 +131,30 @@ export class FileUpdater {
     }
 
     /**
-     * Update purpose section
+     * Update purpose section (content between first heading and ## Tasks)
      */
-    private updatePurpose(lines: string[], purpose: string): string[] {
-        // Find frontmatter end
-        let startIdx = 0;
-        if (lines[0] === "---") {
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i] === "---") {
-                    startIdx = i + 1;
-                    break;
-                }
-            }
-        }
-
-        // Find ## Tasks section
-        let tasksIdx = -1;
-        for (let i = startIdx; i < lines.length; i++) {
-            if (lines[i].startsWith("## ") && lines[i].includes("Tasks")) {
-                tasksIdx = i;
-                break;
-            }
-        }
-
-        if (tasksIdx === -1) {
+    private updatePurpose(lines: string[], purpose: string, cache: CachedMetadata): string[] {
+        // Find first heading (usually H1 title) - purpose starts after it
+        const firstHeading = cache.headings?.[0];
+        if (!firstHeading) {
             return lines;
         }
 
-        // Replace purpose section
+        const startIdx = firstHeading.position.end.line + 1;
+
+        // Find ## Tasks section
+        const tasksHeading = cache.headings?.find(
+            (h) => h.level === 2 && h.heading.includes(FileUpdater.TASKS_SECTION),
+        );
+        if (!tasksHeading) {
+            return lines;
+        }
+
+        const tasksIdx = tasksHeading.position.start.line;
+
+        // Replace purpose section (after first heading, before Tasks)
         const result = [...lines.slice(0, startIdx), ...purpose.split("\n"), "", ...lines.slice(tasksIdx)];
 
         return result;
-    }
-
-    /**
-     * Update task lines with new tags/due dates
-     */
-    private updateTasks(content: string, tasks: Task[]): string {
-        let result = content;
-
-        // Update each task line
-        // Work backwards to preserve line numbers
-        const sortedTasks = [...tasks].sort((a, b) => b.lineNumber - a.lineNumber);
-
-        for (const task of sortedTasks) {
-            result = this.updateTaskLine(result, task);
-        }
-
-        return result;
-    }
-
-    /**
-     * Update a single task line
-     */
-    private updateTaskLine(content: string, task: Task): string {
-        const lines = content.split("\n");
-
-        if (task.lineNumber >= lines.length) {
-            return content;
-        }
-
-        let line = lines[task.lineNumber];
-
-        // Update tags
-        const oldTags = task.line.match(/#(next|waiting|someday)/g) || [];
-        const newTags = task.tags.map((t) => `#${t}`);
-
-        if (JSON.stringify(oldTags) !== JSON.stringify(newTags)) {
-            // Remove old tags
-            line = line.replace(/#(next|waiting|someday)/g, "").trim();
-
-            // Add new tags
-            if (newTags.length > 0) {
-                line = `${line} ${newTags.join(" ")}`;
-            }
-        }
-
-        // Update due date
-        const oldDueDate = task.line.match(/\{(\d{4}-\d{2}-\d{2})\}/)?.[0];
-        const newDueDate = task.dueDate ? `{${task.dueDate}}` : null;
-
-        if (oldDueDate !== newDueDate) {
-            // Remove old due date
-            line = line.replace(/\s*\{\d{4}-\d{2}-\d{2}\}/g, "");
-
-            // Add new due date
-            if (newDueDate) {
-                line = `${line} ${newDueDate}`;
-            }
-        }
-
-        lines[task.lineNumber] = line;
-        return lines.join("\n");
-    }
-
-    /**
-     * Push a task from project to weekly note
-     */
-    async pushTaskToWeekly(projectPath: string, projectTitle: string, task: Task, weeklyPath: string): Promise<void> {
-        const weeklyFile = this.app.vault.getFileByPath(weeklyPath);
-        if (!weeklyFile) {
-            console.error(`Weekly file not found: ${weeklyPath}`);
-            return;
-        }
-
-        // Create task line with project link
-        const taskLine = `- [ ] [_${projectTitle}_](${projectPath}): ${task.text}`;
-
-        // Add to weekly Tasks section
-        await this.addToSection(weeklyFile, "Tasks", taskLine);
-
-        // Remove from project
-        const projectFile = this.app.vault.getFileByPath(projectPath);
-        if (projectFile) {
-            await this.removeTaskLine(projectFile, task.lineNumber);
-        }
-    }
-
-    /**
-     * Add content to a section in a file
-     */
-    private async addToSection(file: TFile, sectionName: string, content: string): Promise<void> {
-        const fileCache = this.app.metadataCache.getFileCache(file);
-
-        if (!fileCache?.headings) {
-            console.warn(`No headings found in ${file.path}`);
-            return;
-        }
-
-        const heading = fileCache.headings.filter((h) => h.level === 2).find((h) => h.heading.includes(sectionName));
-
-        if (!heading) {
-            console.warn(`Section "${sectionName}" not found in ${file.path}`);
-            return;
-        }
-
-        await this.app.vault.process(file, (fileContent) => {
-            const lines = fileContent.split("\n");
-            lines.splice(heading.position.start.line + 1, 0, content);
-            return lines.join("\n");
-        });
-    }
-
-    /**
-     * Remove a task line from a file
-     */
-    private async removeTaskLine(file: TFile, lineNumber: number): Promise<void> {
-        await this.app.vault.process(file, (content) => {
-            const lines = content.split("\n");
-            lines.splice(lineNumber, 1);
-            return lines.join("\n");
-        });
     }
 }

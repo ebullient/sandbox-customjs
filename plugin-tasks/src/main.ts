@@ -7,6 +7,7 @@ import { ReviewModal } from "./ReviewModal";
 import { DEFAULT_SETTINGS } from "./Settings";
 import { TaskIndexSettingsTab } from "./SettingsTab";
 import { TaskIndexAPI } from "./TaskIndex-Api";
+import { WeeklyPlanningModal } from "./WeeklyPlanningModal";
 
 export default class TaskIndexPlugin extends Plugin {
     settings: TaskIndexSettings;
@@ -22,15 +23,9 @@ export default class TaskIndexPlugin extends Plugin {
 
         // Initialize services
         this.index = new QuestIndex(this.app, this.settings);
-        this.detector = new ReviewDetector(this.settings);
+        this.detector = new ReviewDetector(this.app, this.settings);
         this.updater = new FileUpdater(this.app);
         this.api = new TaskIndexAPI(this.index, this.settings);
-
-        // Expose API to window for CustomJS scripts
-        if (!window.taskIndex) {
-            window.taskIndex = {};
-        }
-        window.taskIndex.api = this.api;
 
         // Add settings tab
         this.addSettingTab(new TaskIndexSettingsTab(this.app, this));
@@ -64,6 +59,13 @@ export default class TaskIndexPlugin extends Plugin {
         // Start indexing when workspace is ready
         this.app.workspace.onLayoutReady(() => {
             this.index.rebuildIndex();
+
+            // Expose API to window for CustomJS scripts
+            if (!window.taskIndex) {
+                window.taskIndex = {};
+            }
+            window.taskIndex.api = this.api;
+            console.log(window.taskIndex);
 
             // Register file events
             this.registerEvent(
@@ -102,6 +104,7 @@ export default class TaskIndexPlugin extends Plugin {
 
     onunload() {
         console.log("Unloading Task Index plugin");
+        window.taskIndex = {};
     }
 
     async loadSettings() {
@@ -164,6 +167,7 @@ export default class TaskIndexPlugin extends Plugin {
                 }
                 new Notice("Quest updated");
             },
+            this.detector,
             () => {
                 // onNext (Skip button): Move to next item without saving
                 // This item won't come back in this review session
@@ -187,17 +191,16 @@ export default class TaskIndexPlugin extends Plugin {
      * Show weekly planning view
      */
     private showWeeklyPlanning() {
-        // TODO: Implement weekly planning modal
-        const nextTasks = this.index.getTasksByTag("next");
+        // Get all quests that have actionable tasks (#next OR due dates)
+        const allQuests = this.index.getAllQuests();
+        const actionableQuests = allQuests.filter((q) => q.hasNextTasks || q.hasOverdueTasks);
 
-        if (nextTasks.length === 0) {
-            new Notice("No #next tasks found. Review your projects first!");
+        if (actionableQuests.length === 0) {
+            new Notice("No quests with actionable tasks (#next or due dates) found. Review your projects first!");
             return;
         }
 
-        new Notice(`Found ${nextTasks.length} #next tasks. Weekly planning view coming soon...`);
-
-        // For now, just log them
-        console.log("Next tasks:", nextTasks);
+        const modal = new WeeklyPlanningModal(this.app, actionableQuests, this.settings);
+        modal.open();
     }
 }

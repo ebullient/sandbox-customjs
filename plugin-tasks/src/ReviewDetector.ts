@@ -1,10 +1,14 @@
+import type { App } from "obsidian";
 import type { QuestFile, ReviewItem, ReviewReason, TaskIndexSettings } from "./@types";
 
 /**
  * Detects which projects need review
  */
 export class ReviewDetector {
-    constructor(private settings: TaskIndexSettings) {}
+    constructor(
+        private app: App,
+        private settings: TaskIndexSettings,
+    ) {}
 
     /**
      * Analyze a quest and determine if it needs review
@@ -19,10 +23,16 @@ export class ReviewDetector {
             priority += 10; // High priority - required field
         }
 
-        // Check for no #next tasks
-        if (!quest.hasNextTasks && quest.tasks.length > 0) {
+        // Check for no #next tasks (but skip if current week links to this project)
+        if (!quest.hasNextTasks && quest.tasks.length > 0 && !this.isLinkedFromCurrentWeek(quest.path)) {
             reasons.push("no-next-tasks");
             priority += 5;
+        }
+
+        // Check for overdue tasks (high priority)
+        if (quest.hasOverdueTasks) {
+            reasons.push("overdue-tasks");
+            priority += 8;
         }
 
         // Check for stale project (not modified in X weeks)
@@ -32,19 +42,13 @@ export class ReviewDetector {
             priority += 3;
         }
 
-        // Check for long-waiting tasks
+        // Check for long-waiting tasks (future feature)
         if (quest.hasWaitingTasks && quest.oldestWaitingDate) {
             const daysSinceWaiting = this.getDaysSince(quest.oldestWaitingDate);
             if (daysSinceWaiting >= this.settings.waitingTaskDays) {
                 reasons.push("long-waiting");
                 priority += 4;
             }
-        }
-
-        // Check sphere focus match
-        if (this.settings.currentSphereFocus && quest.sphere === this.settings.currentSphereFocus) {
-            reasons.push("sphere-focus");
-            priority += 2;
         }
 
         // If no reasons, don't need review
@@ -87,12 +91,12 @@ export class ReviewDetector {
                 return "Missing sphere";
             case "no-next-tasks":
                 return "No #next tasks";
+            case "overdue-tasks":
+                return "Has overdue tasks";
             case "stale-project":
                 return `Not updated in ${this.settings.staleProjectWeeks} weeks`;
             case "long-waiting":
                 return `Has tasks waiting ${this.settings.waitingTaskDays}+ days`;
-            case "sphere-focus":
-                return `Matches current focus: ${this.settings.currentSphereFocus}`;
         }
     }
 
@@ -112,5 +116,24 @@ export class ReviewDetector {
         const now = Date.now();
         const diff = now - timestamp;
         return Math.floor(diff / (1000 * 60 * 60 * 24));
+    }
+
+    /**
+     * Build the current week file path: chronicles/YYYY/YYYY-MM-DD_week.md
+     * Uses the Monday of the current week
+     */
+    private getCurrentWeekFilePath(): string {
+        const today = window.moment();
+        const monday = window.moment(today).day(1);
+        return monday.format("[chronicles]/YYYY/YYYY-MM-DD[_week.md]");
+    }
+
+    /**
+     * Check if the current week's file links to a project
+     */
+    private isLinkedFromCurrentWeek(questPath: string): boolean {
+        const weekPath = this.getCurrentWeekFilePath();
+        const resolvedLinks = this.app.metadataCache.resolvedLinks[weekPath];
+        return resolvedLinks?.[questPath] > 0;
     }
 }

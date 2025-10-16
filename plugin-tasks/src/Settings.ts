@@ -5,7 +5,6 @@ import type { TaskIndexSettings } from "./@types";
  */
 export const DEFAULT_SETTINGS: TaskIndexSettings = {
     validSpheres: ["work", "home", "community"],
-    currentSphereFocus: undefined,
 
     staleProjectWeeks: 4,
     waitingTaskDays: 14,

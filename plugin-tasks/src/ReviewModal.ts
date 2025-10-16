@@ -1,9 +1,10 @@
 import { type App, Modal, Setting } from "obsidian";
-import type { QuestFile, ReviewReason, Task, TaskAction, TaskIndexSettings, TaskTag } from "./@types";
-import { TaskParser } from "./TaskParser";
+import type { QuestFile, ReviewReason, TaskIndexSettings } from "./@types";
+import type { ReviewDetector } from "./ReviewDetector";
 
 /**
  * Modal for reviewing a single quest/area
+ * Simplified to use raw markdown editing only
  */
 export class ReviewModal extends Modal {
     private quest: QuestFile;
@@ -16,23 +17,20 @@ export class ReviewModal extends Modal {
     private currentItem: number;
     private totalItems: number;
     private reviewReasons: ReviewReason[];
+    private reviewDetector: ReviewDetector;
 
-    // Form state
+    // Form state - just the editable fields
     private selectedSphere?: string;
     private purposeText: string;
-    private taskEdits = new Map<number, { tag?: TaskTag | null; dueDate?: string | null; status?: string }>();
-
-    // Edit mode state
-    private isEditMode = false;
-    private rawTaskMarkdown = "";
-    private editedTasks: Task[] = [];
-    private allTaskLines: string[] = []; // All lines from task section (preserves formatting)
+    private taskMarkdown: string;
+    private taskTextArea?: HTMLTextAreaElement;
 
     constructor(
         app: App,
         quest: QuestFile,
         settings: TaskIndexSettings,
         onSave: (updated: QuestFile) => Promise<void>,
+        reviewDetector: ReviewDetector,
         onNext?: () => void,
         onDefer?: () => void,
         currentItem = 1,
@@ -48,13 +46,12 @@ export class ReviewModal extends Modal {
         this.currentItem = currentItem;
         this.totalItems = totalItems;
         this.reviewReasons = reviewReasons;
+        this.reviewDetector = reviewDetector;
 
+        // Initialize form state from quest
         this.selectedSphere = quest.sphere;
         this.purposeText = quest.purpose;
-
-        // Use the raw task content which preserves ALL formatting
-        this.rawTaskMarkdown = quest.rawTaskContent;
-        this.allTaskLines = quest.rawTaskContent.split("\n");
+        this.taskMarkdown = quest.rawTaskContent;
     }
 
     onOpen() {
@@ -88,7 +85,7 @@ export class ReviewModal extends Modal {
         // Purpose section
         this.renderPurposeSection(contentEl);
 
-        // Tasks section
+        // Tasks section (raw markdown only)
         this.renderTasksSection(contentEl);
 
         // Buttons
@@ -99,44 +96,24 @@ export class ReviewModal extends Modal {
         const reasonsSection = container.createDiv({ cls: "review-reasons" });
         reasonsSection.createEl("h3", { text: "⚠️ Needs Attention:" });
 
-        const reasonList = reasonsSection.createEl("ul", {
-            cls: "review-reasons-list",
-        });
-
-        const reasonLabels: Record<ReviewReason, string> = {
-            "no-next-tasks": "No #next tasks - What's the immediate next action?",
-            "stale-project": "Not updated recently - Is this still active or should it be archived?",
-            "long-waiting": "Tasks waiting too long - Can you follow up or unblock?",
-            "no-sphere": "Missing sphere - Which area of life does this belong to?",
-            "sphere-focus": "In your current focus sphere - Time to make progress!",
-        };
-
+        const list = reasonsSection.createEl("ul");
         for (const reason of this.reviewReasons) {
-            const li = reasonList.createEl("li", {
-                cls: `review-reason review-reason-${reason}`,
-            });
-            li.createSpan({ text: reasonLabels[reason] });
+            list.createEl("li", { text: this.reviewDetector.getReasonDescription(reason) });
         }
     }
 
     private renderSphereSection(container: HTMLElement) {
-        const section = container.createDiv({ cls: "review-section" });
+        const section = container.createDiv({ cls: "sphere-section" });
         section.createEl("h3", { text: "Sphere" });
 
         new Setting(section)
-            .setName("Project sphere")
-            .setDesc(
-                !this.quest.sphere
-                    ? "⚠️ This project needs a sphere assigned"
-                    : "Which area of life does this belong to?",
-            )
+            .setName("Life sphere")
+            .setDesc("Which area of life does this belong to?")
             .addDropdown((dropdown) => {
-                // Add empty option if no sphere
-                if (!this.quest.sphere) {
-                    dropdown.addOption("", "-- Select sphere --");
-                }
+                // Add empty option
+                dropdown.addOption("", "(none)");
 
-                // Add all valid spheres
+                // Add configured spheres
                 for (const sphere of this.settings.validSpheres) {
                     dropdown.addOption(sphere, sphere);
                 }
@@ -149,368 +126,109 @@ export class ReviewModal extends Modal {
     }
 
     private renderPurposeSection(container: HTMLElement) {
-        const section = container.createDiv({ cls: "review-section" });
-        section.createEl("h3", { text: "Why this matters" });
+        const section = container.createDiv({ cls: "purpose-section" });
+
+        const header = section.createDiv({ cls: "purpose-header" });
+        header.createEl("h3", { text: "Purpose" });
+
+        // Tag insertion dropdown for purpose
+        this.createTagDropdown(header, (tag) => {
+            const textArea = section.querySelector("textarea") as HTMLTextAreaElement;
+            if (textArea) {
+                this.insertTag(textArea, tag);
+            }
+        });
 
         const textArea = section.createEl("textarea", {
-            cls: "purpose-textarea",
-            attr: {
-                rows: "8",
-                placeholder: "What is this project about? Why does it matter?",
-            },
+            cls: "purpose-editor",
+            attr: { rows: "8" },
         });
         textArea.value = this.purposeText;
         textArea.addEventListener("input", () => {
             this.purposeText = textArea.value;
         });
-
-        // Tag picker
-        if (this.settings.purposeTags.length > 0) {
-            const tagPicker = section.createDiv({ cls: "purpose-tag-picker" });
-            tagPicker.createEl("span", {
-                text: "Insert tag:",
-                cls: "tag-picker-label",
-            });
-
-            const tagSelect = tagPicker.createEl("select", {
-                cls: "tag-picker-select",
-            });
-
-            // Add default option
-            tagSelect.createEl("option", {
-                value: "",
-                text: "-- Select tag --",
-            });
-
-            // Add all configured tags
-            for (const tag of this.settings.purposeTags) {
-                tagSelect.createEl("option", {
-                    value: tag,
-                    text: tag,
-                });
-            }
-
-            tagSelect.addEventListener("change", () => {
-                const selectedTag = tagSelect.value;
-                if (selectedTag) {
-                    this.insertTagAtCursor(textArea, selectedTag);
-                    // Reset dropdown to default
-                    tagSelect.value = "";
-                }
-            });
-        }
     }
 
-    private insertTagAtCursor(textArea: HTMLTextAreaElement, tag: string) {
+    private renderTasksSection(container: HTMLElement) {
+        const section = container.createDiv({ cls: "tasks-section" });
+
+        const header = section.createDiv({ cls: "tasks-header" });
+        header.createEl("h3", { text: "Tasks" });
+
+        // Tag insertion dropdown for tasks
+        this.createTagDropdown(header, (tag) => {
+            if (this.taskTextArea) {
+                this.insertTag(this.taskTextArea, tag);
+            }
+        });
+
+        this.taskTextArea = section.createEl("textarea", {
+            cls: "task-editor",
+            attr: { rows: "15" },
+        });
+        this.taskTextArea.value = this.taskMarkdown;
+        this.taskTextArea.addEventListener("input", () => {
+            this.taskMarkdown = this.taskTextArea?.value || "";
+        });
+    }
+
+    private createTagDropdown(container: HTMLElement, onSelect: (tag: string) => void) {
+        const dropdown = container.createEl("select", { cls: "tag-dropdown" });
+
+        // Placeholder option
+        const placeholder = dropdown.createEl("option");
+        placeholder.value = "";
+        placeholder.text = "Insert tag...";
+        placeholder.disabled = true;
+        placeholder.selected = true;
+
+        // Add GTD tags
+        const gtdTags = ["#next", "#waiting", "#someday"];
+        for (const tag of gtdTags) {
+            const option = dropdown.createEl("option");
+            option.value = tag;
+            option.text = tag;
+        }
+
+        dropdown.addEventListener("change", () => {
+            if (dropdown.value) {
+                onSelect(dropdown.value);
+                dropdown.value = ""; // Reset to placeholder
+            }
+        });
+    }
+
+    private insertTag(textArea: HTMLTextAreaElement, tag: string) {
         const start = textArea.selectionStart;
         const end = textArea.selectionEnd;
         const text = textArea.value;
 
-        // Insert tag at cursor position (or replace selection)
+        // Insert tag at cursor position (with space if needed)
         const before = text.substring(0, start);
         const after = text.substring(end);
-
-        // Add space before tag if needed (and not at start of text)
         const needsSpaceBefore = before.length > 0 && !before.endsWith(" ");
-        const tagToInsert = (needsSpaceBefore ? " " : "") + tag;
+        const insertion = (needsSpaceBefore ? " " : "") + tag;
 
-        const newText = before + tagToInsert + after;
-        textArea.value = newText;
+        textArea.value = before + insertion + after;
 
-        // Update the purposeText state
-        this.purposeText = newText;
+        // Update the state
+        if (textArea === this.taskTextArea) {
+            this.taskMarkdown = textArea.value;
+        } else {
+            this.purposeText = textArea.value;
+        }
 
-        // Move cursor to after the inserted tag
-        const newCursorPos = start + tagToInsert.length;
-        textArea.setSelectionRange(newCursorPos, newCursorPos);
-
-        // Focus back on the textarea
+        // Move cursor after inserted tag
+        const newPos = start + insertion.length;
+        textArea.setSelectionRange(newPos, newPos);
         textArea.focus();
     }
 
-    private renderTasksSection(container: HTMLElement) {
-        const section = container.createDiv({ cls: "review-section" });
-
-        // Header with Edit button
-        const header = section.createDiv({ cls: "task-section-header" });
-        header.createEl("h3", { text: "Tasks" });
-
-        const editBtn = header.createEl("button", {
-            text: this.isEditMode ? "Done editing" : "Edit tasks",
-            cls: "task-edit-toggle",
-        });
-        editBtn.addEventListener("click", () => {
-            this.toggleEditMode();
-        });
-
-        if (this.isEditMode) {
-            this.renderTaskEditor(section);
-        } else {
-            this.renderTaskList(section);
-        }
-    }
-
-    private renderTaskList(container: HTMLElement) {
-        const tasks = this.editedTasks.length > 0 ? this.editedTasks : this.quest.tasks;
-
-        if (tasks.length === 0) {
-            container.createEl("p", {
-                text: "No tasks in this project",
-                cls: "task-empty",
-            });
-            return;
-        }
-
-        const taskList = container.createDiv({ cls: "task-list" });
-
-        for (const task of tasks) {
-            this.renderTask(taskList, task);
-        }
-    }
-
-    private renderTaskEditor(container: HTMLElement) {
-        const textArea = container.createEl("textarea", {
-            cls: "task-editor",
-            attr: {
-                rows: "15",
-                placeholder: "Edit tasks in markdown format...",
-            },
-        });
-        textArea.value = this.rawTaskMarkdown;
-        textArea.addEventListener("input", () => {
-            this.rawTaskMarkdown = textArea.value;
-        });
-    }
-
-    private toggleEditMode() {
-        this.isEditMode = !this.isEditMode;
-
-        if (!this.isEditMode) {
-            // Exiting edit mode - parse the markdown and clear pending actions
-            this.parseEditedTasks();
-            this.taskEdits.clear();
-        } else {
-            // Entering edit mode - apply pending edits to current lines
-            this.applyPendingEditsToLines();
-
-            // Update markdown from all lines (tasks + formatting)
-            this.rawTaskMarkdown = this.allTaskLines.join("\n");
-
-            // Clear pending edits since they're now in the markdown
-            this.taskEdits.clear();
-        }
-
-        // Re-render the modal
-        this.onOpen();
-    }
-
-    private applyPendingEditsToLines() {
-        if (this.taskEdits.size === 0) {
-            return;
-        }
-
-        // Get current tasks to edit
-        const currentTasks = this.editedTasks.length > 0 ? this.editedTasks : this.quest.tasks;
-
-        // Apply edits to tasks and update the corresponding lines
-        for (const task of currentTasks) {
-            const edit = this.taskEdits.get(task.lineNumber);
-            if (!edit) {
-                continue;
-            }
-
-            // Create updated task
-            const updatedTask = { ...task };
-
-            if (edit.status !== undefined) {
-                updatedTask.status = edit.status as typeof task.status;
-            }
-
-            if (edit.tag !== undefined) {
-                if (edit.tag === null) {
-                    updatedTask.tags = [];
-                } else {
-                    updatedTask.tags = [edit.tag];
-                }
-            }
-
-            if (edit.dueDate !== undefined) {
-                updatedTask.dueDate = edit.dueDate || undefined;
-            }
-
-            // Rebuild the line and update in allTaskLines
-            const newLine = this.rebuildTaskLine(updatedTask);
-            this.allTaskLines[task.lineNumber] = newLine;
-        }
-    }
-
-    private rebuildTaskLine(task: Task): string {
-        const indent = " ".repeat(task.indent);
-        const checkbox = `[${task.status}]`;
-
-        // Strip existing GTD tags from text (they'll be re-added based on task.tags)
-        const cleanText = task.text.replace(/#(next|waiting|someday)/g, "").trim();
-
-        // Build the line
-        let line = `${indent}- ${checkbox} ${cleanText}`;
-
-        // Add tags from task.tags array
-        for (const tag of task.tags) {
-            line += ` #${tag}`;
-        }
-
-        // Note: Due date handling is simplified - the text might already contain it
-        // If we need to update due dates, we'd need to strip and re-add them too
-
-        return line;
-    }
-
-    private parseEditedTasks() {
-        const lines = this.rawTaskMarkdown.split("\n");
-        this.editedTasks = [];
-        this.allTaskLines = lines; // Preserve ALL lines
-
-        // Parse tasks from the lines, but keep ALL lines (tasks and non-tasks)
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            const task = TaskParser.parseTask(line, i);
-            if (task) {
-                this.editedTasks.push(task);
-            }
-        }
-    }
-
-    private renderTask(container: HTMLElement, task: Task) {
-        const taskRow = container.createDiv({ cls: "task-row" });
-
-        // Task checkbox and text
-        const taskText = taskRow.createDiv({ cls: "task-text" });
-        const currentEdit = this.taskEdits.get(task.lineNumber);
-        const effectiveStatus = currentEdit?.status || task.status;
-
-        taskText.createEl("span", {
-            text: `[${effectiveStatus}] ${task.text}`,
-            cls: "task-content",
-        });
-
-        // Action dropdown
-        const actionSelect = taskRow.createEl("select", {
-            cls: "task-action-select",
-        });
-
-        // Determine current action based on task state
-        const effectiveTag = currentEdit?.tag !== undefined ? currentEdit.tag : task.tags[0] || null;
-
-        const actionOptions: Array<{ value: string; label: string }> = [
-            { value: "", label: "-- Action --" },
-            { value: "next", label: "Mark #next" },
-            { value: "waiting", label: "Mark #waiting" },
-            { value: "someday", label: "Mark #someday" },
-            { value: "complete", label: "Mark complete" },
-            { value: "cancel", label: "Cancel task" },
-            { value: "clear", label: "Clear tags" },
-        ];
-
-        for (const option of actionOptions) {
-            const optionEl = actionSelect.createEl("option", {
-                value: option.value,
-                text: option.label,
-            });
-
-            // Pre-select current tag if it matches
-            if (option.value === effectiveTag) {
-                optionEl.selected = true;
-            }
-        }
-
-        actionSelect.addEventListener("change", () => {
-            const action = actionSelect.value as TaskAction | "clear" | "";
-            if (action) {
-                this.applyTaskAction(task, action);
-                this.refreshTaskRow(taskRow, task);
-            }
-        });
-
-        // Due date display (if exists)
-        if (task.dueDate || currentEdit?.dueDate) {
-            const dueDateSpan = taskRow.createDiv({ cls: "task-due-date" });
-            const effectiveDueDate = currentEdit?.dueDate || task.dueDate;
-            dueDateSpan.createEl("span", {
-                text: `Due: ${effectiveDueDate}`,
-            });
-        }
-    }
-
-    private refreshTaskRow(taskRow: HTMLElement, task: Task) {
-        // Simple refresh: clear and re-render the task row contents
-        taskRow.empty();
-
-        const parent = taskRow.parentElement;
-        if (parent) {
-            this.renderTask(parent, task);
-            // Remove the old taskRow since renderTask creates a new one
-            taskRow.remove();
-        }
-    }
-
-    private applyTaskAction(task: Task, action: TaskAction | "clear" | "") {
-        if (!action) {
-            return;
-        }
-
-        const edit = this.taskEdits.get(task.lineNumber) || {};
-
-        if (action === "complete") {
-            edit.status = "x";
-            edit.tag = undefined;
-        } else if (action === "cancel") {
-            edit.status = "-";
-            edit.tag = undefined;
-        } else if (action === "clear") {
-            edit.tag = null;
-        } else {
-            // next, waiting, someday
-            edit.tag = action as TaskTag;
-        }
-
-        this.taskEdits.set(task.lineNumber, edit);
-    }
-
     private renderButtons(container: HTMLElement) {
-        const buttonRow = container.createDiv({ cls: "modal-button-row" });
+        const buttonSection = container.createDiv({ cls: "button-section" });
 
-        // Cancel button (left side)
-        const cancelBtn = buttonRow.createEl("button", { text: "Cancel" });
-        cancelBtn.addEventListener("click", () => {
-            this.close();
-        });
-
-        // Spacer to push remaining buttons to the right
-        buttonRow.createDiv({ cls: "modal-button-spacer" });
-
-        // Defer button - skip for now, will come back later at the end
-        const deferBtn = buttonRow.createEl("button", {
-            text: "Defer",
-            cls: "mod-warning",
-        });
-        deferBtn.addEventListener("click", () => {
-            this.close();
-            if (this.onDefer) {
-                this.onDefer();
-            }
-        });
-
-        // Skip button - moves to next without saving (marks as reviewed)
-        const skipBtn = buttonRow.createEl("button", { text: "Skip" });
-        skipBtn.addEventListener("click", () => {
-            this.close();
-            if (this.onNext) {
-                this.onNext();
-            }
-        });
-
-        // Save & Next button - saves changes and moves to next
-        const saveBtn = buttonRow.createEl("button", {
+        // Save & Next button
+        const saveBtn = buttonSection.createEl("button", {
             text: "Save & Next",
             cls: "mod-cta",
         });
@@ -521,55 +239,50 @@ export class ReviewModal extends Modal {
                 this.onNext();
             }
         });
+
+        // Skip button (if onNext exists)
+        if (this.onNext) {
+            const skipBtn = buttonSection.createEl("button", { text: "Skip" });
+            skipBtn.addEventListener("click", () => {
+                this.close();
+                if (this.onNext) {
+                    this.onNext();
+                }
+            });
+        }
+
+        // Defer button (if onDefer exists)
+        if (this.onDefer) {
+            const deferBtn = buttonSection.createEl("button", { text: "Defer" });
+            deferBtn.addEventListener("click", () => {
+                this.close();
+                if (this.onDefer) {
+                    this.onDefer();
+                }
+            });
+        }
+
+        // Cancel button
+        const cancelBtn = buttonSection.createEl("button", { text: "Cancel" });
+        cancelBtn.addEventListener("click", () => {
+            this.close();
+        });
     }
 
     private async saveChanges() {
-        // Get current tasks (edited or original)
-        const currentTasks = this.editedTasks.length > 0 ? this.editedTasks : this.quest.tasks;
+        console.log("[ReviewModal] saveChanges - simplified version");
 
-        // Apply any pending dropdown edits to tasks
-        const updatedTasks = currentTasks.map((task) => {
-            const edit = this.taskEdits.get(task.lineNumber);
-            if (!edit) {
-                return task;
-            }
-
-            const updatedTask = { ...task };
-
-            // Update status (for complete/cancel)
-            if (edit.status !== undefined) {
-                updatedTask.status = edit.status as typeof task.status;
-            }
-
-            // Update tags
-            if (edit.tag !== undefined) {
-                if (edit.tag === null) {
-                    updatedTask.tags = [];
-                } else {
-                    updatedTask.tags = [edit.tag];
-                }
-            }
-
-            // Update due date
-            if (edit.dueDate !== undefined) {
-                updatedTask.dueDate = edit.dueDate || undefined;
-            }
-
-            // Rebuild the line to reflect changes
-            updatedTask.line = this.rebuildTaskLine(updatedTask);
-
-            return updatedTask;
-        });
-
-        // Build updated quest object
+        // Build updated quest object with edited fields
         const updated: QuestFile = {
             ...this.quest,
             sphere: this.selectedSphere,
             purpose: this.purposeText,
-            tasks: updatedTasks,
+            rawTaskContent: this.taskMarkdown,
+            // Note: tasks array will be reparsed by QuestIndex after save
+            tasks: this.quest.tasks, // Keep original for now, will be reindexed
         };
 
-        // Callback to save
+        console.log("[ReviewModal] saving with rawTaskContent length:", this.taskMarkdown.length);
         await this.onSave(updated);
     }
 

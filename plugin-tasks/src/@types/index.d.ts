@@ -8,7 +8,6 @@
 export interface TaskIndexSettings {
     // Sphere configuration
     validSpheres: string[];
-    currentSphereFocus?: string;
 
     // Review thresholds
     staleProjectWeeks: number;
@@ -31,11 +30,6 @@ export type TaskStatus = " " | "/" | "b" | "x" | "-";
  * GTD-style task tags
  */
 export type TaskTag = "next" | "waiting" | "someday";
-
-/**
- * Task actions available in review modal
- */
-export type TaskAction = TaskTag | "complete" | "cancel";
 
 /**
  * Parsed task from markdown
@@ -79,13 +73,14 @@ export interface QuestFile {
     hasNextTasks: boolean;
     hasWaitingTasks: boolean;
     untriagedCount: number;
-    oldestWaitingDate?: number;
+    hasOverdueTasks: boolean; // Has tasks with due dates today or in the past
+    oldestWaitingDate?: number; // TODO: Track when tasks were marked #waiting
 }
 
 /**
  * Reasons a project needs review
  */
-export type ReviewReason = "no-next-tasks" | "stale-project" | "long-waiting" | "no-sphere" | "sphere-focus";
+export type ReviewReason = "no-next-tasks" | "stale-project" | "overdue-tasks" | "long-waiting" | "no-sphere";
 
 /**
  * Project flagged for review

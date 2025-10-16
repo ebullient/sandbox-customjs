@@ -23,6 +23,11 @@ export class TaskIndexAPI {
         return ["owner", "collaborator", "observer"];
     };
 
+    compareRoles = (role1: string, role2: string): number => {
+        const roles = this.getValidRoles();
+        return roles.indexOf(role1) - roles.indexOf(role2);
+    };
+
     /**
      * Get role visual representation.
      * @param {string} role The role value from frontmatter.

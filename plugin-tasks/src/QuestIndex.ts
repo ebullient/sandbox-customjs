@@ -145,6 +145,7 @@ export class QuestIndex {
         const hasNextTasks = tasks.some((t) => t.tags.includes("next"));
         const hasWaitingTasks = tasks.some((t) => t.tags.includes("waiting"));
         const untriagedCount = tasks.filter((t) => !TaskParser.isTaskTriaged(t)).length;
+        const hasOverdueTasks = tasks.some((t) => TaskParser.isOverdueOrDueToday(t));
 
         // TODO: Track oldest waiting date properly
         const oldestWaitingDate = undefined;
@@ -162,6 +163,7 @@ export class QuestIndex {
             rawTaskContent: rawContent,
             hasNextTasks,
             hasWaitingTasks,
+            hasOverdueTasks,
             untriagedCount,
             oldestWaitingDate,
         };

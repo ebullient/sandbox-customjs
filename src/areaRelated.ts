@@ -1,19 +1,11 @@
 import type { App, TFile } from "obsidian";
 import type { EngineAPI } from "./@types/jsengine.types";
+import type { TaskIndex } from "./@types/taskIndex.types";
 import type { Templater } from "./@types/templater.types";
 import type { Conditions, FileFilterFn, Utils } from "./_utils";
 
 export class AreaRelated {
     app: App;
-
-    role = ["owner", "collaborator", "observer"];
-    unknown = "??";
-
-    roleVisual: Record<string, string> = {
-        owner: "🖐",
-        collaborator: "🤝",
-        observer: "👀",
-    };
 
     constructor() {
         this.app = window.customJS.app;
@@ -22,20 +14,14 @@ export class AreaRelated {
 
     utils = (): Utils => window.customJS.Utils;
 
+    taskIndex = (): TaskIndex => window.taskIndex.api;
+
     /**
      * Create a markdown list of all projects matching the specified conditions.
      * @param {EngineAPI} engine The engine to create markdown.
      * @param {boolean} archived Whether to include archived projects.
      * @param {string|Array} [orOther=''] Additional conditions to apply.
      * @returns {string} A markdown list of all projects matching the specified conditions.
-     * @see isArchived
-     * @see isProject
-     * @see priorityFilesMatchingCondition
-     * @see showPriority
-     * @see showRole
-     * @see showStatus
-     * @see utils.filterByConditions
-     * @see utils.markdownLink
      */
     allProjects = (
         engine: EngineAPI,
@@ -57,24 +43,33 @@ export class AreaRelated {
     };
 
     /**
-     * Templater prompt with suggester to choose a role for a task.
+     * Templater prompt with suggester to choose a role for a project/area.
      * @param {Tp} tp The templater plugin instance.
      * @returns {Promise<string>} The user's choice of role.
      */
     chooseRole = async (tp: Templater) => {
-        return await tp.system.suggester(this.role, this.role);
+        const roles = this.taskIndex().getValidRoles();
+        return await tp.system.suggester(roles, roles);
+    };
+
+    /**
+     * Templater prompt with suggester to choose a sphere for a project/area.
+     * @param {Tp} tp The templater plugin instance.
+     * @returns {Promise<string>} The user's choice of sphere.
+     */
+    chooseSphere = async (tp: Templater) => {
+        const spheres = this.taskIndex().getValidSpheres();
+        return await tp.system.suggester(spheres, spheres);
     };
 
     /**
      * Retrieves the role visual representation for a file.
      * @param {TFile} tfile The file to examine.
      * @returns {string} The role visual representation for the file.
-     * @see roleVisual
-     * @see utils.frontmatter
      */
     fileRole = (tfile: TFile): string => {
         const fm = this.utils().frontmatter(tfile);
-        return fm.role ? this.roleVisual[fm.role] : this.unknown;
+        return this.taskIndex().getRoleVisual(fm.role);
     };
 
     /**
@@ -324,7 +319,7 @@ export class AreaRelated {
         const sphere = fm.sphere
             ? `<span class="ap-sphere">${fm.sphere}</span>`
             : "";
-        const role = fm.role ? this.roleVisual[fm.role] : this.unknown;
+        const role = this.taskIndex().getRoleVisual(fm.role);
         return `<span class="ap-role">${role}</span>${sphere}`;
     };
 
@@ -349,10 +344,9 @@ export class AreaRelated {
         }
 
         // Sort by role
-        const role1 = this.role.indexOf(fm1.role);
-        const role2 = this.role.indexOf(fm2.role);
-        if (role1 !== role2) {
-            return role1 - role2;
+        const sortRole = this.taskIndex().compareRoles(fm1.role, fm2.role);
+        if (sortRole !== 0) {
+            return sortRole;
         }
 
         // Then by name

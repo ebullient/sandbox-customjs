@@ -1,6 +1,6 @@
 import type { App, FrontMatterCache, HeadingCache, TFile } from "obsidian";
+import type { TaskIndex } from "./@types/taskIndex.types";
 import type { CompareFn, Utils } from "./_utils";
-import type { AreaRelated } from "./areaRelated";
 
 interface FileCacheInfo {
     file: TFile;
@@ -26,6 +26,7 @@ export class AllTasks {
     }
 
     utils = (): Utils => window.customJS.Utils;
+    taskIndex = (): TaskIndex => window.taskIndex.api;
 
     /**
      * Find all "Tasks" sections in the specified paths.
@@ -50,7 +51,7 @@ export class AllTasks {
             .filter((x) => !this.ignoreFiles.includes(x.path))
             .map((file) => this.getFileCacheInfo(file))
             .filter((cacheInfo) => cacheInfo.taskHeading)
-            .sort((a, b) => this.sortProjects(ar, a, b))
+            .sort((a, b) => this.sortProjects(a, b))
             .map((cacheInfo) => {
                 const role = ar.fileRole(cacheInfo.file);
                 const sphere = cacheInfo.frontmatter.sphere || "";
@@ -100,16 +101,15 @@ export class AllTasks {
      *      a positive number if a should come after b, or
      *      0 if they are considered equal.
      */
-    sortProjects = (
-        ar: AreaRelated,
-        a: FileCacheInfo,
-        b: FileCacheInfo,
-    ): number => {
+    sortProjects = (a: FileCacheInfo, b: FileCacheInfo): number => {
         // First sort by role
-        const role1 = ar.role.indexOf(a.frontmatter.role);
-        const role2 = ar.role.indexOf(b.frontmatter.role);
-        if (role1 !== role2) {
-            return role1 - role2;
+        // Sort by role
+        const sortRole = this.taskIndex().compareRoles(
+            a.frontmatter.role,
+            b.frontmatter.role,
+        );
+        if (sortRole !== 0) {
+            return sortRole;
         }
 
         // Then by group
