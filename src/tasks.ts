@@ -124,6 +124,7 @@ export class Tasks {
         } else {
             for (const [sphere, tasks] of bySphere) {
                 list.push(`**${sphere}**\n`);
+                tasks.sort();
                 list.push(...tasks);
                 list.push("");
             }
