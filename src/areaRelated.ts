@@ -73,6 +73,16 @@ export class AreaRelated {
     };
 
     /**
+     * Retrieves the role visual representation for a file.
+     * @param {TFile} tfile The file to examine.
+     * @returns {string} The role visual representation for the file.
+     */
+    fileSphere = (tfile: TFile): string => {
+        const fm = this.utils().frontmatter(tfile);
+        return fm.sphere;
+    };
+
+    /**
      * Test if a file is archived.
      * @param {TFile} tfile The file to examine.
      * @param {boolean} archived Archived status to test

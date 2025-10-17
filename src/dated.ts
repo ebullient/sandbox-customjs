@@ -87,9 +87,7 @@ export class Dated {
      *  the parsed date, next workday, next workday name, last Monday, this Monday, and next Monday.
      */
     parseDate = (filename: string): ParsedDates => {
-        const titledate = filename
-            .replace("_week", "")
-            .replace("journal-", "");
+        const titledate = filename.replace("_week", "").replace("journal-", "");
         const day = window.moment(titledate);
         const dayOfWeek = day.isoWeekday();
 

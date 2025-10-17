@@ -1,6 +1,6 @@
 import type { App, FrontMatterCache, HeadingCache, TFile } from "obsidian";
 import type { TaskIndex } from "./@types/taskIndex.types";
-import type { CompareFn, Utils } from "./_utils";
+import type { Utils } from "./_utils";
 
 interface FileCacheInfo {
     file: TFile;
@@ -31,7 +31,7 @@ export class AllTasks {
     /**
      * Find all "Tasks" sections in the specified paths.
      * Replace the TASKS section of of the "All Tasks" file with the
-     * list of embedded sections sorted by role and name
+     * list of embedded sections sorted by sphere, role, and name
      * @returns {Promise<void>} A promise that resolves when the operation is complete.
      */
     async invoke(): Promise<void> {
@@ -45,26 +45,44 @@ export class AllTasks {
         }
 
         // Find all markdown files that are not in the ignore list
-        const text = this.app.vault
+        const projectsWithTasks = this.app.vault
             .getMarkdownFiles()
             .filter((x) => this.includePaths.some((p) => x.path.startsWith(p)))
             .filter((x) => !this.ignoreFiles.includes(x.path))
             .map((file) => this.getFileCacheInfo(file))
             .filter((cacheInfo) => cacheInfo.taskHeading)
-            .sort((a, b) => this.sortProjects(a, b))
-            .map((cacheInfo) => {
+            .sort((a, b) => this.sortProjects(a, b));
+
+        // Group by sphere
+        const bySphere = new Map<string, FileCacheInfo[]>();
+        for (const cacheInfo of projectsWithTasks) {
+            const sphere = cacheInfo.frontmatter.sphere || "(no sphere)";
+            if (!bySphere.has(sphere)) {
+                bySphere.set(sphere, []);
+            }
+            bySphere.get(sphere).push(cacheInfo);
+        }
+
+        // Generate text with sphere headings
+        const parts: string[] = [];
+        for (const [sphere, projects] of bySphere) {
+            parts.push(`\n### ${sphere}\n`);
+
+            for (const cacheInfo of projects) {
                 const role = ar.fileRole(cacheInfo.file);
-                const sphere = cacheInfo.frontmatter.sphere || "";
                 const title = this.utils().fileTitle(cacheInfo.file);
                 const linkPath = this.utils().markdownLinkPath(
                     cacheInfo.file,
                     cacheInfo.taskHeading.heading,
                 );
                 console.log("task section", title, linkPath, cacheInfo);
-                const metadata = sphere ? `${role}&nbsp;${sphere}` : role;
-                return `\n#### <span class="project-status">[${metadata}](${linkPath})</span> ${title}\n\n![invisible-embed](${linkPath})\n`;
-            })
-            .join("\n");
+                parts.push(
+                    `\n#### <span class="project-status">[${role}](${linkPath})</span> ${title}\n\n![invisible-embed](${linkPath})\n`,
+                );
+            }
+        }
+
+        const text = parts.join("");
 
         await this.app.vault.process(allTasks, (src) => {
             let source = src;
@@ -94,7 +112,7 @@ export class AllTasks {
     }
 
     /**
-     * Sorts projects based on role, group, and name.
+     * Sorts projects based on sphere, role, group, and name.
      * @param {FileCacheInfo} a The first project to compare.
      * @param {FileCacheInfo} b The second project to compare.
      * @returns {number} A negative number if a should come before b,
@@ -102,8 +120,15 @@ export class AllTasks {
      *      0 if they are considered equal.
      */
     sortProjects = (a: FileCacheInfo, b: FileCacheInfo): number => {
-        // First sort by role
-        // Sort by role
+        // First sort by sphere
+        const sphereA = a.frontmatter.sphere || "(no sphere)";
+        const sphereB = b.frontmatter.sphere || "(no sphere)";
+        const sortSphere = sphereA.localeCompare(sphereB);
+        if (sortSphere !== 0) {
+            return sortSphere;
+        }
+
+        // Then sort by role
         const sortRole = this.taskIndex().compareRoles(
             a.frontmatter.role,
             b.frontmatter.role,
@@ -112,43 +137,7 @@ export class AllTasks {
             return sortRole;
         }
 
-        // Then by group
-        return this.testGroup(a.frontmatter, b.frontmatter, () =>
-            // Finally by name
-            a.file.name.localeCompare(b.file.name),
-        );
-    };
-
-    /**
-     * Compares two files based on their group and a fallback function.
-     * @param {FrontMatterCache} fm1 The frontmatter of the first file.
-     * @param {FrontMatterCache} fm2 The frontmatter of the second file.
-     * @param {CompareFn} fallback The fallback function to use if the group values are equal.
-     * @returns {number} A negative number if tfile1 should come before tfile2,
-     *      a positive number if tfile1 should come after tfile2, or
-     *      the result of the fallback function if they are considered equal.
-     */
-    testGroup = (
-        fm1: FrontMatterCache,
-        fm2: FrontMatterCache,
-        fallback: CompareFn,
-    ): number => {
-        const test1 = fm1.group;
-        const test2 = fm2.group;
-
-        if (test1 === test2) {
-            return fallback();
-        }
-
-        // Handle cases where either test1 or test2 is undefined
-        if (test1 === undefined) {
-            return 1; // if test1 is undefined, it moves toward the beginning
-        }
-        if (test2 === undefined) {
-            return -1; // if test2 is undefined, it moves toward the end
-        }
-
-        // Compare the values (as strings) if both are defined
-        return test1.localeCompare(test2);
+        // Finally by name
+        return a.file.name.localeCompare(b.file.name);
     };
 }

@@ -75,8 +75,10 @@ export class Tasks {
             engine,
         );
 
+        const ar = window.customJS.AreaRelated;
         const files = this.app.vault.getMarkdownFiles();
-        const list: string[] = [];
+        const bySphere = new Map<string, string[]>();
+
         for (const file of files) {
             if (file.path.includes("archive") || file.path.includes("-test")) {
                 continue;
@@ -85,6 +87,7 @@ export class Tasks {
                 this.taskPaths.some((x) => file.path.includes(x))
                 // || this.chroniclesPattern.test(file.path)
             ) {
+                const sphere = ar.fileSphere(file) || "(no sphere)";
                 const tasks = await this.fileTasks(file);
                 for (const task of tasks) {
                     if (task.mark.match(/[x-]/)) {
@@ -101,16 +104,29 @@ export class Tasks {
                         ) {
                             // console.log(file.path, completed);
                             const link = this.utils().markdownLink(task.file);
-                            list.push(`- *${link}*: ${task.text}`);
+                            const taskLine = `- *${link}*: ${task.text}`;
+
+                            if (!bySphere.has(sphere)) {
+                                bySphere.set(sphere, []);
+                            }
+                            bySphere.get(sphere).push(taskLine);
                         }
                     }
                 }
             }
         }
-        if (list.length === 0) {
+
+        const list: string[] = [];
+        if (bySphere.size === 0) {
             list.push(
                 `- No tasks found between ${begin.format("YYYY-MM-DD")} and ${end.format("YYYY-MM-DD")}`,
             );
+        } else {
+            for (const [sphere, tasks] of bySphere) {
+                list.push(`**${sphere}**\n`);
+                list.push(...tasks);
+                list.push("");
+            }
         }
         return engine.markdown.create(list.join("\n"));
     };

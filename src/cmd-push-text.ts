@@ -77,16 +77,15 @@ export class PushText {
 
             // Analyze the current line/selection
             const lineInfo = await this.findLine(activeFile, selection);
+            // Check for weekly file involvement (either source or target)
+            const isWeeklyInvolved =
+                lineInfo.path.endsWith("_week.md") ||
+                choice.endsWith("_week.md");
 
             // Perform the appropriate push operation based on context
             if (lineInfo.selectedLines && lineInfo.selectedLines.length > 1) {
                 await this.pushMultipleLinesAsBlob(choice, lineInfo);
             } else {
-                // Check for weekly file involvement (either source or target)
-                const isWeeklyInvolved =
-                    lineInfo.path.endsWith("_week.md") ||
-                    choice.endsWith("_week.md");
-
                 if (lineInfo.heading) {
                     await this.pushHeader(choice, lineInfo);
                 } else if (isWeeklyInvolved) {
@@ -466,12 +465,11 @@ export class PushText {
 
         if (type === "Tasks item") {
             // Create unchecked task with source attribution
-            const from =
-                target.isDaily || source.fromReminders
-                    ? ""
-                    : ` from [${source.pretty}](${lineInfo.path})`;
-            const addThis = `- [ ] ${lineInfo.text}${from}`;
-            await this.addToSection(targetFile, "Tasks", addThis);
+            await this.addToSection(
+                targetFile,
+                "Tasks",
+                `- [ ] ${lineInfo.text}`,
+            );
         } else {
             // Create log entry (completed if going to project file)
             const task = target.shouldHaveCheckbox ? "[x] " : "";
@@ -483,8 +481,14 @@ export class PushText {
                     ? ` ([${source.pretty}](${lineInfo.path}))`
                     : ` (${date})`
                 : "";
+            const text = source.fromDaily
+                ? lineInfo.text.replace(
+                      / #(self|work|home|community|family)/,
+                      "",
+                  )
+                : lineInfo.text;
 
-            const addThis = `- ${task}${from}${lineInfo.text}${completed}`;
+            const addThis = `- ${task}${from}${text}${completed}`;
             await this.addToSection(targetFile, "Log", addThis);
         }
     }
