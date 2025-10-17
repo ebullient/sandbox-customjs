@@ -49,27 +49,39 @@ In addition to CustomJS scripts, this repository contains Obsidian plugins that 
 
 ### Task Index Plugin (`plugin-tasks/`)
 
-A GTD-style task management plugin for the AllTheThings vault that helps with project review and task triage.
+ADHD-friendly GTD task management plugin for the AllTheThings vault with project review and weekly planning workflows.
+
+**Commands:**
+- **"What needs review?"** - Interactive review workflow for projects needing attention
+- **"Plan this week"** - View all actionable tasks (#next or due dates) grouped by sphere
 
 **Features:**
-- **Project Indexing**: Scans quest/area files for tasks and metadata
-- **Review Detection**: Flags projects needing review based on:
-  - No #next tasks (projects stalled)
+- **Quest/Area Indexing**: Automatically indexes project and area files with tasks and metadata
+- **Smart Review Detection**: Identifies projects needing review based on:
+  - No #next tasks (skipped if current week already links to the project)
   - Stale projects (not modified in N weeks)
   - Long-waiting tasks (#waiting tasks older than N days)
   - Missing sphere assignment
-  - Current sphere focus
-- **Review Modal**: Interactive UI for triaging projects during review
-  - Edit project sphere and purpose
+  - Overdue tasks or tasks due today
+- **ADHD-Friendly Review Workflow**:
+  - Frozen review list (no loops - items don't reappear if updated during review)
+  - Progress tracking: "Reviewing X of Y (25% complete)"
+  - Defer button: push items to end of queue for later review
+  - Clear action prompts explaining why each project needs attention
+  - Edit sphere, purpose, and tasks inline
   - Quick task actions via dropdown (mark #next, #waiting, #someday, complete, cancel)
-  - Purpose tag picker for aligning projects with goals/values (e.g., `#me/🎯/🤓`)
-  - Bulk task editing via raw markdown editor
-- **Settings**: Configure spheres, review thresholds, file locations, and purpose tags
+- **Weekly Planning Modal**:
+  - Shows all quests with actionable tasks
+  - Filter by sphere
+  - Click to jump directly to Tasks section
+  - Summary counts for #next and due tasks
+- **API for CustomJS**: Exposes quest data and configuration via `window.taskIndex.api`
 
 **Integration with AllTheThings vault:**
 - Works with PARA-style quest/area files
-- Supports GTD task tags (#next, #waiting, #someday)
-- Complements the priority.ts and tasks.ts CustomJS scripts
+- Supports GTD task tags (#next, #waiting, #someday) and due dates
+- Detects backlinks from weekly planning files
+- Complements areaRelated.ts and tasks.ts CustomJS scripts
 
 ## Repository structure
 
@@ -168,11 +180,11 @@ The Templater templates that work with these scripts are in the templates direct
 **AllTheThings**
 
 - [activity.ts](src/activity.ts) - activity charts, created by counting occurence of tags
-- [cmd-all-tasks.ts](src/cmd-all-tasks.ts) - CustomJS command; create/update a note that embeds `Tasks` sections from some notes
+- [areaRelated.ts](src/areaRelated.ts) - Functions for working with PARA-esque Projects and Areas (quest/area relationships, role, sphere)
+- [cmd-all-tasks.ts](src/cmd-all-tasks.ts) - CustomJS command; create/update a note that embeds `Tasks` sections grouped by sphere
 - [cmd-task-cleanup.ts](src/cmd-task-cleanup.ts) - CustomJS command; evaluate contents of vault. Find tasks completed earlier than this month, and remove their task status (✔️ or 〰️)
 - [dated.ts](src/dated.ts) - Working with dated notes: daily notes for time blocking, weekly notes for planning, monthly for goals/reflection, years for "dates to remember"
-- [priority.ts](src/priority.ts) - Functions for working with PARA-esque Projects and Areas, including working with role/priority/status/etc.
-- [tasks.ts](src/tasks.ts) - Functions for working with tasks (specifically, finding the tasks in a file, or collecting a list of tasks completed in a given week)
+- [tasks.ts](src/tasks.ts) - Functions for working with tasks (finding tasks in a file, collecting tasks completed in a given week grouped by sphere)
 - [templater.ts](src/templater.ts) - Functions that augment templater templates (choosing values for prompts, transporting text
 
 **Campaign Notes**

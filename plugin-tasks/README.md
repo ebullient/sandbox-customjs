@@ -35,34 +35,45 @@ npm run dev:plugin-tasks
 Opens the review workflow to triage projects/quests that need attention.
 
 **Review Triggers:**
-- No #next tasks defined
-- Project hasn't been updated in 4+ weeks (stale)
-- Tasks have been #waiting for 14+ days
-- Missing sphere assignment
-- In your current focus sphere
+- **No #next tasks** - Projects with tasks but none tagged #next (skipped if current week already links to the project)
+- **Stale project** - Not modified in 4+ weeks (configurable)
+- **Long waiting tasks** - Tasks tagged #waiting for 14+ days (configurable)
+- **Missing sphere** - Project lacks sphere assignment
+- **Overdue tasks** - Has tasks with due dates that are overdue or due today
 
 **Review Workflow (ADHD-Friendly):**
 1. Shows progress: "Reviewing X of Y (25% complete)"
-2. Displays why each project needs attention with actionable prompts
+2. Displays why each project needs attention with clear, actionable prompts
 3. Four button options:
    - **Cancel** - Exit review session
-   - **Defer** - Not ready to decide? Puts item at end of queue to try later
+   - **Defer** - Not ready to decide? Puts item at end of queue to review later
    - **Skip** - Reviewed, move to next (doesn't come back)
-   - **Save & Next** - Make changes and continue
+   - **Save & Next** - Save changes and continue
 
-**Key Feature:** Review list is **frozen at session start** - items don't loop back if you update them during review.
+**Key Features:**
+- Review list is **frozen at session start** - items don't loop back if you update them during review
+- Smart detection: Won't nag about missing #next if you've already linked the project in your weekly plan
+- Clear priority sorting: overdue tasks and missing spheres surface first
 
 ### "Plan this week"
-(Coming soon) View all #next tasks for weekly planning.
+Opens a planning modal showing all quests with actionable items.
+
+**Features:**
+- Shows all quests with **#next tasks** or **due dates**
+- Filter by sphere using dropdown
+- Grouped by sphere with task counts
+- Click quest title to jump directly to Tasks section
+- Summary shows total actionable tasks across filtered quests
 
 ## Structure
 
-- `src/main.ts` - Plugin entry point and review workflow
+- `src/main.ts` - Plugin entry point with review and planning commands
 - `src/QuestIndex.ts` - Indexes quest/area files and parses tasks
-- `src/ReviewDetector.ts` - Identifies projects needing review
-- `src/ReviewModal.ts` - Interactive review UI
-- `src/TaskParser.ts` - Parses markdown tasks with GTD tags
-- `src/FileUpdater.ts` - Updates quest files with changes
+- `src/ReviewDetector.ts` - Identifies projects needing review with priority scoring
+- `src/ReviewModal.ts` - Interactive review UI with defer/skip functionality
+- `src/WeeklyPlanningModal.ts` - Planning UI showing actionable tasks grouped by sphere
+- `src/TaskParser.ts` - Parses markdown tasks with GTD tags and due dates
+- `src/FileUpdater.ts` - Updates quest files with changes from review
 - `src/TaskIndex-Api.ts` - Public API for CustomJS scripts
 - `src/@types/` - TypeScript type definitions
 
