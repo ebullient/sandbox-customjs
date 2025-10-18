@@ -22,6 +22,17 @@ export interface TaskIndexSettings {
 }
 
 /**
+ * Section boundaries in a quest file
+ * All indices are suitable for direct use with Array.slice()
+ */
+export interface SectionBoundaries {
+    purposeStart: number; // First line of purpose content (inclusive)
+    purposeEnd: number; // Line after purpose content (exclusive) = tasksStart
+    tasksStart: number; // Line of ## Tasks heading
+    tasksEnd: number; // Line after tasks content (exclusive) = next section or length
+}
+
+/**
  * Task status markers from checkbox
  */
 export type TaskStatus = " " | "/" | "b" | "x" | "-";
@@ -65,9 +76,13 @@ export interface QuestFile {
     role?: string;
 
     // Content sections
-    purpose: string; // From frontmatter to ## Tasks
+    purpose: string; // Content after H1/frontmatter, before ## Tasks (excludes H1)
     tasks: Task[];
     rawTaskContent: string; // Raw markdown from ## Tasks section (preserves formatting)
+
+    // Section boundaries (line numbers for updates)
+    purposeStartLine: number; // Where purpose content starts (after H1 or frontmatter)
+    tasksStartLine: number; // Where ## Tasks heading is located
 
     // Computed flags
     hasNextTasks: boolean;
@@ -80,7 +95,12 @@ export interface QuestFile {
 /**
  * Reasons a project needs review
  */
-export type ReviewReason = "no-next-tasks" | "stale-project" | "overdue-tasks" | "long-waiting" | "no-sphere";
+export type ReviewReason =
+    | "no-next-tasks"
+    | "stale-project"
+    | "overdue-tasks"
+    | "long-waiting"
+    | "no-sphere";
 
 /**
  * Project flagged for review

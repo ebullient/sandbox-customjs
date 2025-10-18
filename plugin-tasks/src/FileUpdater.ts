@@ -1,12 +1,11 @@
 import type { App, CachedMetadata } from "obsidian";
-import type { QuestFile } from "./@types";
+import type { QuestFile, SectionBoundaries } from "./@types";
+import * as TaskParser from "./TaskParser";
 
 /**
  * Handles writing quest changes back to files
  */
 export class FileUpdater {
-    private static readonly TASKS_SECTION = "Tasks";
-
     constructor(private app: App) {}
 
     /**
@@ -19,142 +18,85 @@ export class FileUpdater {
             return;
         }
 
+        // Get fresh cache for atomic update
         const cache = this.app.metadataCache.getFileCache(file);
         if (!cache) {
             console.error(`[FileUpdater] No metadata cache for: ${quest.path}`);
             return;
         }
 
+        // Update content (purpose + tasks) atomically
         await this.app.vault.process(file, (content) => {
             return this.updateContent(content, quest, cache);
+        });
+
+        // Update frontmatter atomically (after content update)
+        await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+            if (quest.sphere) {
+                frontmatter.sphere = quest.sphere;
+            } else {
+                // biome-ignore lint/performance/noDelete: Need to remove property from frontmatter
+                delete frontmatter.sphere;
+            }
         });
     }
 
     /**
      * Update file content with quest changes
+     * Re-parses section boundaries from current content to ensure accuracy
      */
-    private updateContent(content: string, quest: QuestFile, cache: CachedMetadata): string {
-        const lines = content.split("\n");
+    private updateContent(
+        content: string,
+        quest: QuestFile,
+        cache: CachedMetadata,
+    ): string {
+        let lines = content.split("\n");
 
-        // Update frontmatter
-        const withFrontmatter = this.updateFrontmatter(lines, quest.sphere);
+        // Find current section boundaries using cache
+        const boundaries = TaskParser.findSectionBoundaries(lines, cache);
 
-        // Update purpose section
-        const withPurpose = this.updatePurpose(withFrontmatter, quest.purpose, cache);
+        // Update tasks section first (bottom section)
+        lines = this.replaceTaskSection(lines, quest, boundaries);
 
-        // Update tasks section with raw content
-        return this.replaceTaskSection(withPurpose, quest.rawTaskContent, cache);
+        // Update purpose section (middle section)
+        lines = this.updatePurpose(lines, quest, boundaries);
+
+        return lines.join("\n");
     }
 
     /**
      * Replace the entire Tasks section with new content
      */
-    private replaceTaskSection(lines: string[], taskContent: string, cache: CachedMetadata): string {
-        // Find Tasks section using metadata cache
-        const tasksHeading = cache.headings?.find(
-            (h) => h.level === 2 && h.heading.includes(FileUpdater.TASKS_SECTION),
-        );
+    private replaceTaskSection(
+        lines: string[],
+        quest: QuestFile,
+        boundaries: SectionBoundaries,
+    ): string[] {
+        // Replace task content (preserve the ## Tasks heading at tasksStart)
+        const contentStart = boundaries.tasksStart + 1;
 
-        if (!tasksHeading) {
-            console.warn("[FileUpdater] No Tasks section found");
-            return lines.join("\n");
-        }
-
-        // Content starts after heading
-        const startIdx = tasksHeading.position.start.line + 1;
-
-        // Find next heading at same or higher level
-        let endIdx = lines.length;
-        const nextHeading = cache.headings?.find(
-            (h) => h.level <= 2 && h.position.start.line > tasksHeading.position.start.line,
-        );
-        if (nextHeading) {
-            endIdx = nextHeading.position.start.line;
-        }
-
-        // Replace the task section
-        const result = [...lines.slice(0, startIdx), ...taskContent.split("\n"), ...lines.slice(endIdx)];
-
-        return result.join("\n");
+        return [
+            ...lines.slice(0, contentStart),
+            ...quest.rawTaskContent.split("\n"),
+            ...lines.slice(boundaries.tasksEnd),
+        ];
     }
 
     /**
-     * Update frontmatter with sphere
+     * Update purpose section (content after H1 title, before ## Tasks)
      */
-    private updateFrontmatter(lines: string[], sphere?: string): string[] {
-        const result = [...lines];
-
-        if (lines[0] !== "---") {
-            return result;
-        }
-
-        // Find end of frontmatter
-        let endIdx = -1;
-        for (let i = 1; i < lines.length; i++) {
-            if (lines[i] === "---") {
-                endIdx = i;
-                break;
-            }
-        }
-
-        if (endIdx === -1) {
-            return result;
-        }
-
-        // Check if sphere already exists
-        let sphereLineIdx = -1;
-        for (let i = 1; i < endIdx; i++) {
-            if (lines[i].startsWith("sphere:")) {
-                sphereLineIdx = i;
-                break;
-            }
-        }
-
-        if (sphere) {
-            const sphereLine = `sphere: ${sphere}`;
-            if (sphereLineIdx !== -1) {
-                // Update existing
-                result[sphereLineIdx] = sphereLine;
-            } else {
-                // Add after type field
-                const typeIdx = result.findIndex((l) => l.startsWith("type:"));
-                if (typeIdx !== -1) {
-                    result.splice(typeIdx + 1, 0, sphereLine);
-                }
-            }
-        } else if (sphereLineIdx !== -1) {
-            // Remove sphere if cleared
-            result.splice(sphereLineIdx, 1);
-        }
-
-        return result;
-    }
-
-    /**
-     * Update purpose section (content between first heading and ## Tasks)
-     */
-    private updatePurpose(lines: string[], purpose: string, cache: CachedMetadata): string[] {
-        // Find first heading (usually H1 title) - purpose starts after it
-        const firstHeading = cache.headings?.[0];
-        if (!firstHeading) {
-            return lines;
-        }
-
-        const startIdx = firstHeading.position.end.line + 1;
-
-        // Find ## Tasks section
-        const tasksHeading = cache.headings?.find(
-            (h) => h.level === 2 && h.heading.includes(FileUpdater.TASKS_SECTION),
-        );
-        if (!tasksHeading) {
-            return lines;
-        }
-
-        const tasksIdx = tasksHeading.position.start.line;
-
-        // Replace purpose section (after first heading, before Tasks)
-        const result = [...lines.slice(0, startIdx), ...purpose.split("\n"), "", ...lines.slice(tasksIdx)];
-
-        return result;
+    private updatePurpose(
+        lines: string[],
+        quest: QuestFile,
+        boundaries: SectionBoundaries,
+    ): string[] {
+        // Replace purpose content (between purposeStart and tasksStart)
+        // Add blank line before Tasks heading for readability
+        return [
+            ...lines.slice(0, boundaries.purposeStart),
+            ...quest.purpose.split("\n"),
+            "",
+            ...lines.slice(boundaries.tasksStart),
+        ];
     }
 }
