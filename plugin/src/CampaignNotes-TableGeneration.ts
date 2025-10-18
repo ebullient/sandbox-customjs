@@ -36,14 +36,22 @@ export class TableGenerationService {
     // Regular expressions for finding sections to replace with scope parameter
     private ENCOUNTERS_SECTION =
         /([\s\S]*?<!--\s*ENCOUNTERS\s+BEGIN\s*-->)[\s\S]*?(<!--\s*ENCOUNTERS\s+END\s*-->[\s\S]*?)/i;
-    private GROUPS_SECTION = /([\s\S]*?<!--\s*GROUPS\s+BEGIN\s*-->)[\s\S]*?(<!--\s*GROUPS\s+END\s*-->[\s\S]*?)/i;
-    private NPCS_SECTION = /([\s\S]*?<!--\s*NPCS\s+BEGIN\s*-->)[\s\S]*?(<!--\s*NPCS\s+END\s*-->[\s\S]*?)/i;
-    private PLACES_SECTION = /([\s\S]*?<!--\s*PLACES\s+BEGIN\s*-->)[\s\S]*?(<!--\s*PLACES\s+END\s*-->[\s\S]*?)/i;
-    private RENOWN_SECTION = /([\s\S]*?<!--\s*RENOWN\s+BEGIN\s*-->)[\s\S]*?(<!--\s*RENOWN\s+END\s*-->[\s\S]*?)/i;
+    private GROUPS_SECTION =
+        /([\s\S]*?<!--\s*GROUPS\s+BEGIN\s*-->)[\s\S]*?(<!--\s*GROUPS\s+END\s*-->[\s\S]*?)/i;
+    private NPCS_SECTION =
+        /([\s\S]*?<!--\s*NPCS\s+BEGIN\s*-->)[\s\S]*?(<!--\s*NPCS\s+END\s*-->[\s\S]*?)/i;
+    private PLACES_SECTION =
+        /([\s\S]*?<!--\s*PLACES\s+BEGIN\s*-->)[\s\S]*?(<!--\s*PLACES\s+END\s*-->[\s\S]*?)/i;
+    private RENOWN_SECTION =
+        /([\s\S]*?<!--\s*RENOWN\s+BEGIN\s*-->)[\s\S]*?(<!--\s*RENOWN\s+END\s*-->[\s\S]*?)/i;
     private TAG_CONNECTION_SECTION =
         /(<!--\s*tagConnection:begin\s+(?:scope|tag)="([^"]+?)"\s+type="([^"]+?)"\s*-->)[\s\S]*?(<!--\s*tagConnection:end\s*-->)/i;
 
-    constructor(app: App, index: CampaignNotesIndex, cache: CampaignNotesCache) {
+    constructor(
+        app: App,
+        index: CampaignNotesIndex,
+        cache: CampaignNotesCache,
+    ) {
         this.app = app;
         this.index = index;
         this.cache = cache;
@@ -74,7 +82,9 @@ export class TableGenerationService {
     async generateTables(): Promise<void> {
         const files = this.index.getGeneratedIndexFiles();
         if (files.length === 0) {
-            console.warn("No index files found with 'index: generated' in frontmatter");
+            console.warn(
+                "No index files found with 'index: generated' in frontmatter",
+            );
             return;
         }
 
@@ -97,7 +107,10 @@ export class TableGenerationService {
         this.cache.clearRelationshipCache();
     }
 
-    private async processFileGroup(scopePattern: string, files: TFile[]): Promise<void> {
+    private async processFileGroup(
+        scopePattern: string,
+        files: TFile[],
+    ): Promise<void> {
         this.cache.precomputeRelationshipsForScope(scopePattern);
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -114,18 +127,27 @@ export class TableGenerationService {
         }
     }
 
-    private async processFile(dataScope: DataScope, file: TFile): Promise<void> {
+    private async processFile(
+        dataScope: DataScope,
+        file: TFile,
+    ): Promise<void> {
         // Processing the file is an atomic operation.
         // Do as little processing as possible to format content
         let updatedContent = await this.app.vault.read(file);
 
         // Check for each section type and update if found
         if (this.ENCOUNTERS_SECTION.test(updatedContent)) {
-            updatedContent = this.updateEncounterSection(updatedContent, dataScope);
+            updatedContent = this.updateEncounterSection(
+                updatedContent,
+                dataScope,
+            );
         }
 
         if (this.GROUPS_SECTION.test(updatedContent)) {
-            updatedContent = this.updateGroupsSection(updatedContent, dataScope);
+            updatedContent = this.updateGroupsSection(
+                updatedContent,
+                dataScope,
+            );
         }
 
         if (this.NPCS_SECTION.test(updatedContent)) {
@@ -133,15 +155,24 @@ export class TableGenerationService {
         }
 
         if (this.PLACES_SECTION.test(updatedContent)) {
-            updatedContent = this.updatePlacesSection(updatedContent, dataScope);
+            updatedContent = this.updatePlacesSection(
+                updatedContent,
+                dataScope,
+            );
         }
 
         if (this.RENOWN_SECTION.test(updatedContent)) {
-            updatedContent = this.updateRenownSection(updatedContent, dataScope);
+            updatedContent = this.updateRenownSection(
+                updatedContent,
+                dataScope,
+            );
         }
 
         if (this.TAG_CONNECTION_SECTION.test(updatedContent)) {
-            updatedContent = this.updateTagConnectionSections(updatedContent, dataScope);
+            updatedContent = this.updateTagConnectionSections(
+                updatedContent,
+                dataScope,
+            );
         }
 
         await this.app.vault.process(file, () => updatedContent);
@@ -149,7 +180,10 @@ export class TableGenerationService {
         console.log("Processed", file.path, "with", dataScope);
     }
 
-    private updateEncounterSection(content: string, dataScope: DataScope): string {
+    private updateEncounterSection(
+        content: string,
+        dataScope: DataScope,
+    ): string {
         const match = this.ENCOUNTERS_SECTION.exec(content);
         if (!match) return content;
 
@@ -157,7 +191,10 @@ export class TableGenerationService {
         const suffix = match[2];
         const generated = this.generateEncounterContent(dataScope);
 
-        return content.replace(this.ENCOUNTERS_SECTION, prefix + generated + suffix);
+        return content.replace(
+            this.ENCOUNTERS_SECTION,
+            prefix + generated + suffix,
+        );
     }
 
     private updateGroupsSection(content: string, dataScope: DataScope): string {
@@ -168,7 +205,10 @@ export class TableGenerationService {
         const suffix = match[2];
         const generated = this.generateGroupsContent(dataScope);
 
-        return content.replace(this.GROUPS_SECTION, prefix + generated + suffix);
+        return content.replace(
+            this.GROUPS_SECTION,
+            prefix + generated + suffix,
+        );
     }
 
     private updateNPCsSection(content: string, dataScope: DataScope): string {
@@ -190,7 +230,10 @@ export class TableGenerationService {
         const suffix = match[2];
         const generated = this.generatePlacesContent(dataScope);
 
-        return content.replace(this.PLACES_SECTION, prefix + generated + suffix);
+        return content.replace(
+            this.PLACES_SECTION,
+            prefix + generated + suffix,
+        );
     }
 
     private updateRenownSection(content: string, dataScope: DataScope): string {
@@ -201,11 +244,19 @@ export class TableGenerationService {
         const suffix = match[2];
         const generated = this.generateRenownContent(dataScope);
 
-        return content.replace(this.RENOWN_SECTION, prefix + generated + suffix);
+        return content.replace(
+            this.RENOWN_SECTION,
+            prefix + generated + suffix,
+        );
     }
 
-    private updateTagConnectionSections(content: string, dataScope: DataScope): string {
-        const blocks = content.split(/(<!--\s*tagConnection:begin[\s\S]*?tagConnection:end\s*-->)/);
+    private updateTagConnectionSections(
+        content: string,
+        dataScope: DataScope,
+    ): string {
+        const blocks = content.split(
+            /(<!--\s*tagConnection:begin[\s\S]*?tagConnection:end\s*-->)/,
+        );
 
         let i: number;
         for (i = 0; i < blocks.length; i++) {
@@ -218,7 +269,9 @@ export class TableGenerationService {
 
                 const type = this.index.getEntityType(typeString);
                 if (!type) {
-                    console.warn(`Unknown type "${typeString}" in tag connection section`);
+                    console.warn(
+                        `Unknown type "${typeString}" in tag connection section`,
+                    );
                     continue;
                 }
 
@@ -227,7 +280,10 @@ export class TableGenerationService {
                     active: scope,
                 };
 
-                const generated = this.generateTagConnectionContent(sectionDataScope, type);
+                const generated = this.generateTagConnectionContent(
+                    sectionDataScope,
+                    type,
+                );
 
                 blocks[i] = prefix + generated + suffix;
             }
@@ -249,11 +305,17 @@ export class TableGenerationService {
         for (const e of encounters) {
             const status = e.status;
             if (status === "active") {
-                activeEncounters.push(this.formatEncounterCard(dataScope, e, activeCounter, true));
+                activeEncounters.push(
+                    this.formatEncounterCard(dataScope, e, activeCounter, true),
+                );
             } else if (status === "new") {
-                newEncounters.push(this.formatEncounterCard(dataScope, e, newCounter, true));
+                newEncounters.push(
+                    this.formatEncounterCard(dataScope, e, newCounter, true),
+                );
             } else {
-                otherEncounters.push(this.formatEncounterCard(dataScope, e, otherCounter));
+                otherEncounters.push(
+                    this.formatEncounterCard(dataScope, e, otherCounter),
+                );
             }
         }
 
@@ -277,7 +339,11 @@ export class TableGenerationService {
             result += `## Other Encounters\n\n${otherHeader}\n${otherEncounters.join("\n")}\n\n`;
         }
 
-        if (activeEncounters.length === 0 && newEncounters.length === 0 && otherEncounters.length === 0) {
+        if (
+            activeEncounters.length === 0 &&
+            newEncounters.length === 0 &&
+            otherEncounters.length === 0
+        ) {
             result += "No Encounters\n\n";
         }
 
@@ -298,18 +364,34 @@ export class TableGenerationService {
             const status = this.cache.getGroupStatus(dataScope, group.id);
 
             if (!status || status === "active") {
-                const text = this.formatGroupCard(group, dataScope, activeCounter);
+                const text = this.formatGroupCard(
+                    group,
+                    dataScope,
+                    activeCounter,
+                );
                 activeGroups.push(text);
             } else if (status === "defunct") {
-                const text = this.formatGroupCard(group, dataScope, defunctCounter);
+                const text = this.formatGroupCard(
+                    group,
+                    dataScope,
+                    defunctCounter,
+                );
                 defunctGroups.push(text);
             } else {
-                const text = this.formatGroupCard(group, dataScope, otherCounter);
+                const text = this.formatGroupCard(
+                    group,
+                    dataScope,
+                    otherCounter,
+                );
                 otherGroups.push(text);
             }
         }
 
-        if (activeGroups.length === 0 && defunctGroups.length === 0 && otherGroups.length === 0) {
+        if (
+            activeGroups.length === 0 &&
+            defunctGroups.length === 0 &&
+            otherGroups.length === 0
+        ) {
             return "\nNo Groups\n\n";
         }
 
@@ -338,31 +420,58 @@ export class TableGenerationService {
             return "\nNo NPCs\n\n";
         }
 
-        const result = [`${allNPCs.length} NPC(s) found in ${dataScope.pattern}\n`];
+        const result = [
+            `${allNPCs.length} NPC(s) found in ${dataScope.pattern}\n`,
+        ];
 
         const header =
             "- <span class='tr header npcs'><span class='th sess'>sess</span><span class='th stat'>stat</span><span class='th iff'>iff</span><span class='th name'>## NPC(s)</span><span class='th scope'>scope</span></span>";
 
         // Family / Pets
-        const familySection = this.generateNPCGroup(header, "family", "Family & Friends", dataScope);
+        const familySection = this.generateNPCGroup(
+            header,
+            "family",
+            "Family & Friends",
+            dataScope,
+        );
         if (familySection) result.push(familySection);
 
         // Allies / Employees
-        const alliesSection = this.generateNPCGroup(header, "allies", "Friends & Allies", dataScope);
+        const alliesSection = this.generateNPCGroup(
+            header,
+            "allies",
+            "Friends & Allies",
+            dataScope,
+        );
         if (alliesSection) result.push(alliesSection);
 
         // Enemies
-        const enemiesSection = this.generateNPCGroup(header, "enemies", "Enemies", dataScope);
+        const enemiesSection = this.generateNPCGroup(
+            header,
+            "enemies",
+            "Enemies",
+            dataScope,
+        );
         if (enemiesSection) result.push(enemiesSection);
 
         // Other
-        const otherSection = this.generateNPCGroup(header, "other", "Other", dataScope);
+        const otherSection = this.generateNPCGroup(
+            header,
+            "other",
+            "Other",
+            dataScope,
+        );
         if (otherSection) result.push(otherSection);
 
         return `\n${result.join("\n")}`;
     }
 
-    private generateNPCGroup(thead: string, iffGroup: string, heading: string, dataScope: DataScope): string {
+    private generateNPCGroup(
+        thead: string,
+        iffGroup: string,
+        heading: string,
+        dataScope: DataScope,
+    ): string {
         const iffNpcs = this.cache.getIffNpcs(dataScope, iffGroup);
         if (!iffNpcs || iffNpcs.length === 0) {
             return "";
@@ -397,7 +506,9 @@ export class TableGenerationService {
         const formattedPlaces = this.cache
             .getPlaces(dataScope.pattern)
             .filter((place) => this.scopeFilter(place, dataScope))
-            .map((place) => this.formatPlaceCard(place, dataScope, placeCounter));
+            .map((place) =>
+                this.formatPlaceCard(place, dataScope, placeCounter),
+            );
 
         result += "## Places\n\n";
         if (formattedPlaces.length > 0) {
@@ -427,13 +538,21 @@ export class TableGenerationService {
         return result;
     }
 
-    private generateTagConnectionContent(dataScope: DataScope, type: EntityType): string {
+    private generateTagConnectionContent(
+        dataScope: DataScope,
+        type: EntityType,
+    ): string {
         const result = [];
 
         // Filter to entities that are active in the current scope
-        const entities: CampaignEntity[] = this.cache.getActiveByType(type, dataScope);
+        const entities: CampaignEntity[] = this.cache.getActiveByType(
+            type,
+            dataScope,
+        );
         const filteredEntities = entities.filter((e) => {
-            return e.scope === dataScope.active || !!e.state?.[dataScope.active];
+            return (
+                e.scope === dataScope.active || !!e.state?.[dataScope.active]
+            );
         });
 
         result.push(`| ${type} for ${dataScope.pattern.replace("|", "|")} |`);
@@ -459,7 +578,10 @@ export class TableGenerationService {
         showLevel = false,
     ): string {
         const status = encounter.status;
-        const references = this.cache.getRelatedByType(dataScope.pattern, encounter.id);
+        const references = this.cache.getRelatedByType(
+            dataScope.pattern,
+            encounter.id,
+        );
 
         const entityGroups = [];
         for (const [type, entityLinks] of references) {
@@ -470,9 +592,14 @@ export class TableGenerationService {
 
         const evenOdd = counter.count++ % 2 === 0 ? "even" : "odd";
         const levelClass = showLevel ? " hasLevel" : "";
-        const related = entityGroups.length > 0 ? `<span class="indent related">${entityGroups.join("; ")}</span>` : "";
+        const related =
+            entityGroups.length > 0
+                ? `<span class="indent related">${entityGroups.join("; ")}</span>`
+                : "";
 
-        const level = showLevel ? `<span class="level">${encounter.level ? encounter.level : ""}</span>` : "";
+        const level = showLevel
+            ? `<span class="level">${encounter.level ? encounter.level : ""}</span>`
+            : "";
 
         const row = [
             `- <span class="tr encounter ${evenOdd}${levelClass}">`,
@@ -484,7 +611,11 @@ export class TableGenerationService {
         return row.join("");
     }
 
-    private formatGroupCard(group: Group, dataScope: DataScope, counter: RowCount): string {
+    private formatGroupCard(
+        group: Group,
+        dataScope: DataScope,
+        counter: RowCount,
+    ): string {
         const groupState = group.state[dataScope.active];
         const groupFallback = group.state["*"];
 
@@ -504,14 +635,20 @@ export class TableGenerationService {
         return row.join("");
     }
 
-    private formatNPCCard(npc: NPC, dataScope: DataScope, counter: RowCount): string {
+    private formatNPCCard(
+        npc: NPC,
+        dataScope: DataScope,
+        counter: RowCount,
+    ): string {
         const npcState = npc.state[dataScope.active];
         const npcFallback = npc.state["*"];
         const npcIff = npcState?.iff || npcFallback?.iff || "";
 
         const iffKey = iffStatusIcon(npcIff);
         const status = statusIcon(
-            npcState?.status || npcFallback?.status || (npcIff ? NPCStatus.ALIVE : NPCStatus.UNKNOWN),
+            npcState?.status ||
+                npcFallback?.status ||
+                (npcIff ? NPCStatus.ALIVE : NPCStatus.UNKNOWN),
         );
 
         const icons = this.cache.getIcons(npc);
@@ -534,20 +671,33 @@ export class TableGenerationService {
         return set.join("");
     }
 
-    private formatAreaCard(area: Area, dataScope: DataScope, counter: RowCount): string {
+    private formatAreaCard(
+        area: Area,
+        dataScope: DataScope,
+        counter: RowCount,
+    ): string {
         const lastSeenText = this.cache.getLastSeen(area, dataScope.pattern);
         const subtypeText = area.subtype || "";
 
         const groupAreaText = [];
-        const areas = this.cache.getRelatedOfType(dataScope.pattern, area.id, EntityType.AREA);
+        const areas = this.cache.getRelatedOfType(
+            dataScope.pattern,
+            area.id,
+            EntityType.AREA,
+        );
         if (areas) {
             groupAreaText.push(`${typeIcon("area")} ${areas.join(", ")}`);
         }
-        const groups = this.cache.getRelatedOfType(dataScope.pattern, area.id, EntityType.GROUP);
+        const groups = this.cache.getRelatedOfType(
+            dataScope.pattern,
+            area.id,
+            EntityType.GROUP,
+        );
         if (groups) {
             groupAreaText.push(`${typeIcon("group")} ${groups.join(", ")}`);
         }
-        const groupInfo = groupAreaText.length > 0 ? ` — ${groupAreaText.join("; ")}` : "";
+        const groupInfo =
+            groupAreaText.length > 0 ? ` — ${groupAreaText.join("; ")}` : "";
 
         const evenOdd = counter.count++ % 2 === 0 ? "even" : "odd";
         const notesRow = this.associatedNotes(area, dataScope);
@@ -562,7 +712,11 @@ export class TableGenerationService {
         return set.join("");
     }
 
-    private formatPlaceCard(place: Place, dataScope: DataScope, counter: RowCount): string {
+    private formatPlaceCard(
+        place: Place,
+        dataScope: DataScope,
+        counter: RowCount,
+    ): string {
         const lastSeenText = this.cache.getLastSeen(place, dataScope.pattern);
         const subtypeText = place.subtype || "";
 
@@ -572,16 +726,26 @@ export class TableGenerationService {
             if (area) {
                 groupAreaText.push(`${typeIcon("area")} ${entityToLink(area)}`);
             } else {
-                console.warn("Area not found", place.id, place.name, place.area);
+                console.warn(
+                    "Area not found",
+                    place.id,
+                    place.name,
+                    place.area,
+                );
             }
         }
 
-        const groups = this.cache.getRelatedOfType(dataScope.pattern, place.id, EntityType.GROUP);
+        const groups = this.cache.getRelatedOfType(
+            dataScope.pattern,
+            place.id,
+            EntityType.GROUP,
+        );
         if (groups) {
             groupAreaText.push(`${typeIcon("group")} ${groups.join(", ")}`);
         }
 
-        const groupInfo = groupAreaText.length > 0 ? ` — ${groupAreaText.join("; ")}` : "";
+        const groupInfo =
+            groupAreaText.length > 0 ? ` — ${groupAreaText.join("; ")}` : "";
 
         // If notes exist, add them as a second row
         const evenOdd = counter.count++ % 2 === 0 ? "even" : "odd";
@@ -597,7 +761,11 @@ export class TableGenerationService {
         return row.join("");
     }
 
-    formatRenownCard(group: Group, dataScope: DataScope, counter: RowCount): string {
+    formatRenownCard(
+        group: Group,
+        dataScope: DataScope,
+        counter: RowCount,
+    ): string {
         const groupState = group.state[dataScope.active];
         const groupFallback = group.state["*"];
 
@@ -617,7 +785,10 @@ export class TableGenerationService {
         return row.join("");
     }
 
-    private associatedNotes(entity: CampaignEntity, dataScope: DataScope): string {
+    private associatedNotes(
+        entity: CampaignEntity,
+        dataScope: DataScope,
+    ): string {
         const entityState = entity.state[dataScope.active];
         const entityFallback = entity.state["*"];
 

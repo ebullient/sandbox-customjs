@@ -65,7 +65,9 @@ export class ReviewModal extends Modal {
             text: `Reviewing ${this.currentItem} of ${this.totalItems}`,
             cls: "review-progress-text",
         });
-        const percentage = Math.round(((this.currentItem - 1) / this.totalItems) * 100);
+        const percentage = Math.round(
+            ((this.currentItem - 1) / this.totalItems) * 100,
+        );
         progressEl.createDiv({
             text: `${percentage}% complete`,
             cls: "review-progress-percent",
@@ -98,7 +100,9 @@ export class ReviewModal extends Modal {
 
         const list = reasonsSection.createEl("ul");
         for (const reason of this.reviewReasons) {
-            list.createEl("li", { text: this.reviewDetector.getReasonDescription(reason) });
+            list.createEl("li", {
+                text: this.reviewDetector.getReasonDescription(reason),
+            });
         }
     }
 
@@ -133,7 +137,9 @@ export class ReviewModal extends Modal {
 
         // Tag insertion dropdown for purpose
         this.createTagDropdown(header, (tag) => {
-            const textArea = section.querySelector("textarea") as HTMLTextAreaElement;
+            const textArea = section.querySelector(
+                "textarea",
+            ) as HTMLTextAreaElement;
             if (textArea) {
                 this.insertTag(textArea, tag);
             }
@@ -172,7 +178,10 @@ export class ReviewModal extends Modal {
         });
     }
 
-    private createTagDropdown(container: HTMLElement, onSelect: (tag: string) => void) {
+    private createTagDropdown(
+        container: HTMLElement,
+        onSelect: (tag: string) => void,
+    ) {
         const dropdown = container.createEl("select", { cls: "tag-dropdown" });
 
         // Placeholder option
@@ -253,7 +262,9 @@ export class ReviewModal extends Modal {
 
         // Defer button (if onDefer exists)
         if (this.onDefer) {
-            const deferBtn = buttonSection.createEl("button", { text: "Defer" });
+            const deferBtn = buttonSection.createEl("button", {
+                text: "Defer",
+            });
             deferBtn.addEventListener("click", () => {
                 this.close();
                 if (this.onDefer) {
@@ -282,7 +293,10 @@ export class ReviewModal extends Modal {
             tasks: this.quest.tasks, // Keep original for now, will be reindexed
         };
 
-        console.log("[ReviewModal] saving with rawTaskContent length:", this.taskMarkdown.length);
+        console.log(
+            "[ReviewModal] saving with rawTaskContent length:",
+            this.taskMarkdown.length,
+        );
         await this.onSave(updated);
     }
 

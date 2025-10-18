@@ -86,7 +86,10 @@ export const typeIcon = (type: string): string => {
     }
 };
 
-export const entityToLink = (entity: CampaignEntity, strong = false): string => {
+export const entityToLink = (
+    entity: CampaignEntity,
+    strong = false,
+): string => {
     const strongText = strong ? `**${entity.name}**` : entity.name;
     return `[${strongText}](${entity.id})`;
 };
@@ -119,7 +122,9 @@ export const cleanLinkTarget = (linkRef: Reference): CleanLink => {
                   .replace(/%20/g, " ")
                   .trim();
 
-    path = (anchorPos < 0 ? path : path.substring(0, anchorPos)).replace(/%20/g, " ").trim();
+    path = (anchorPos < 0 ? path : path.substring(0, anchorPos))
+        .replace(/%20/g, " ")
+        .trim();
 
     return {
         mdLink,
@@ -161,21 +166,35 @@ export const segmentFilterRegex = (str: string): RegExp => {
     return new RegExp(`^${str}(\\/|$)`);
 };
 
-export const addToMappedArray = <T>(map: Map<string, T[]>, key: string, value: T): void => {
+export const addToMappedArray = <T>(
+    map: Map<string, T[]>,
+    key: string,
+    value: T,
+): void => {
     const list = map.get(key) || [];
     map.set(key, list);
 
     list.push(value);
 };
 
-export const addToMappedMap = <K, V>(map: Map<string, Map<K, V>>, key: string, subKey: K, value: V): void => {
+export const addToMappedMap = <K, V>(
+    map: Map<string, Map<K, V>>,
+    key: string,
+    subKey: K,
+    value: V,
+): void => {
     const subMap = map.get(key) || new Map<K, V>();
     map.set(key, subMap);
 
     subMap.set(subKey, value);
 };
 
-export const addToMappedNestedArray = <K, T>(map: Map<string, Map<K, T[]>>, key: string, subKey: K, value: T): void => {
+export const addToMappedNestedArray = <K, T>(
+    map: Map<string, Map<K, T[]>>,
+    key: string,
+    subKey: K,
+    value: T,
+): void => {
     const subMap = map.get(key) || new Map<K, T[]>();
     map.set(key, subMap);
 

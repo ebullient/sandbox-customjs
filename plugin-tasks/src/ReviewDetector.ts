@@ -1,5 +1,10 @@
 import type { App } from "obsidian";
-import type { QuestFile, ReviewItem, ReviewReason, TaskIndexSettings } from "./@types";
+import type {
+    QuestFile,
+    ReviewItem,
+    ReviewReason,
+    TaskIndexSettings,
+} from "./@types";
 
 /**
  * Detects which projects need review
@@ -24,7 +29,11 @@ export class ReviewDetector {
         }
 
         // Check for no #next tasks (but skip if current week links to this project)
-        if (!quest.hasNextTasks && quest.tasks.length > 0 && !this.isLinkedFromCurrentWeek(quest.path)) {
+        if (
+            !quest.hasNextTasks &&
+            quest.tasks.length > 0 &&
+            !this.isLinkedFromCurrentWeek(quest.path)
+        ) {
             reasons.push("no-next-tasks");
             priority += 5;
         }

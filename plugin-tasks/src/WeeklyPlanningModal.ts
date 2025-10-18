@@ -1,6 +1,6 @@
 import { type App, Modal, Setting } from "obsidian";
 import type { QuestFile, Task, TaskIndexSettings } from "./@types";
-import { TaskParser } from "./TaskParser";
+import * as TaskParser from "./TaskParser";
 
 /**
  * Simple modal showing all quests with actionable tasks (#next or due dates)
@@ -9,7 +9,7 @@ import { TaskParser } from "./TaskParser";
 export class WeeklyPlanningModal extends Modal {
     private allQuests: QuestFile[];
     private settings: TaskIndexSettings;
-    private selectedSphere: string = "all";
+    private selectedSphere = "all";
     private filteredQuests: QuestFile[] = [];
 
     constructor(app: App, quests: QuestFile[], settings: TaskIndexSettings) {
@@ -45,7 +45,9 @@ export class WeeklyPlanningModal extends Modal {
         this.applyFilter();
 
         if (this.filteredQuests.length === 0) {
-            contentEl.createDiv({ text: "No quests match the selected sphere filter." });
+            contentEl.createDiv({
+                text: "No quests match the selected sphere filter.",
+            });
             return;
         }
 
@@ -72,7 +74,9 @@ export class WeeklyPlanningModal extends Modal {
     }
 
     private renderSphereFilter(container: HTMLElement) {
-        const filterSection = container.createDiv({ cls: "sphere-filter-section" });
+        const filterSection = container.createDiv({
+            cls: "sphere-filter-section",
+        });
 
         new Setting(filterSection)
             .setName("Filter by sphere")
@@ -104,7 +108,9 @@ export class WeeklyPlanningModal extends Modal {
         } else if (this.selectedSphere === "none") {
             this.filteredQuests = this.allQuests.filter((q) => !q.sphere);
         } else {
-            this.filteredQuests = this.allQuests.filter((q) => q.sphere === this.selectedSphere);
+            this.filteredQuests = this.allQuests.filter(
+                (q) => q.sphere === this.selectedSphere,
+            );
         }
     }
 
@@ -127,10 +133,14 @@ export class WeeklyPlanningModal extends Modal {
 
         const parts: string[] = [];
         if (totalNextTasks > 0) {
-            parts.push(`${totalNextTasks} #next task${totalNextTasks !== 1 ? "s" : ""}`);
+            parts.push(
+                `${totalNextTasks} #next task${totalNextTasks !== 1 ? "s" : ""}`,
+            );
         }
         if (totalDueTasks > 0) {
-            parts.push(`${totalDueTasks} due task${totalDueTasks !== 1 ? "s" : ""}`);
+            parts.push(
+                `${totalDueTasks} due task${totalDueTasks !== 1 ? "s" : ""}`,
+            );
         }
 
         const summaryText = `Found ${parts.join(" and ")} across ${this.filteredQuests.length} quest${this.filteredQuests.length !== 1 ? "s" : ""}`;
@@ -156,7 +166,11 @@ export class WeeklyPlanningModal extends Modal {
         return groups;
     }
 
-    private renderSphereGroup(container: HTMLElement, sphere: string, quests: QuestFile[]) {
+    private renderSphereGroup(
+        container: HTMLElement,
+        sphere: string,
+        quests: QuestFile[],
+    ) {
         const section = container.createDiv({ cls: "sphere-group" });
 
         // Sphere heading
@@ -202,7 +216,10 @@ export class WeeklyPlanningModal extends Modal {
                 // Add indicator for why it's actionable
                 if (reason === "due") {
                     taskSpan.addClass("task-due");
-                    taskItem.createSpan({ text: ` {${task.dueDate}}`, cls: "task-due-date" });
+                    taskItem.createSpan({
+                        text: ` {${task.dueDate}}`,
+                        cls: "task-due-date",
+                    });
                 } else if (reason === "next") {
                     taskSpan.addClass("task-next");
                 }
@@ -210,8 +227,11 @@ export class WeeklyPlanningModal extends Modal {
         }
     }
 
-    private getActionableTasks(quest: QuestFile): Array<{ task: Task; reason: "next" | "due" | "both" }> {
-        const results: Array<{ task: Task; reason: "next" | "due" | "both" }> = [];
+    private getActionableTasks(
+        quest: QuestFile,
+    ): Array<{ task: Task; reason: "next" | "due" | "both" }> {
+        const results: Array<{ task: Task; reason: "next" | "due" | "both" }> =
+            [];
 
         for (const task of quest.tasks) {
             const isNext = task.tags.includes("next");

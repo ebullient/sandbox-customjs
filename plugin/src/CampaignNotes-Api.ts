@@ -1,6 +1,15 @@
 import type { CampaignNotesCache } from "CampaignNotes-Cache";
 import type { Editor, Plugin, TFile } from "obsidian";
-import type { Area, CampaignEntity, Encounter, EntityType, Group, Item, NPC, Place } from "./@types";
+import type {
+    Area,
+    CampaignEntity,
+    Encounter,
+    EntityType,
+    Group,
+    Item,
+    NPC,
+    Place,
+} from "./@types";
 import type { CampaignReferenceAPI, EntityLinkOptions } from "./@types/api";
 import type { EntitySelectorService } from "./CampaignNotes-EntitySelector";
 import type { CampaignNotesIndex } from "./CampaignNotes-Index";
@@ -86,7 +95,10 @@ export class CampaignReference implements CampaignReferenceAPI {
     /**
      * Get entities by type
      */
-    getEntitiesByType(type: EntityType, scopePattern?: string): CampaignEntity[] {
+    getEntitiesByType(
+        type: EntityType,
+        scopePattern?: string,
+    ): CampaignEntity[] {
         return this.index.getEntitiesByType(type, scopePattern);
     }
 

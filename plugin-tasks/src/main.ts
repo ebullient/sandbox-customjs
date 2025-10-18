@@ -1,4 +1,4 @@
-import { debounce, Notice, Plugin, type TAbstractFile } from "obsidian";
+import { Notice, Plugin, type TAbstractFile, debounce } from "obsidian";
 import type { ReviewItem, TaskIndexSettings } from "./@types";
 import { FileUpdater } from "./FileUpdater";
 import { QuestIndex } from "./QuestIndex";
@@ -108,7 +108,11 @@ export default class TaskIndexPlugin extends Plugin {
     }
 
     async loadSettings() {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        this.settings = Object.assign(
+            {},
+            DEFAULT_SETTINGS,
+            await this.loadData(),
+        );
     }
 
     async saveSettings() {
@@ -129,7 +133,9 @@ export default class TaskIndexPlugin extends Plugin {
             return;
         }
 
-        new Notice(`${reviewItems.length} projects need review. Opening first one...`);
+        new Notice(
+            `${reviewItems.length} projects need review. Opening first one...`,
+        );
 
         // Start review queue with frozen list
         this.processReviewQueue(reviewItems, 0);
@@ -144,7 +150,10 @@ export default class TaskIndexPlugin extends Plugin {
      * - Defer: Pushes item to END of queue, moves to next (try again later)
      * - Cancel: Exits review session entirely
      */
-    private processReviewQueue(reviewItems: ReviewItem[], currentIndex: number) {
+    private processReviewQueue(
+        reviewItems: ReviewItem[],
+        currentIndex: number,
+    ) {
         if (currentIndex >= reviewItems.length) {
             new Notice("All done with reviews! 🎉");
             return;
@@ -193,14 +202,22 @@ export default class TaskIndexPlugin extends Plugin {
     private showWeeklyPlanning() {
         // Get all quests that have actionable tasks (#next OR due dates)
         const allQuests = this.index.getAllQuests();
-        const actionableQuests = allQuests.filter((q) => q.hasNextTasks || q.hasOverdueTasks);
+        const actionableQuests = allQuests.filter(
+            (q) => q.hasNextTasks || q.hasOverdueTasks,
+        );
 
         if (actionableQuests.length === 0) {
-            new Notice("No quests with actionable tasks (#next or due dates) found. Review your projects first!");
+            new Notice(
+                "No quests with actionable tasks (#next or due dates) found. Review your projects first!",
+            );
             return;
         }
 
-        const modal = new WeeklyPlanningModal(this.app, actionableQuests, this.settings);
+        const modal = new WeeklyPlanningModal(
+            this.app,
+            actionableQuests,
+            this.settings,
+        );
         modal.open();
     }
 }
