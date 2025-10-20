@@ -3,9 +3,9 @@ import type {
     App,
     FrontMatterCache,
     LinkCache,
+    TagCache,
     TFile,
     TFolder,
-    TagCache,
 } from "obsidian";
 import type { EngineAPI } from "./@types/jsengine.types";
 

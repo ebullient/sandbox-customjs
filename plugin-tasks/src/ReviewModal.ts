@@ -52,12 +52,13 @@ export class ReviewModal extends Modal {
         this.selectedSphere = quest.sphere;
         this.purposeText = quest.purpose;
         this.taskMarkdown = quest.rawTaskContent;
+
+        this.containerEl.id = "task-review-modal";
     }
 
     onOpen() {
         const { contentEl } = this;
         contentEl.empty();
-        contentEl.addClass("task-review-modal");
 
         // Progress indicator
         const progressEl = contentEl.createDiv({ cls: "review-progress" });

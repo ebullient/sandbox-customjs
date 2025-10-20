@@ -6,9 +6,9 @@ import {
 } from "CampaignNotes-utils";
 import {
     type FrontMatterCache,
+    getAllTags,
     type TAbstractFile,
     TFile,
-    getAllTags,
 } from "obsidian";
 import {
     type Area,
@@ -19,8 +19,8 @@ import {
     type GroupStatus,
     type Item,
     type NPC,
-    type NPCStatus,
     type NPC_IFF,
+    type NPCStatus,
     type PC,
     type Place,
 } from "./@types";

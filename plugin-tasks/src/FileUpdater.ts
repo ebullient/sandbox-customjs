@@ -35,7 +35,6 @@ export class FileUpdater {
             if (quest.sphere) {
                 frontmatter.sphere = quest.sphere;
             } else {
-                // biome-ignore lint/performance/noDelete: Need to remove property from frontmatter
                 delete frontmatter.sphere;
             }
         });

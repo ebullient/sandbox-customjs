@@ -1,4 +1,4 @@
-import { Plugin, type TAbstractFile, debounce } from "obsidian";
+import { debounce, Plugin, type TAbstractFile } from "obsidian";
 import type { CampaignNotesSettings } from "./@types/settings";
 import { CampaignReference } from "./CampaignNotes-Api";
 import { EntitySelectorService } from "./CampaignNotes-EntitySelector";

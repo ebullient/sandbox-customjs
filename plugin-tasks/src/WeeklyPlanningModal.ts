@@ -17,6 +17,7 @@ export class WeeklyPlanningModal extends Modal {
         this.allQuests = quests;
         this.settings = settings;
         this.filteredQuests = quests;
+        this.containerEl.id = "weekly-planning-modal";
     }
 
     onOpen() {
@@ -26,7 +27,6 @@ export class WeeklyPlanningModal extends Modal {
     private render() {
         const { contentEl } = this;
         contentEl.empty();
-        contentEl.addClass("weekly-planning-modal");
 
         // Title
         contentEl.createEl("h2", { text: "Weekly Planning" });

@@ -4,301 +4,303 @@
    Review Modal
    ============================================================ */
 
-.task-review-modal {
-	padding: 20px;
+#task-review-modal {
+  padding: 20px;
 }
 
 /* Make modal wider on larger screens */
 @media (min-width: 800px) {
-	.task-review-modal .modal {
-		width: 90vw;
-		max-width: 1200px;
-	}
+  #task-review-modal .modal {
+    width: 90vw;
+    max-width: 1200px;
+  }
 }
 
 /* Progress indicator */
 .review-progress {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: 10px 15px;
-	margin-bottom: 15px;
-	background: var(--background-secondary);
-	border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  background: var(--background-secondary);
+  border-radius: 6px;
 }
 
 .review-progress-text {
-	font-weight: 500;
-	color: var(--text-normal);
+  font-weight: 500;
+  color: var(--text-normal);
 }
 
 .review-progress-percent {
-	font-size: var(--font-ui-small);
-	color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
 }
 
 /* Review reasons section */
 .review-reasons {
-	margin-bottom: 20px;
-	padding: 15px;
-	background: var(--background-modifier-error-hover);
-	border-left: 3px solid var(--text-error);
-	border-radius: 4px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: var(--background-modifier-error-hover);
+  border-left: 3px solid var(--text-error);
+  border-radius: 4px;
 }
 
 .review-reasons h3 {
-	margin-top: 0;
-	margin-bottom: 10px;
-	color: var(--text-error);
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: var(--text-on-accent);
 }
 
 .review-reasons ul {
-	margin: 0;
-	padding-left: 20px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-on-accent);
 }
 
 .review-reasons li {
-	margin-bottom: 5px;
-	color: var(--text-normal);
+  margin-bottom: 5px;
+  color: var(--text-normal);
 }
 
 /* Sphere section */
 .sphere-section {
-	margin-bottom: 25px;
+  margin-bottom: 25px;
 }
 
 .sphere-section h3 {
-	margin-bottom: 10px;
-	color: var(--text-accent);
+  margin-bottom: 10px;
+  color: var(--text-accent);
 }
 
 /* Purpose section */
 .purpose-section {
-	margin-bottom: 25px;
+  margin-bottom: 25px;
 }
 
 .purpose-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
 .purpose-header h3 {
-	margin: 0;
-	color: var(--text-accent);
+  margin: 0;
+  color: var(--text-accent);
 }
 
 .purpose-editor {
-	width: 100%;
-	min-height: 150px;
-	padding: 10px;
-	font-family: var(--font-text);
-	font-size: var(--font-ui-medium);
-	background: var(--background-primary);
-	color: var(--text-normal);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 4px;
-	resize: vertical;
+  width: 100%;
+  min-height: 150px;
+  padding: 10px;
+  font-family: var(--font-text);
+  font-size: var(--font-ui-medium);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  resize: vertical;
 }
 
 .purpose-editor:focus {
-	outline: none;
-	border-color: var(--interactive-accent);
+  outline: none;
+  border-color: var(--interactive-accent);
 }
 
 /* Tasks section */
 .tasks-section {
-	margin-bottom: 25px;
+  margin-bottom: 25px;
 }
 
 .tasks-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
 .tasks-header h3 {
-	margin: 0;
-	color: var(--text-accent);
+  margin: 0;
+  color: var(--text-accent);
 }
 
 .task-editor {
-	width: 100%;
-	min-height: 300px;
-	padding: 10px;
-	font-family: var(--font-monospace);
-	font-size: var(--font-ui-small);
-	background: var(--background-primary);
-	color: var(--text-normal);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 4px;
-	resize: vertical;
-	line-height: 1.5;
+  width: 100%;
+  min-height: 300px;
+  padding: 10px;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  resize: vertical;
+  line-height: 1.5;
 }
 
 .task-editor:focus {
-	outline: none;
-	border-color: var(--interactive-accent);
+  outline: none;
+  border-color: var(--interactive-accent);
 }
 
 /* Tag dropdown (for purpose and tasks) */
 .tag-dropdown {
-	padding: 4px 8px;
-	font-size: var(--font-ui-small);
-	font-family: var(--font-monospace);
-	background: var(--background-primary);
-	color: var(--text-normal);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 3px;
-	cursor: pointer;
-	min-width: 150px;
+  padding: 4px 8px;
+  font-size: var(--font-ui-small);
+  font-family: var(--font-monospace);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 3px;
+  cursor: pointer;
+  min-width: 150px;
 }
 
 .tag-dropdown:hover {
-	background: var(--background-modifier-hover);
+  background: var(--background-modifier-hover);
 }
 
 .tag-dropdown:focus {
-	outline: none;
-	border-color: var(--interactive-accent);
+  outline: none;
+  border-color: var(--interactive-accent);
 }
 
 /* Modal buttons */
 .button-section {
-	display: flex;
-	gap: 10px;
-	margin-top: 20px;
-	padding-top: 20px;
-	border-top: 1px solid var(--background-modifier-border);
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--background-modifier-border);
 }
 
 .button-section button {
-	padding: 8px 16px;
-	border-radius: 4px;
-	cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 /* ============================================================
    Weekly Planning Modal
    ============================================================ */
 
-.weekly-planning-modal {
-	padding: 20px;
+#weekly-planning-modal {
+  padding: 20px;
 }
 
 /* Make modal wider */
 @media (min-width: 800px) {
-	.weekly-planning-modal .modal {
-		width: 90vw;
-		max-width: 1400px;
-	}
+  #weekly-planning-modal .modal {
+    width: 90vw;
+    max-width: 1400px;
+  }
 }
 
 /* Sphere filter section */
 .sphere-filter-section {
-	margin-bottom: 20px;
-	padding: 15px;
-	background: var(--background-secondary);
-	border-radius: 6px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: var(--background-secondary);
+  border-radius: 6px;
 }
 
 .sphere-filter-section .setting-item {
-	border: none;
-	padding: 0;
+  border: none;
+  padding: 0;
 }
 
 /* Planning summary */
+
 .planning-summary {
-	margin-bottom: 25px;
-	padding: 12px 15px;
-	background: var(--background-modifier-success);
-	border-left: 3px solid var(--text-success);
-	border-radius: 4px;
+  margin-bottom: 25px;
+  padding: 12px 15px;
+  background: var(--background-modifier-success);
+  border-left: 3px solid var(--text-success);
+  border-radius: 4px;
 }
 
 .planning-summary p {
-	margin: 0;
-	font-size: var(--font-ui-medium);
-	color: var(--text-normal);
+  margin: 0;
+  font-size: var(--font-ui-medium);
+  color: var(--text-normal);
 }
 
 /* Sphere groups */
 .sphere-group {
-	margin-bottom: 30px;
+  margin-bottom: 30px;
 }
 
 .sphere-group h3 {
-	margin-bottom: 15px;
-	padding-bottom: 8px;
-	border-bottom: 2px solid var(--background-modifier-border);
-	color: var(--text-accent);
-	font-size: var(--font-ui-large);
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--background-modifier-border);
+  color: var(--text-accent);
+  font-size: var(--font-ui-large);
 }
 
 /* Quest list */
 .quest-list {
-	list-style: none;
-	padding: 0;
-	margin: 0;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
 .quest-item {
-	margin-bottom: 20px;
-	padding: 12px;
-	background: var(--background-secondary);
-	border-radius: 6px;
-	border-left: 3px solid var(--interactive-accent);
+  margin-bottom: 20px;
+  padding: 12px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  border-left: 3px solid var(--interactive-accent);
 }
 
 .quest-link {
-	text-decoration: none;
-	color: var(--text-accent);
-	font-size: var(--font-ui-medium);
-	font-weight: 600;
-	cursor: pointer;
+  text-decoration: none;
+  color: var(--text-accent);
+  font-size: var(--font-ui-medium);
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .quest-link:hover {
-	color: var(--text-accent-hover);
-	text-decoration: underline;
+  color: var(--text-accent-hover);
+  text-decoration: underline;
 }
 
 /* Actionable tasks */
 .actionable-tasks {
-	list-style: none;
-	padding-left: 20px;
-	margin-top: 10px;
+  list-style: none;
+  padding-left: 20px;
+  margin-top: 10px;
 }
 
 .actionable-tasks li {
-	margin-bottom: 6px;
-	font-family: var(--font-monospace);
-	font-size: var(--font-ui-small);
-	color: var(--text-normal);
+  margin-bottom: 6px;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
 }
 
 .actionable-tasks li::before {
-	content: "→ ";
-	color: var(--text-muted);
-	margin-right: 5px;
+  content: "→ ";
+  color: var(--text-muted);
+  margin-right: 5px;
 }
 
 /* Task indicators */
 .task-due {
-	color: var(--text-error);
-	font-weight: 500;
+  color: var(--text-error);
+  font-weight: 500;
 }
 
 .task-next {
-	color: var(--text-accent);
+  color: var(--text-accent);
 }
 
 .task-due-date {
-	font-family: var(--font-monospace);
-	font-size: var(--font-ui-smaller);
-	color: var(--text-error);
-	font-weight: 600;
-	margin-left: 5px;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-error);
+  font-weight: 600;
+  margin-left: 5px;
 }

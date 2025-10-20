@@ -1,4 +1,4 @@
-import { Notice, Plugin, type TAbstractFile, debounce } from "obsidian";
+import { debounce, Notice, Plugin, type TAbstractFile } from "obsidian";
 import type { ReviewItem, TaskIndexSettings } from "./@types";
 import { FileUpdater } from "./FileUpdater";
 import { QuestIndex } from "./QuestIndex";
