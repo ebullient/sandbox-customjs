@@ -971,12 +971,14 @@ export class Utils {
         }
 
         console.log("Refreshing file cache");
+        const currentYear = window.moment().format("YYYY");
         const files = this.filesMatchingCondition((file) => {
             const isAssets = file.path.contains("assets/");
             const isConversation = file.path.contains("conversations/");
             const isChronicles = file.path.contains("chronicles/");
             const isWeekly = file.path.contains("_week.md");
             const isNotArchived = !file.path.contains("archives/");
+            const isCurrentYear = file.path.contains(`/${currentYear}/`);
             let hasRelevantHeadings = false;
 
             if (isAssets) {
@@ -996,7 +998,7 @@ export class Utils {
 
             return (
                 isConversation ||
-                (isChronicles && isWeekly) ||
+                (isChronicles && isWeekly && isCurrentYear) ||
                 (!isChronicles && isNotArchived && hasRelevantHeadings)
             );
         }, false).map((f) => f.path);

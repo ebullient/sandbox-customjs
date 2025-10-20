@@ -366,7 +366,7 @@ export class PushText {
 
         if (isForward) {
             // Project → Weekly: Add task to weekly Tasks section with project link
-            const addThis = `- [ ] [${source.pretty}](${lineInfo.path}): ${lineInfo.text}\n`;
+            const addThis = `- [ ] [${source.pretty}](${lineInfo.path}): ${lineInfo.text}`;
             await this.addToSection(targetFile, "Tasks", addThis);
 
             // Delete the source line from the project file (move, not copy)
