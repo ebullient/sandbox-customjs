@@ -55,12 +55,11 @@
 .review-reasons ul {
   margin: 0;
   padding-left: 20px;
-  color: var(--text-on-accent);
 }
 
 .review-reasons li {
   margin-bottom: 5px;
-  color: var(--text-normal);
+  color: var(--text-on-accent);
 }
 
 /* Sphere section */
@@ -223,7 +222,7 @@
 .planning-summary p {
   margin: 0;
   font-size: var(--font-ui-medium);
-  color: var(--text-normal);
+  color: var(--text-on-accent);
 }
 
 /* Sphere groups */
