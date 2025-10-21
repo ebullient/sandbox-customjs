@@ -328,7 +328,7 @@ export class PushText {
     }
 
     /**
-     * PATTERN 3: Weekly planning workflow
+     * PATTERN 2: Weekly planning workflow
      *
      * Purpose: Use weekly file as planning/staging area for project tasks
      *
@@ -386,22 +386,23 @@ export class PushText {
                 return;
             }
 
+            const cleanText = lineInfo.text.replace(/^\[.*?\]\(.*?\):\s*/, "");
             const isCompleted = this.isTaskCompleted(lineInfo.mark);
-            const hasDate = this.hasCompletionDate(lineInfo.text);
+            const hasDate = this.hasCompletionDate(cleanText);
 
             if (isCompleted) {
                 // Completed: Add to project Log section
                 const completionDate = hasDate
                     ? "" // Already has date, don't add weekly reference
-                    : ` (${this.getBestDate(lineInfo.text, lineInfo.path)})`;
+                    : ` (${this.getBestDate(cleanText, lineInfo.path)})`;
 
-                const addThis = `- [${lineInfo.mark}] ${lineInfo.text}${completionDate}`;
+                const addThis = `- [${lineInfo.mark}] ${cleanText}${completionDate}`;
                 console.log("task completed", completionDate, addThis);
 
                 await this.addToSection(targetFile, "Log", addThis);
             } else {
                 // Not completed: Return to project Tasks section
-                const addThis = `- [${lineInfo.mark}] ${lineInfo.text}`;
+                const addThis = `- [${lineInfo.mark}] ${cleanText}`;
                 await this.addToSection(targetFile, "Tasks", addThis);
             }
 
@@ -423,7 +424,7 @@ export class PushText {
     }
 
     /**
-     * PATTERN 2: Push daily progress items
+     * PATTERN 3: Push daily progress items
      *
      * Purpose: Track "what I did" progress from daily notes to project tracking
      * Source: Daily notes with accomplishment lines like "- Haus Manager: Fixed NPE for team sync"
