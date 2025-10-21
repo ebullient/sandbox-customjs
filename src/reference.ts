@@ -79,7 +79,9 @@ export class Reference {
         includeLogs = true,
         conditions?: Conditions,
     ) => {
-        const current = this.app.workspace.getActiveFile();
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
 
         const includeLogsFilter = (filePath: string) => {
             // either do nothing (allow logs) or filter out logs
@@ -123,6 +125,7 @@ export class Reference {
             const conditionsFilter =
                 this.utils().createFileConditionFilter(conditions);
             const extraFiles = this.utils().filesMatchingCondition(
+                current,
                 (f) => conditionsFilter(f) && includeLogsFilter(f.path),
             );
             files.push(...extraFiles);
@@ -150,7 +153,9 @@ export class Reference {
     };
 
     logs = (engine: EngineAPI, conditions?: Conditions) => {
-        const current = this.app.workspace.getActiveFile();
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
 
         const files = this.campaignApi()
             .getBacklinks(current.path)
@@ -161,6 +166,7 @@ export class Reference {
                 this.utils().createFileConditionFilter(conditions);
 
             const extraFiles = this.utils().filesMatchingCondition(
+                current,
                 (tfile: TFile) =>
                     this.utils().filterByPath(tfile, /sessions/) &&
                     conditionsFilter(tfile),
@@ -208,16 +214,22 @@ export class Reference {
         scope: string,
         conditions: Conditions = [],
     ): string => {
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
         const pathRegex = this.utils().segmentFilterRegex(scope);
         const conditionsFilter =
             this.utils().createFileConditionFilter(conditions);
 
-        const files = this.utils().filesMatchingCondition((tfile: TFile) => {
-            return (
-                this.utils().filterByPath(tfile, pathRegex) &&
-                conditionsFilter(tfile)
-            );
-        });
+        const files = this.utils().filesMatchingCondition(
+            current,
+            (tfile: TFile) => {
+                return (
+                    this.utils().filterByPath(tfile, pathRegex) &&
+                    conditionsFilter(tfile)
+                );
+            },
+        );
         return this.sortedItemList(engine, files, true);
     };
 
@@ -273,13 +285,19 @@ export class Reference {
     };
 
     todos = (engine: EngineAPI, scope: string): string => {
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
         const pathRegex = this.utils().segmentFilterRegex(scope);
-        const files = this.utils().filesMatchingCondition((tfile: TFile) => {
-            return (
-                this.utils().filterByPath(tfile, pathRegex) &&
-                this.utils().filterByTag(tfile, "#todo")
-            );
-        });
+        const files = this.utils().filesMatchingCondition(
+            current,
+            (tfile: TFile) => {
+                return (
+                    this.utils().filterByPath(tfile, pathRegex) &&
+                    this.utils().filterByTag(tfile, "#todo")
+                );
+            },
+        );
         return engine.markdown.create(
             files.map((f) => this.utils().fileListItem(f)).join("\n"),
         );

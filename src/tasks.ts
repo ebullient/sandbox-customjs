@@ -64,16 +64,13 @@ export class Tasks {
      * @returns {Promise<string>} A promise that resolves to a markdown list of tasks for the current week.
      */
     thisWeekTasks = async (engine: EngineAPI): Promise<string> => {
-        const tfile = this.app.workspace.getActiveFile();
+        const tfile =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
         const titledate = tfile.name.replace(".md", "").replace("_week", "");
+
         const begin = window.moment(titledate).day(1);
         const end = window.moment(begin).add(6, "d");
-        console.log(
-            titledate,
-            begin.format("YYYY-MM-DD"),
-            end.format("YYYY-MM-DD"),
-            engine,
-        );
 
         const ar = window.customJS.AreaRelated;
         const files = this.app.vault.getMarkdownFiles();

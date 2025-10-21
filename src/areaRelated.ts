@@ -28,8 +28,12 @@ export class AreaRelated {
         archived: boolean,
         orOther: Conditions = "",
     ) => {
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
         const testFn = this.utils().createFileConditionFilter(orOther);
         const list = this.filesMatchingCondition(
+            current,
             (tfile: TFile) =>
                 this.isProject(tfile) &&
                 this.isArchived(tfile, archived) &&
@@ -132,17 +136,22 @@ export class AreaRelated {
      * @see utils.filterByConditions
      */
     otherRelatedItemsIndex = (engine: EngineAPI, conditions: Conditions) => {
-        const current = this.app.workspace.getActiveFile();
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
         const pathRegex = this.utils().segmentFilterRegex(current.parent.path);
         const compiledConditions =
             this.utils().createFileConditionFilter(conditions);
 
-        const list = this.utils().filesMatchingCondition((tfile: TFile) => {
-            return this.isProjectArea(tfile)
-                ? false
-                : this.utils().filterByPath(tfile, pathRegex) ||
-                      compiledConditions(tfile);
-        });
+        const list = this.utils().filesMatchingCondition(
+            current,
+            (tfile: TFile) => {
+                return this.isProjectArea(tfile)
+                    ? false
+                    : this.utils().filterByPath(tfile, pathRegex) ||
+                          compiledConditions(tfile);
+            },
+        );
         return this.utils().index(engine, list);
     };
 
@@ -152,8 +161,10 @@ export class AreaRelated {
      * @returns {Array<TFile>} An array of files matching the specified condition, sorted by role and name.
      * @see sortProjects
      */
-    filesMatchingCondition = (fn: FileFilterFn): Array<TFile> => {
-        const current = this.app.workspace.getActiveFile();
+    filesMatchingCondition = (
+        current: TFile,
+        fn: FileFilterFn,
+    ): Array<TFile> => {
         return this.app.vault
             .getMarkdownFiles()
             .filter((tfile) => tfile !== current)
@@ -170,7 +181,9 @@ export class AreaRelated {
      * @see relatedAreasList
      */
     relatedAreas = (engine: EngineAPI, conditions: Conditions = ""): string => {
-        const current = this.app.workspace.getActiveFile();
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
         return this.relatedAreasList(
             engine,
             current.path.contains("archives"),
@@ -219,12 +232,14 @@ export class AreaRelated {
         archived: boolean,
         conditions: Conditions = "",
     ) => {
-        const current = this.app.workspace.getActiveFile();
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
         const pathRegex = this.utils().segmentFilterRegex(current.parent.path);
         const compiledConditions =
             this.utils().createFileConditionFilter(conditions);
 
-        const list = this.filesMatchingCondition((tfile: TFile) => {
+        const list = this.filesMatchingCondition(current, (tfile: TFile) => {
             const areaIncluded =
                 this.isArea(tfile) && this.isArchived(tfile, archived);
             const inFolder = this.utils().filterByPath(tfile, pathRegex);
@@ -247,7 +262,9 @@ export class AreaRelated {
      * @see relatedProjectsList
      */
     relatedProjects = (engine: EngineAPI, conditions = ""): string => {
-        const current = this.app.workspace.getActiveFile();
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
         return this.relatedProjectsList(
             engine,
             current.path.contains("archives"),
@@ -298,12 +315,14 @@ export class AreaRelated {
         archived: boolean,
         conditions: Conditions = "",
     ) => {
-        const current = this.app.workspace.getActiveFile();
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
         const pathRegex = this.utils().segmentFilterRegex(current.parent.path);
         const compiledConditions =
             this.utils().createFileConditionFilter(conditions);
 
-        const list = this.filesMatchingCondition((tfile: TFile) => {
+        const list = this.filesMatchingCondition(current, (tfile: TFile) => {
             const projectIncluded =
                 this.isProject(tfile) && this.isArchived(tfile, archived);
             const inFolder = this.utils().filterByPath(tfile, pathRegex);

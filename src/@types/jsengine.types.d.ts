@@ -1,3 +1,5 @@
+import type { TFile } from "obsidian";
+
 // Type definitions for JS Engine Plugin's Markdown API
 
 export interface MarkdownAPI {
@@ -11,8 +13,18 @@ export interface MarkdownBuilder {
     addText(text: string): MarkdownBuilder;
 }
 
+export interface ExecutionContext {
+    executionSource: string;
+    file?: TFile;
+}
+
+export interface InstanceId {
+    executionContext?: ExecutionContext;
+}
+
 // Engine API interface that includes Markdown API
 export interface EngineAPI {
     markdown: MarkdownAPI;
+    instanceId: InstanceId;
     // ... other Engine API properties
 }

@@ -219,10 +219,11 @@ export class Campaign {
      */
     lastFile = async (tp: Templater, path = ""): Promise<TFile | null> => {
         const folder = path ? path : tp.file.folder(true);
+        const current = tp.file.find_tfile(tp.file.path(true));
 
         const pathRegexp = this.utils().segmentFilterRegex(folder);
         const fileList = this.utils()
-            .filesWithPath(pathRegexp, true)
+            .filesWithPath(current, pathRegexp, true)
             .filter((f) => this.prevNextFilter(f));
         return fileList.length > 0 ? fileList[fileList.length - 1] : null;
     };
@@ -268,11 +269,12 @@ export class Campaign {
     prevNext = async (tp: Templater): Promise<PrevNext> => {
         const folder = tp.file.folder(true);
         const filename = `${tp.file.title}.md`;
+        const current = tp.file.find_tfile(tp.file.path(true));
 
         // remove files that don't match the filter from the list
         const pathRegexp = this.utils().segmentFilterRegex(folder);
         const fileList = this.utils()
-            .filesWithPath(pathRegexp, true)
+            .filesWithPath(current, pathRegexp, true)
             .filter((f) => this.prevNextFilter(f));
         console.log(fileList);
 
@@ -679,11 +681,12 @@ export class Campaign {
      */
     nextHarptosDay = async (tp: Templater): Promise<DateTag> => {
         const folder = tp.file.folder(true);
-        console.log("Looking for files in %s", folder);
+        const current = tp.file.find_tfile(tp.file.path(true));
+        console.log("Looking for files in %s", folder, current);
 
         const pathRegexp = this.utils().segmentFilterRegex(folder);
         const files = this.utils()
-            .filesWithPath(pathRegexp)
+            .filesWithPath(current, pathRegexp)
             .filter((f) => f.name.match(/^.*\d{4}-[^-]+-.*/))
             .map((f) => f.path);
 

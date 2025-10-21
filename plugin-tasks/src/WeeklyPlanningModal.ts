@@ -197,9 +197,13 @@ export class WeeklyPlanningModal extends Modal {
         // Make the link clickable
         link.addEventListener("click", (e) => {
             e.preventDefault();
-            // Open the file and navigate to Tasks section
-            this.app.workspace.openLinkText(`${quest.path}#Tasks`, "", false);
-            this.close();
+            // Open the file in a new leaf in the background
+            this.app.workspace.openLinkText(
+                `${quest.path}#Tasks`,
+                "",
+                true, // newLeaf
+                { active: false }, // Open in background
+            );
         });
 
         // Actionable tasks (#next OR due dates)

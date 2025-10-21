@@ -55,7 +55,7 @@ export class PushText {
 
         try {
             // Get cached push target files
-            const files = await this.utils().getCachedPushTargets();
+            const files = await this.utils().getPushTargets(activeFile);
 
             if (files.length === 0) {
                 console.log("No push target files found");

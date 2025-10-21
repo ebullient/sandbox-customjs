@@ -31,7 +31,7 @@ export class Conversation {
                 "chronicles/conversations",
             );
             const files = this.utils()
-                .filesWithPath(regex)
+                .filesWithPath(activeFile, regex)
                 .map((x) => x.path);
 
             if (files.length === 0) {

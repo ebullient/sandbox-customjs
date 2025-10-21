@@ -22,10 +22,6 @@ export type Tags = string | string[];
 /**
  * Cache for push target files
  */
-interface PushTargetCache {
-    data: string[];
-    timestamp: number;
-}
 
 interface CleanLink {
     link: string;
@@ -46,8 +42,6 @@ export class Utils {
     ];
 
     app: App;
-    private fileCache: PushTargetCache | null = null;
-    private readonly cacheTTL = 5 * 60 * 1000; // Cache valid for 5 minutes
 
     constructor() {
         this.app = window.customJS.app;
@@ -247,10 +241,12 @@ export class Utils {
      * @see filterByLinkToFile
      */
     filesLinkedToFile = (
+        current: TFile,
         targetFile: TFile,
         includeCurrent = false,
     ): TFile[] => {
         return this.filesMatchingCondition(
+            current,
             (tfile: TFile) => this.filterByLinkToFile(tfile, targetFile),
             includeCurrent,
         );
@@ -264,11 +260,11 @@ export class Utils {
      * @returns {TFile[]} A list of all markdown files (excluding the current file) that match the provided filter function.
      */
     filesMatchingCondition = (
+        current: TFile,
         fn: FileFilterFn,
         includeCurrent = false,
         sort: FileCompareFn = this.sortTFile,
     ): TFile[] => {
-        const current = this.app.workspace.getActiveFile();
         return this.app.vault
             .getMarkdownFiles()
             .filter((tfile) => includeCurrent || tfile !== current)
@@ -287,11 +283,13 @@ export class Utils {
      * @see filesMatchingCondition
      */
     filesWithConditions = (
+        current: TFile,
         conditions: string | string[],
         includeCurrent = false,
     ): TFile[] => {
         const conditionsFilter = this.createFileConditionFilter(conditions);
         return this.filesMatchingCondition(
+            current,
             (tfile: TFile) => conditionsFilter(tfile),
             includeCurrent,
         );
@@ -305,8 +303,13 @@ export class Utils {
      * @see filesMatchingCondition
      * @see filterByPath
      */
-    filesWithPath = (pathPattern: RegExp, includeCurrent = false): TFile[] => {
+    filesWithPath = (
+        current: TFile,
+        pathPattern: RegExp,
+        includeCurrent = false,
+    ): TFile[] => {
         return this.filesMatchingCondition(
+            current,
             (tfile: TFile) => this.filterByPath(tfile, pathPattern),
             includeCurrent,
         );
@@ -442,7 +445,7 @@ export class Utils {
     folderIndex = (engine: EngineAPI): string => {
         const current = this.app.workspace.getActiveFile();
         const path = current.parent.path;
-        const list = this.filesWithPath(new RegExp(`^${path}`));
+        const list = this.filesWithPath(current, new RegExp(`^${path}`));
         return this.index(engine, list, path);
     };
 
@@ -581,7 +584,10 @@ export class Utils {
         pathPattern: RegExp,
         includeCurrent = false,
     ): string => {
-        const files = this.filesWithPath(pathPattern, includeCurrent);
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
+        const files = this.filesWithPath(current, pathPattern, includeCurrent);
         return files == null || files.length === 0
             ? engine.markdown.create("None")
             : engine.markdown.create(
@@ -597,8 +603,10 @@ export class Utils {
      * @see markdownLink
      */
     listInboundLinks = (engine: EngineAPI): string => {
-        const current = this.app.workspace.getActiveFile();
-        const files = this.filesLinkedToFile(current);
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
+        const files = this.filesLinkedToFile(current, current);
         return files == null || files.length === 0
             ? engine.markdown.create("None")
             : engine.markdown.create(
@@ -700,7 +708,10 @@ export class Utils {
         engine: EngineAPI,
         conditions: string | string[],
     ): string => {
-        const files = this.filesWithConditions(conditions);
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
+        const files = this.filesWithConditions(current, conditions);
         return files == null || files.length === 0
             ? engine.markdown.create("None")
             : engine.markdown.create(
@@ -962,48 +973,46 @@ export class Utils {
      * Pre-finds matched headings to avoid re-searching when cache is stale.
      * Moved from Templates class to Utils for reusability
      */
-    getCachedPushTargets = async (): Promise<string[]> => {
-        const now = Date.now();
+    getPushTargets = async (current: TFile): Promise<string[]> => {
+        const weeklyFiles = this.filesMatchingCondition(
+            current,
+            (file) => {
+                return (
+                    file.path.endsWith("_week.md") &&
+                    file.path.contains("chronicles/") &&
+                    !file.path.contains("journal")
+                );
+            },
+            false,
+            (a, b) => b.name.localeCompare(a.name),
+        )
+            .map((f) => f.path)
+            .slice(0, 5);
 
-        if (this.fileCache && now - this.fileCache.timestamp < this.cacheTTL) {
-            console.log("Using cached files");
-            return this.fileCache.data;
-        }
+        console.log(weeklyFiles);
 
-        console.log("Refreshing file cache");
-        const currentYear = window.moment().format("YYYY");
-        const files = this.filesMatchingCondition((file) => {
-            const isAssets = file.path.contains("assets/");
-            const isConversation = file.path.contains("conversations/");
-            const isChronicles = file.path.contains("chronicles/");
-            const isWeekly = file.path.contains("_week.md");
-            const isNotArchived = !file.path.contains("archives/");
-            const isCurrentYear = file.path.contains(`/${currentYear}/`);
-            let hasRelevantHeadings = false;
-
-            if (isAssets) {
-                return false;
-            }
-
-            if (isNotArchived) {
+        const files = this.filesMatchingCondition(
+            current,
+            (file) => {
+                if (file.path.match(/(archive|assets)/)) {
+                    return false;
+                }
+                if (file.path.contains("conversations/")) {
+                    return true;
+                }
                 const fileHeadings = this.app.metadataCache.getCache(
                     file.path,
                 )?.headings;
-                hasRelevantHeadings = fileHeadings
+
+                return fileHeadings
                     ? fileHeadings
                           .filter((x) => x.level === 2)
                           .some((x) => x.heading.match(/(Log|Task)/))
                     : false;
-            }
+            },
+            false,
+        ).map((f) => f.path);
 
-            return (
-                isConversation ||
-                (isChronicles && isWeekly && isCurrentYear) ||
-                (!isChronicles && isNotArchived && hasRelevantHeadings)
-            );
-        }, false).map((f) => f.path);
-
-        this.fileCache = { data: files, timestamp: now };
-        return files;
+        return [...weeklyFiles, ...files];
     };
 }
