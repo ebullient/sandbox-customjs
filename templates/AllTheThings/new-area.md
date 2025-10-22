@@ -21,12 +21,7 @@ sphere: <%sphere %>
 
 ```js-engine
 const { AreaRelated } = await window.cJS();
-return AreaRelated.relatedAreas(engine);
-```
-
-```js-engine
-const { AreaRelated } = await window.cJS();
-return AreaRelated.relatedProjects(engine);
+return AreaRelated.allRelated(engine);
 ```
 
 ## Tasks

@@ -119,9 +119,12 @@ export class Tasks {
                 `- No tasks found between ${begin.format("YYYY-MM-DD")} and ${end.format("YYYY-MM-DD")}`,
             );
         } else {
-            for (const [sphere, tasks] of bySphere) {
-                list.push(`**${sphere}**\n`);
+            const spheres = Array.from(bySphere.keys()).sort();
+            for (const sphere of spheres) {
+                const tasks = bySphere.get(sphere);
                 tasks.sort();
+
+                list.push(`#### ${sphere}\n`);
                 list.push(...tasks);
                 list.push("");
             }

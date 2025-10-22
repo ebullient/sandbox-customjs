@@ -11,8 +11,8 @@
 
 %% %%
 > [!charm] Journaling
-> - *I am grateful for*
-> - *What would make today great?*
+> - *What’s working right now?*
+> - *What am I actually looking forward to today?*
 > - *Affirmation of the day*
 ^daily-am
 

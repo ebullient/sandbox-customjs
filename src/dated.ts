@@ -87,7 +87,8 @@ export class Dated {
      *  the parsed date, next workday, next workday name, last Monday, this Monday, and next Monday.
      */
     parseDate = (filename: string): ParsedDates => {
-        const titledate = filename.replace("_week", "").replace("journal-", "");
+        const titledate =
+            filename.match(/(\d{4}-\d{2}-\d{2})/)?.[1] || filename;
         const day = window.moment(titledate);
         const dayOfWeek = day.isoWeekday();
 
@@ -218,7 +219,11 @@ export class Dated {
                 `- [ ] [Goals for ${thisMonth}](${thisMonthFile})`;
         }
 
+        const year = dates.monday.format("YYYY");
+        const monday = dates.monday.format("YYYY-MM-DD");
         const log =
+            `- [📖 ✍️](chronicles/journal/${year}/journal-${monday})\n` +
+            `- [📖 👩‍💻](chronicles/work/${year}/ibm-${monday})\n\n` +
             `### Log ${this.dateOfWeek(dates.monday, 1)}\n` +
             `![invisible-embed](${this.dayOfWeekFile(dates.monday, 1)}#Log)\n\n` +
             `### Log ${this.dateOfWeek(dates.monday, 2)}\n` +

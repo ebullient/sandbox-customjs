@@ -149,7 +149,7 @@ export class AreaRelated {
                 return this.isProjectArea(tfile)
                     ? false
                     : this.utils().filterByPath(tfile, pathRegex) ||
-                    compiledConditions(tfile);
+                          compiledConditions(tfile);
             },
         );
         return this.utils().index(engine, list);
@@ -197,7 +197,7 @@ export class AreaRelated {
         );
 
         return list.length === 0
-            ? ["<span class=\"no-match\">No related areas found</span>"]
+            ? ['<span class="no-match">No related areas found</span>']
             : list;
     };
 
@@ -225,7 +225,7 @@ export class AreaRelated {
                 `- ${this.showRole(tfile)} ${this.utils().markdownLink(tfile)}`,
         );
         return list.length === 0
-            ? ["<span class=\"no-match\">No related projects found</span>"]
+            ? ['<span class="no-match">No related projects found</span>']
             : list;
     };
 

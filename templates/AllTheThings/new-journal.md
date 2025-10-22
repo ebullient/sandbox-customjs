@@ -4,12 +4,14 @@ const { Dated } = await window.cJS();
 const isWeekly = tp.file.title.endsWith("_week");
 const result = Dated.parseDate(tp.file.title);
 
-// Move file to journal folder based on year from filename
-// Weekly uses monday, daily uses the exact day
 const fileDate = isWeekly ? result.monday : result.day;
 const year = fileDate.format("YYYY");
-const journalPath = `/chronicles/journal/${year}/${tp.file.title}`;
-await tp.file.move(journalPath);
+const journalPath = `chronicles/journal/${year}/${tp.file.title}`;
+
+if (`${journalPath}.md` !== tp.file.path(true)) {
+    console.log(journalPath, tp.file.title, tp.file.path(true));
+    await tp.file.move(journalPath);
+}
 
 tR += `tags:\n- "me/✅/✍️ "`;
 if (isWeekly) {

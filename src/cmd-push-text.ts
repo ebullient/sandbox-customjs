@@ -217,11 +217,7 @@ export class PushText {
             const from = source.fromDaily
                 ? ""
                 : `[${source.pretty}](${lineInfo.path}): `;
-            const completed = task
-                ? source.fromDaily
-                    ? ` ([${source.pretty}](${lineInfo.path}))`
-                    : ` (${source.date})`
-                : "";
+            const completed = task ? ` (${source.date})` : "";
 
             if (task) {
                 processedText = processedText.replace(
@@ -477,11 +473,7 @@ export class PushText {
             const from = source.fromDaily
                 ? ""
                 : `[${source.pretty}](${lineInfo.path}): `;
-            const completed = task
-                ? source.fromDaily
-                    ? ` ([${source.pretty}](${lineInfo.path}))`
-                    : ` (${date})`
-                : "";
+            const completed = task ? ` (${date})` : "";
             const text = source.fromDaily
                 ? lineInfo.text.replace(
                       / #(self|work|home|community|family)/,
