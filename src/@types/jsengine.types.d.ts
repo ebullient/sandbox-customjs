@@ -7,7 +7,12 @@ export interface MarkdownAPI {
     createBuilder(): MarkdownBuilder;
 }
 
+export interface ListElement {
+    addText(text: string): unknown;
+}
+
 export interface MarkdownBuilder {
+    createList(): ListElement;
     createHeading(arg0: number, arg1: string): unknown;
     createParagraph(arg0: string): unknown;
     addText(text: string): MarkdownBuilder;

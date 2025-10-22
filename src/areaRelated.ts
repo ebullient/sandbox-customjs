@@ -149,7 +149,7 @@ export class AreaRelated {
                 return this.isProjectArea(tfile)
                     ? false
                     : this.utils().filterByPath(tfile, pathRegex) ||
-                          compiledConditions(tfile);
+                    compiledConditions(tfile);
             },
         );
         return this.utils().index(engine, list);
@@ -170,6 +170,84 @@ export class AreaRelated {
             .filter((tfile) => tfile !== current)
             .filter((tfile) => fn(tfile))
             .sort(this.sortProjects);
+    };
+
+    findRelatedAreas = (
+        engine: EngineAPI,
+        archived: boolean,
+        conditions: Conditions = "",
+    ): string[] => {
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
+        const pathRegex = this.utils().segmentFilterRegex(current.parent.path);
+        const compiledConditions =
+            this.utils().createFileConditionFilter(conditions);
+
+        const list = this.filesMatchingCondition(current, (tfile: TFile) => {
+            const areaIncluded =
+                this.isArea(tfile) && this.isArchived(tfile, archived);
+            const inFolder = this.utils().filterByPath(tfile, pathRegex);
+            return conditions
+                ? areaIncluded && (inFolder || compiledConditions(tfile))
+                : areaIncluded && inFolder;
+        }).map(
+            (tfile: TFile) =>
+                `- ${this.showRole(tfile)} ${this.utils().markdownLink(tfile)}`,
+        );
+
+        return list.length === 0
+            ? ["<span class=\"no-match\">No related areas found</span>"]
+            : list;
+    };
+
+    findRelatedProjects = (
+        engine: EngineAPI,
+        archived: boolean,
+        conditions: Conditions = "",
+    ): string[] => {
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
+        const pathRegex = this.utils().segmentFilterRegex(current.parent.path);
+        const compiledConditions =
+            this.utils().createFileConditionFilter(conditions);
+
+        const list = this.filesMatchingCondition(current, (tfile: TFile) => {
+            const projectIncluded =
+                this.isProject(tfile) && this.isArchived(tfile, archived);
+            const inFolder = this.utils().filterByPath(tfile, pathRegex);
+            return conditions
+                ? projectIncluded && (inFolder || compiledConditions(tfile))
+                : projectIncluded && inFolder;
+        }).map(
+            (tfile: TFile) =>
+                `- ${this.showRole(tfile)} ${this.utils().markdownLink(tfile)}`,
+        );
+        return list.length === 0
+            ? ["<span class=\"no-match\">No related projects found</span>"]
+            : list;
+    };
+
+    allRelated = (engine: EngineAPI, conditions: Conditions = "") => {
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
+        const archived = current.path.contains("archives");
+
+        const markdownBuilder = engine.markdown.createBuilder();
+
+        const areas = this.findRelatedAreas(engine, archived, conditions);
+        for (const a of areas) {
+            markdownBuilder.addText(a);
+        }
+        markdownBuilder.addText("");
+        const projects = this.findRelatedProjects(engine, archived, conditions);
+        for (const p of projects) {
+            markdownBuilder.addText(p);
+        }
+
+        return markdownBuilder;
     };
 
     /**
@@ -232,25 +310,7 @@ export class AreaRelated {
         archived: boolean,
         conditions: Conditions = "",
     ) => {
-        const current =
-            engine.instanceId?.executionContext?.file ||
-            this.app.workspace.getActiveFile();
-        const pathRegex = this.utils().segmentFilterRegex(current.parent.path);
-        const compiledConditions =
-            this.utils().createFileConditionFilter(conditions);
-
-        const list = this.filesMatchingCondition(current, (tfile: TFile) => {
-            const areaIncluded =
-                this.isArea(tfile) && this.isArchived(tfile, archived);
-            const inFolder = this.utils().filterByPath(tfile, pathRegex);
-            return conditions
-                ? areaIncluded && (inFolder || compiledConditions(tfile))
-                : areaIncluded && inFolder;
-        }).map(
-            (tfile: TFile) =>
-                `- ${this.showRole(tfile)} ${this.utils().markdownLink(tfile)}`,
-        );
-
+        const list = this.findRelatedAreas(engine, archived, conditions);
         return engine.markdown.create(list.join("\n"));
     };
 
@@ -300,40 +360,13 @@ export class AreaRelated {
      * @param {boolean} archived Whether to include archived projects.
      * @param {string|Array} [conditions=''] Additional conditions to apply.
      * @returns {string} A markdown list of related projects matching the specified conditions.
-     * @see isArchived
-     * @see isProject
-     * @see priorityFilesMatchingCondition
-     * @see showPriority
-     * @see showRole
-     * @see showStatus
-     * @see utils.filterByConditions
-     * @see utils.filterByPath
-     * @see utils.markdownLink
      */
     relatedProjectsList = (
         engine: EngineAPI,
         archived: boolean,
         conditions: Conditions = "",
     ) => {
-        const current =
-            engine.instanceId?.executionContext?.file ||
-            this.app.workspace.getActiveFile();
-        const pathRegex = this.utils().segmentFilterRegex(current.parent.path);
-        const compiledConditions =
-            this.utils().createFileConditionFilter(conditions);
-
-        const list = this.filesMatchingCondition(current, (tfile: TFile) => {
-            const projectIncluded =
-                this.isProject(tfile) && this.isArchived(tfile, archived);
-            const inFolder = this.utils().filterByPath(tfile, pathRegex);
-            return conditions
-                ? projectIncluded && (inFolder || compiledConditions(tfile))
-                : projectIncluded && inFolder;
-        }).map(
-            (tfile: TFile) =>
-                `- ${this.showRole(tfile)} ${this.utils().markdownLink(tfile)}`,
-        );
-
+        const list = this.findRelatedProjects(engine, archived, conditions);
         return engine.markdown.create(list.join("\n"));
     };
 
