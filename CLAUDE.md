@@ -200,26 +200,26 @@ When working with TypeScript code in this repository, follow these formatting an
 ### Template Literals
 
 - **Multi-line strings**: Prefer arrays or concatenation over template literals that push content to the margin:
-  ```typescript
-  // Good - using array join
-  const markdown = [
-      `- [**${title}**](${file.path}#${day})`,
-      `    ![${day}](${file.path}#${day})`,
-  ].join("\n");
+    ```typescript
+    // Good - using array join
+    const markdown = [
+        `- [**${title}**](${file.path}#${day})`,
+        `    ![${day}](${file.path}#${day})`,
+    ].join("\n");
 
-  // Good - using concatenation
-  let markdown = `- [**${title}**](${file.path}#${day})\n`;
-  markdown += `    ![${day}](${file.path}#${day})\n`;
+    // Good - using concatenation
+    let markdown = `- [**${title}**](${file.path}#${day})\n`;
+    markdown += `    ![${day}](${file.path}#${day})\n`;
 
-  // Avoid - content pushed to margin/gutter
-  const markdown = `
-- [**${title}**](${file.path}#${day})
-    ![${day}](${file.path}#${day})
-`;
+    // Avoid - content pushed to margin/gutter
+    const markdown = `
+    - [**${title}**](${file.path}#${day})
+        ![${day}](${file.path}#${day})
+    `;
 
-  // Avoid - long single lines that Biome might wrap awkwardly
-  const markdown = `\n- [**${title}**](${file.path}#${day})\n    ![${day}](${file.path}#${day})\n`;
-  ```
+    // Avoid - long single lines that Biome might wrap awkwardly
+    const markdown = `\n- [**${title}**](${file.path}#${day})\n    ![${day}](${file.path}#${day})\n`;
+    ```
 
 ### Pattern Consistency
 
