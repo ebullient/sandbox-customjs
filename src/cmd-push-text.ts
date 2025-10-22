@@ -217,16 +217,26 @@ export class PushText {
             const from = source.fromDaily
                 ? ""
                 : `[${source.pretty}](${lineInfo.path}): `;
-            const completed = task ? ` (${source.date})` : "";
 
             if (task) {
+                // Only add completion date if line doesn't already have one
                 processedText = processedText.replace(
                     /^(\s*)-\s*(?:\[.\]\s*)?(.+)$/gm,
-                    `$1- ${task}${from}$2${completed}`,
+                    (_match, indent, text) => {
+                        const completed = this.hasCompletionDate(text)
+                            ? ""
+                            : ` (${source.date})`;
+                        return `${indent}- ${task}${from}${text}${completed}`;
+                    },
                 );
                 processedText = processedText.replace(
                     /^(?!\s*-\s)(.+)$/gm,
-                    `- ${task}${from}$1${completed}`,
+                    (_match, text) => {
+                        const completed = this.hasCompletionDate(text)
+                            ? ""
+                            : ` (${source.date})`;
+                        return `- ${task}${from}${text}${completed}`;
+                    },
                 );
             } else {
                 processedText = processedText.replace(
@@ -307,15 +317,12 @@ export class PushText {
         } else {
             // Log item - create completed reference to conversation
             const target = this.getCompletionStatus(targetPath);
+            const hasDate = this.hasCompletionDate(lineText);
             const task = target.shouldHaveCheckbox ? "[x] " : "";
             const prefix = source.fromDaily
                 ? ""
                 : `[${linkText}](${lineInfo.path}#${anchor}): `;
-            const completed = task
-                ? source.fromDaily
-                    ? `([${linkText}](${lineInfo.path}#${anchor}))`
-                    : ` (${date})`
-                : "";
+            const completed = task && !hasDate ? ` (${date})` : "";
 
             const addThis = `- ${task}${prefix}${lineText}${completed}`;
             console.log("pushHeader: Log", addThis);
@@ -473,13 +480,14 @@ export class PushText {
             const from = source.fromDaily
                 ? ""
                 : `[${source.pretty}](${lineInfo.path}): `;
-            const completed = task ? ` (${date})` : "";
             const text = source.fromDaily
                 ? lineInfo.text.replace(
                       / #(self|work|home|community|family)/,
                       "",
                   )
                 : lineInfo.text;
+            const hasDate = this.hasCompletionDate(text);
+            const completed = task && !hasDate ? ` (${date})` : "";
 
             const addThis = `- ${task}${from}${text}${completed}`;
             await this.addToSection(targetFile, "Log", addThis);

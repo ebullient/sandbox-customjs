@@ -989,8 +989,6 @@ export class Utils {
             .map((f) => f.path)
             .slice(0, 5);
 
-        console.log(weeklyFiles);
-
         const files = this.filesMatchingCondition(
             current,
             (file) => {
