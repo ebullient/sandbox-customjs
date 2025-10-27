@@ -683,7 +683,7 @@ export class Utils {
         if (typeof str !== "string") {
             return str;
         }
-        return str.charAt(0) === "#" ? str.substring(1) : str;
+        return (str.charAt(0) === "#" ? str.substring(1) : str).trim();
     };
 
     /**
@@ -866,13 +866,14 @@ export class Utils {
 
         const files = this.app.vault
             .getMarkdownFiles()
-            .filter(
-                (f) =>
-                    f.path.includes("chronicles") &&
-                    f.name.match(/^\d{4}-\d{2}-\d{2}\.md$/),
-            )
+            .filter((f) => f.path.includes("chronicles"))
             .filter((f) => {
-                const day = window.moment(f.name.replace(".md", ""));
+                const dateMatch = f.name.match(/(\d{4}-\d{2}-\d{2})\.md$/);
+                if (!dateMatch) {
+                    return false;
+                }
+
+                const day = window.moment(dateMatch[1]);
                 return (
                     day.isSameOrAfter(begin, "day") &&
                     day.isSameOrBefore(end, "day")
