@@ -119,6 +119,22 @@ export default class TaskIndexPlugin extends Plugin {
         await this.saveData(this.settings);
     }
 
+    onExternalSettingsChange = debounce(
+        async () => {
+            console.debug("(TI) external settings changed");
+            const incoming = await this.loadData();
+            console.debug(
+                "(TI) external settings changed",
+                this.settings,
+                incoming,
+            );
+            this.settings = Object.assign({}, this.settings, incoming);
+            await this.saveSettings();
+        },
+        2000,
+        true,
+    );
+
     /**
      * Show the review list modal
      * IMPORTANT: Review list is FROZEN at session start to prevent loops.
