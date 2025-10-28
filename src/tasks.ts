@@ -1,6 +1,7 @@
+import type { Moment } from "moment";
 import type { App, TFile } from "obsidian";
 import type { EngineAPI } from "./@types/jsengine.types";
-import type { Utils } from "./_utils";
+import type { FileFilterFn, Utils } from "./_utils";
 
 interface FileTasks {
     file: TFile;
@@ -58,56 +59,98 @@ export class Tasks {
         return tasks;
     };
 
-    /**
-     * Retrieve tasks for the week derived from the name of the current active file
-     * @param {EngineAPI} engine The engine to create markdown.
-     * @returns {Promise<string>} A promise that resolves to a markdown list of tasks for the current week.
-     */
     thisWeekTasks = async (engine: EngineAPI): Promise<string> => {
-        const tfile =
+        const current =
             engine.instanceId?.executionContext?.file ||
             this.app.workspace.getActiveFile();
-        const titledate = tfile.name.replace(".md", "").replace("_week", "");
 
-        const begin = window.moment(titledate).day(1);
+        const titledate = current.name.replace(".md", "").replace("_week", "");
+        const begin = window.moment(titledate).day(1); // Monday
+        return this.findCompletedTasks(
+            engine,
+            current,
+            begin,
+            (tfile: TFile) => {
+                if (
+                    tfile.path.includes("archive") ||
+                    tfile.path.includes("-test")
+                ) {
+                    return false;
+                }
+                return this.taskPaths.some((x) => tfile.path.includes(x));
+            },
+        );
+    };
+
+    fixedWeekTasks = async (
+        engine: EngineAPI,
+        beginDate: string,
+        tag: string | string[] = [],
+        all = false,
+    ): Promise<string> => {
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            this.app.workspace.getActiveFile();
+
+        const begin = window.moment(beginDate); // exact day
+        return this.findCompletedTasks(
+            engine,
+            current,
+            begin,
+            (tfile: TFile) => {
+                if (
+                    tfile.path.includes("archive") ||
+                    tfile.path.includes("-test")
+                ) {
+                    return false;
+                }
+                return (
+                    this.utils().filterByTag(tfile, tag, all) &&
+                    this.taskPaths.some((x) => tfile.path.includes(x))
+                );
+            },
+            (text) => text.replace(/\s+#(chore|routine|trivial)/, ""),
+        );
+    };
+
+    findCompletedTasks = async (
+        engine: EngineAPI,
+        current: TFile,
+        begin: Moment,
+        fn: FileFilterFn,
+        map: (t: string) => string = (t) => t,
+    ): Promise<string> => {
         const end = window.moment(begin).add(6, "d");
 
         const ar = window.customJS.AreaRelated;
-        const files = this.app.vault.getMarkdownFiles();
         const bySphere = new Map<string, string[]>();
 
+        const files = this.utils().filesMatchingCondition(current, fn);
+
         for (const file of files) {
-            if (file.path.includes("archive") || file.path.includes("-test")) {
-                continue;
-            }
-            if (
-                this.taskPaths.some((x) => file.path.includes(x))
-                // || this.chroniclesPattern.test(file.path)
-            ) {
-                const sphere = ar.fileSphere(file) || "(no sphere)";
-                const tasks = await this.fileTasks(file);
-                for (const task of tasks) {
-                    if (task.mark.match(/[x-]/)) {
-                        let completed = this.completedPattern.exec(task.text);
-                        if (!completed) {
-                            completed = this.dailyNotePattern.exec(task.text);
-                        }
+            const sphere = ar.fileSphere(file) || "(no sphere)";
+            const tasks = await this.fileTasks(file);
+            for (const task of tasks) {
+                if (task.mark.match(/[x-]/)) {
+                    let completed = this.completedPattern.exec(task.text);
+                    if (!completed) {
+                        completed = this.dailyNotePattern.exec(task.text);
+                    }
 
-                        if (
-                            completed &&
-                            window
-                                .moment(completed[1])
-                                .isBetween(begin, end, "day", "[]")
-                        ) {
-                            // console.log(file.path, completed);
-                            const link = this.utils().markdownLink(task.file);
-                            const taskLine = `- *${link}*: ${task.text}`;
+                    if (
+                        completed &&
+                        window
+                            .moment(completed[1])
+                            .isBetween(begin, end, "day", "[]")
+                    ) {
+                        // console.log(file.path, completed);
+                        const link = this.utils().markdownLink(task.file);
+                        const taskLine = `- *${link}*: ${map(task.text)}`;
 
-                            if (!bySphere.has(sphere)) {
-                                bySphere.set(sphere, []);
-                            }
-                            bySphere.get(sphere).push(taskLine);
+                        if (!bySphere.has(sphere)) {
+                            bySphere.set(sphere, []);
                         }
+                        bySphere.get(sphere).push(taskLine);
                     }
                 }
             }

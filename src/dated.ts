@@ -222,8 +222,7 @@ export class Dated {
         const year = dates.monday.format("YYYY");
         const monday = dates.monday.format("YYYY-MM-DD");
         const log =
-            `- [📖 ✍️](chronicles/journal/${year}/journal-${monday})\n` +
-            `- [📖 👩‍💻](chronicles/work/${year}/ibm-${monday})\n\n` +
+            `- [📖 ✍️](chronicles/journal/${year}/journal-${monday}.md)\n` +
             `### Log ${this.dateOfWeek(dates.monday, 1)}\n` +
             `![invisible-embed](${this.dayOfWeekFile(dates.monday, 1)}#Log)\n\n` +
             `### Log ${this.dateOfWeek(dates.monday, 2)}\n` +
