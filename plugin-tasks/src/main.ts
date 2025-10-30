@@ -1,6 +1,7 @@
 import { debounce, Notice, Plugin, type TAbstractFile } from "obsidian";
-import type { ReviewItem, TaskIndexSettings } from "./@types";
+import type { CurrentSettings, ReviewItem, TaskIndexSettings } from "./@types";
 import { FileUpdater } from "./FileUpdater";
+import { PeriodicCleanupService } from "./PeriodicCleanupService";
 import { QuestIndex } from "./QuestIndex";
 import { ReviewDetector } from "./ReviewDetector";
 import { ReviewModal } from "./ReviewModal";
@@ -9,12 +10,17 @@ import { TaskIndexSettingsTab } from "./SettingsTab";
 import { TaskIndexAPI } from "./TaskIndex-Api";
 import { WeeklyPlanningModal } from "./WeeklyPlanningModal";
 
-export default class TaskIndexPlugin extends Plugin {
+export default class TaskIndexPlugin extends Plugin implements CurrentSettings {
     settings: TaskIndexSettings;
     index: QuestIndex;
     detector: ReviewDetector;
     updater: FileUpdater;
+    cleanup: PeriodicCleanupService;
     api: TaskIndexAPI;
+
+    current() {
+        return this.settings;
+    }
 
     async onload() {
         console.log("Loading Task Index plugin");
@@ -22,10 +28,11 @@ export default class TaskIndexPlugin extends Plugin {
         await this.loadSettings();
 
         // Initialize services
-        this.index = new QuestIndex(this.app, this.settings);
-        this.detector = new ReviewDetector(this.app, this.settings);
+        this.index = new QuestIndex(this.app, this);
+        this.detector = new ReviewDetector(this.app, this);
         this.updater = new FileUpdater(this.app);
-        this.api = new TaskIndexAPI(this.index, this.settings);
+        this.api = new TaskIndexAPI(this.index, this);
+        this.cleanup = new PeriodicCleanupService(this.app);
 
         // Add settings tab
         this.addSettingTab(new TaskIndexSettingsTab(this.app, this));
@@ -53,6 +60,15 @@ export default class TaskIndexPlugin extends Plugin {
             name: "Plan this week",
             callback: () => {
                 this.showWeeklyPlanning();
+            },
+        });
+
+        this.addCommand({
+            id: "cleanup-periodic-file",
+            name: "Clean up completed daily/weekly plan",
+            callback: async () => {
+                await this.cleanup.cleanupActiveFile();
+                new Notice("Periodic file cleaned up");
             },
         });
 
@@ -182,7 +198,7 @@ export default class TaskIndexPlugin extends Plugin {
         const modal = new ReviewModal(
             this.app,
             quest,
-            this.settings,
+            this,
             async (updated) => {
                 // onSave: Save changes to file and re-index
                 await this.updater.updateQuestFile(updated);

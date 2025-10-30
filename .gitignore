@@ -6,3 +6,4 @@ node_modules
 .idea
 .claude/settings.local.json
 nohup.out
+reference
