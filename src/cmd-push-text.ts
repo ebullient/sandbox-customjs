@@ -114,8 +114,7 @@ export class PushText {
         let selectedLines: string[] | undefined;
 
         const fileContent = await this.app.vault.read(activeFile);
-        const split = fileContent.split("\n");
-        const fileCache = this.app.metadataCache.getFileCache(activeFile);
+        const lines = fileContent.split("\n");
         const title = this.utils().fileTitle(activeFile);
 
         if (selection.hasSelection) {
@@ -128,14 +127,27 @@ export class PushText {
             }
         } else if (activeView?.editor) {
             const cursor = activeView.editor.getCursor("from").line;
-            line = split[cursor];
+            line = lines[cursor];
         }
 
         let heading: string | undefined;
         let text: string | undefined;
         let mark: string | undefined;
 
-        if (line?.match(/^\s*- .*/)) {
+        if (!line) {
+            // No line selected or found - nothing to push
+            console.log("No line to push");
+            return {
+                title,
+                path: activeFile.path,
+                heading: undefined,
+                text: undefined,
+                mark: undefined,
+                selectedLines: undefined,
+            };
+        }
+
+        if (line.match(/^\s*- .*/)) {
             // Extract text and mark from a task item
             const taskMatch = this.patterns.task.exec(line);
             if (taskMatch) {
@@ -145,16 +157,12 @@ export class PushText {
                 // Not a task, just a list item
                 text = line.replace(/^\s*- (.*)/, "$1").trim();
             }
-        } else {
-            if (!line || !line.startsWith("#")) {
-                // No line, or the line isn't a heading: Find the first h2 heading in the file
-                const headings = fileCache?.headings?.filter(
-                    (x) => x.level === 2,
-                );
-                line = split[headings?.[0]?.position.start.line];
-            }
+        } else if (line.startsWith("#")) {
             // Extract text from a heading
-            heading = line?.replace(/#+ /, "").trim();
+            heading = line.replace(/#+ /, "").trim();
+        } else {
+            // Plain text - use it directly
+            text = line.trim();
         }
 
         return {
