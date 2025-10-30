@@ -8,7 +8,7 @@ export class PeriodicCleanupService {
     dailyRegex = new RegExp(/(\d{4}-\d{2}-\d{2})\.md/);
     weeklyRegex = new RegExp(/(\d{4}-\d{2}-\d{2})_week\.md/);
 
-    constructor(private app: App) { }
+    constructor(private app: App) {}
 
     /**
      * Clean up the currently active file if it's a daily or weekly note
@@ -68,7 +68,8 @@ export class PeriodicCleanupService {
         lines = this.ensureFrontmatter(lines, "My Day");
 
         // Remove template text, consoldiate empty lines.
-        let revised = lines.join("\n")
+        let revised = lines
+            .join("\n")
             .replace(/%% agenda %%(([\s\S]*?)%% agenda %%)?/g, "")
             .replace(/\n%%\n- 🎉[\s\S]*?\n%%\n/, "")
             .replace(/\n- \.\n/g, "")
@@ -76,8 +77,10 @@ export class PeriodicCleanupService {
             .replace(/\n\n\n+/g, "\n\n");
 
         // Collapse empty Day Planner sections
-        revised = revised
-            .replace(/^### ❧? ?(Morning|After Lunch|Afternoon|Wrap up)\n+(?=###|##|>)/gm, "");
+        revised = revised.replace(
+            /^### ❧? ?(Morning|After Lunch|Afternoon|Wrap up)\n+(?=###|##|>)/gm,
+            "",
+        );
 
         return revised;
     }
@@ -136,19 +139,21 @@ export class PeriodicCleanupService {
      */
     private convertCheckboxesToEmoji(lines: string[]): string[] {
         return lines.map((line) => {
-            return line
-                // single space: - [ ] stuff
-                .replace(/^(\s*)-\s+(\[.\])\s+(.*)/, "$1- $2 $3")
-                // [x] -> ✔️
-                .replace(/^(\s*)- \[x\]/, "$1- ✔️")
-                // [r] or [R] -> 👀
-                .replace(/^(\s*)- \[r\]/i, "$1- 👀")
-                // [/] -> 🔛
-                .replace(/^(\s*)- \[\/\]/, "$1- 🔛")
-                // [>] -> 🔜
-                .replace(/^(\s*)- \[>\]/, "$1- 🔜")
-                // [-] -> 〰️ ~~text~~
-                .replace(/^(\s*)- \[-\]\s+(.*)$/, "$1- 〰️ ~~$2~~");
+            return (
+                line
+                    // single space: - [ ] stuff
+                    .replace(/^(\s*)-\s+(\[.\])\s+(.*)/, "$1- $2 $3")
+                    // [x] -> ✔️
+                    .replace(/^(\s*)- \[x\]/, "$1- ✔️")
+                    // [r] or [R] -> 👀
+                    .replace(/^(\s*)- \[r\]/i, "$1- 👀")
+                    // [/] -> 🔛
+                    .replace(/^(\s*)- \[\/\]/, "$1- 🔛")
+                    // [>] -> 🔜
+                    .replace(/^(\s*)- \[>\]/, "$1- 🔜")
+                    // [-] -> 〰️ ~~text~~
+                    .replace(/^(\s*)- \[-\]\s+(.*)$/, "$1- 〰️ ~~$2~~")
+            );
         });
     }
 
