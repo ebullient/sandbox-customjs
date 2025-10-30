@@ -22,6 +22,7 @@
 %% Lookahead for important deadlines in the future %%
 
 ## Annual self-care
+
 - [ ] Physical
 - [ ] Eye Exam
 - [ ] Gynecologist / Pap smear
@@ -29,10 +30,11 @@
 - [ ] Colonoscopy
 
 <%* for (let i = 0; i < 12; i++) {
-    const yearMonth = Dated.monthOfYear(year, i); 
+    const yearMonth = Dated.monthOfYear(year, i);
     const MM = String(i + 1).padStart(2, '0'); -%>
 
 ## <% yearMonth.month %>
+
 - [Plan for <% yearMonth.month %>](<% yearMonth.monthFile %>)
 - .
 

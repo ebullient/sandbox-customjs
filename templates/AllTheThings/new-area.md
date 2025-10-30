@@ -25,15 +25,13 @@ return AreaRelated.allRelated(engine);
 ```
 
 ## Tasks
+
 - [ ] Define initial tasks
 
 ## ❧ Percolator
 %% ideas in flight %%
 
-## ❧ Resources 
+## ❧ Resources
 %% links, contacts %%
 
 ## Log
-
-
-

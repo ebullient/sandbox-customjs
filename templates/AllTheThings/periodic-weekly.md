@@ -2,18 +2,23 @@
     const result = Dated.weekly(tp.file.title);
     await tp.file.move(result.weekFile);
     const upcoming = await Dated.weeklyEvents(tp.file.title);
-    const monday = result.dates.monday.format("YYYY-MM-DD");
+    const ibmStart = window.moment(result.dates.monday).subtract(3, "d");
+    const ibmReportDue = window.moment(result.dates.monday).day(5).format("YYYY-MM-DD");
+    const year = ibmStart.format("YYYY");
+    const prevFriday = ibmStart.format("YYYY-MM-DD")
+    const thursday = window.moment(result.dates.monday).day(4).format("DD");
     const ghFile = result.weekFile.replace('week', 'gh');
 -%>
 <% result.header %>
 
 ### Goals / Focus
 
-**Habit**:   
-**Goal for the week**:   
-**I am excited about**:   
+**Habit**: .  
+**Goal for the week**: .  
+**I am excited about**: .  
 
 **Priorities**:
+
 1. .
 2. .
 3. .
@@ -24,8 +29,8 @@
 
 <%* } -%>
 ### Tasks
+- [ ] [_IBM_](demesne/ibm/ibm.md): [📖 👩‍💻](chronicles/work/<% year %>/ibm-<% prevFriday %>_<% thursday %>.md) {<% ibmReportDue %>}
 <% tp.file.include(tp.file.find_tfile("assets/templates/weekly-leftovers.md")) %>
-
 #### Self care
 
 - [ ] [Reflect on last week](<% result.weeklyReflection %>)
@@ -59,5 +64,4 @@
 ---
 
 ## Logs
-
 <% result.log %>

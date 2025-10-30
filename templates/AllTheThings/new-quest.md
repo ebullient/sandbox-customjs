@@ -15,23 +15,22 @@ sphere: <%sphere %>
 ---
 # <% title %>
 
-* **What**: %% synopsis %%
-* **Who**:  %% collaboration %%
-* **When**: %% timeline%%
-* **Why**: %% internal or external motivation %%
+- **What**: %% synopsis %%
+- **Who**:  %% collaboration %%
+- **When**: %% timeline%%
+- **Why**: %% internal or external motivation %%
 
 %% How does this align with my passion and interest? %%
 
 ## Tasks
+
 - [ ] Define initial tasks
 
 ## ❧ Percolator
 %% ideas in flight %%
 
-## ❧ Resources 
+## ❧ Resources
 %% links, contacts %%
 
 ## Log
-
-
 

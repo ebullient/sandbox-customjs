@@ -15,7 +15,8 @@ role: <%role %>
 # <% title %>
 
 ## Tasks
-- [ ] Fire drill analysis: Run through all elements within a timebox (simple: a few minutes, complex a few hours) to create a overview. 
+
+- [ ] Fire drill analysis: Run through all elements within a timebox (simple: a few minutes, complex a few hours) to create a overview.
 
 ## Decision (PrOACT)
 
@@ -46,14 +47,11 @@ role: <%role %>
 ### 9. Is the decision obvious or pretty clear at this point?
 %% What reservations do I have about deciding now? In what ways could the decision be improved by a modest amount of added time and effort? %%
 
-
 ### 10. What should I be working on?
 %% If the decision isn't obvious, what do the critical issues appear to be? What facts and opinions would make my job easier? %%
 
-
-
 ## References
-- [Smart Choices: A Practical Guide](athenaeum/method/goals/smart-choices-a-practical-guide.md) : https://read.amazon.com/?asin=B00WDDOSD2&language=en-US
 
+- [Smart Choices: A Practical Guide](athenaeum/method/goals/smart-choices-a-practical-guide.md) : <https://read.amazon.com/?asin=B00WDDOSD2&language=en-US>
 
 ## Log
