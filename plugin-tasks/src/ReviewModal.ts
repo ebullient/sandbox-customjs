@@ -1,5 +1,5 @@
 import { type App, Modal, Setting } from "obsidian";
-import type { QuestFile, ReviewReason, TaskIndexSettings } from "./@types";
+import type { CurrentSettings, QuestFile, ReviewReason } from "./@types";
 import type { ReviewDetector } from "./ReviewDetector";
 
 /**
@@ -8,7 +8,7 @@ import type { ReviewDetector } from "./ReviewDetector";
  */
 export class ReviewModal extends Modal {
     private quest: QuestFile;
-    private settings: TaskIndexSettings;
+    private settings: CurrentSettings;
     private onSave: (updated: QuestFile) => Promise<void>;
     private onNext?: () => void;
     private onDefer?: () => void;
@@ -28,7 +28,7 @@ export class ReviewModal extends Modal {
     constructor(
         app: App,
         quest: QuestFile,
-        settings: TaskIndexSettings,
+        settings: CurrentSettings,
         onSave: (updated: QuestFile) => Promise<void>,
         reviewDetector: ReviewDetector,
         onNext?: () => void,
@@ -119,7 +119,7 @@ export class ReviewModal extends Modal {
                 dropdown.addOption("", "(none)");
 
                 // Add configured spheres
-                for (const sphere of this.settings.validSpheres) {
+                for (const sphere of this.settings.current().validSpheres) {
                     dropdown.addOption(sphere, sphere);
                 }
 
@@ -137,14 +137,18 @@ export class ReviewModal extends Modal {
         header.createEl("h3", { text: "Purpose" });
 
         // Tag insertion dropdown for purpose
-        this.createTagDropdown(header, (tag) => {
-            const textArea = section.querySelector(
-                "textarea",
-            ) as HTMLTextAreaElement;
-            if (textArea) {
-                this.insertTag(textArea, tag);
-            }
-        });
+        this.createTagDropdown(
+            header,
+            (tag) => {
+                const textArea = section.querySelector(
+                    "textarea",
+                ) as HTMLTextAreaElement;
+                if (textArea) {
+                    this.insertTag(textArea, tag);
+                }
+            },
+            this.settings.current().purposeTags,
+        );
 
         const textArea = section.createEl("textarea", {
             cls: "purpose-editor",
@@ -163,11 +167,15 @@ export class ReviewModal extends Modal {
         header.createEl("h3", { text: "Tasks" });
 
         // Tag insertion dropdown for tasks
-        this.createTagDropdown(header, (tag) => {
-            if (this.taskTextArea) {
-                this.insertTag(this.taskTextArea, tag);
-            }
-        });
+        this.createTagDropdown(
+            header,
+            (tag) => {
+                if (this.taskTextArea) {
+                    this.insertTag(this.taskTextArea, tag);
+                }
+            },
+            ["#next", "#waiting", "#someday"],
+        );
 
         this.taskTextArea = section.createEl("textarea", {
             cls: "task-editor",
@@ -182,6 +190,7 @@ export class ReviewModal extends Modal {
     private createTagDropdown(
         container: HTMLElement,
         onSelect: (tag: string) => void,
+        tags: string[],
     ) {
         const dropdown = container.createEl("select", { cls: "tag-dropdown" });
 
@@ -193,8 +202,7 @@ export class ReviewModal extends Modal {
         placeholder.selected = true;
 
         // Add GTD tags
-        const gtdTags = ["#next", "#waiting", "#someday"];
-        for (const tag of gtdTags) {
+        for (const tag of tags) {
             const option = dropdown.createEl("option");
             option.value = tag;
             option.text = tag;

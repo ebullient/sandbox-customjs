@@ -1,4 +1,4 @@
-import type { QuestFile, TaskIndexSettings } from "./@types";
+import type { CurrentSettings, QuestFile } from "./@types";
 import type { QuestIndex } from "./QuestIndex";
 
 /**
@@ -8,7 +8,7 @@ import type { QuestIndex } from "./QuestIndex";
 export class TaskIndexAPI {
     constructor(
         private index: QuestIndex,
-        private settings: TaskIndexSettings,
+        private settings: CurrentSettings,
     ) {}
 
     // ============================================================
@@ -47,7 +47,7 @@ export class TaskIndexAPI {
      * @returns {string[]} Array of valid sphere values.
      */
     getValidSpheres = (): string[] => {
-        return this.settings.validSpheres;
+        return this.settings.current().validSpheres;
     };
 
     // ============================================================

@@ -42,6 +42,10 @@ export type TaskStatus = " " | "/" | "b" | "x" | "-";
  */
 export type TaskTag = "next" | "waiting" | "someday";
 
+export interface CurrentSettings {
+    current(): TaskIndexSettings;
+}
+
 /**
  * Parsed task from markdown
  */

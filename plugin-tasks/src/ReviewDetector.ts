@@ -1,9 +1,9 @@
 import type { App } from "obsidian";
 import type {
+    CurrentSettings,
     QuestFile,
     ReviewItem,
     ReviewReason,
-    TaskIndexSettings,
 } from "./@types";
 
 /**
@@ -12,7 +12,7 @@ import type {
 export class ReviewDetector {
     constructor(
         private app: App,
-        private settings: TaskIndexSettings,
+        private settings: CurrentSettings,
     ) {}
 
     /**
@@ -46,7 +46,7 @@ export class ReviewDetector {
 
         // Check for stale project (not modified in X weeks)
         const weeksSinceModified = this.getWeeksSinceModified(quest);
-        if (weeksSinceModified >= this.settings.staleProjectWeeks) {
+        if (weeksSinceModified >= this.settings.current().staleProjectWeeks) {
             reasons.push("stale-project");
             priority += 3;
         }
@@ -54,7 +54,7 @@ export class ReviewDetector {
         // Check for long-waiting tasks (future feature)
         if (quest.hasWaitingTasks && quest.oldestWaitingDate) {
             const daysSinceWaiting = this.getDaysSince(quest.oldestWaitingDate);
-            if (daysSinceWaiting >= this.settings.waitingTaskDays) {
+            if (daysSinceWaiting >= this.settings.current().waitingTaskDays) {
                 reasons.push("long-waiting");
                 priority += 4;
             }
@@ -103,9 +103,9 @@ export class ReviewDetector {
             case "overdue-tasks":
                 return "Has overdue tasks";
             case "stale-project":
-                return `Not updated in ${this.settings.staleProjectWeeks} weeks`;
+                return `Not updated in ${this.settings.current().staleProjectWeeks} weeks`;
             case "long-waiting":
-                return `Has tasks waiting ${this.settings.waitingTaskDays}+ days`;
+                return `Has tasks waiting ${this.settings.current().waitingTaskDays}+ days`;
         }
     }
 

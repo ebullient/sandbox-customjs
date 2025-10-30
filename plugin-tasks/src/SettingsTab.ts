@@ -36,26 +36,6 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
-            .setName("Current sphere focus")
-            .setDesc(
-                "Optional: Highlight projects in this sphere during review",
-            )
-            .addDropdown((dropdown) => {
-                dropdown.addOption("", "-- None --");
-                for (const sphere of this.plugin.settings.validSpheres) {
-                    dropdown.addOption(sphere, sphere);
-                }
-                dropdown.setValue(
-                    this.plugin.settings.currentSphereFocus || "",
-                );
-                dropdown.onChange(async (value) => {
-                    this.plugin.settings.currentSphereFocus =
-                        value || undefined;
-                    await this.plugin.saveSettings();
-                });
-            });
-
         // Review thresholds
         containerEl.createEl("h3", { text: "Review Thresholds" });
 

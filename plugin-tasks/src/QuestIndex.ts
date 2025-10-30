@@ -4,7 +4,7 @@ import {
     type TAbstractFile,
     TFile,
 } from "obsidian";
-import type { QuestFile, Task, TaskIndexSettings, TaskTag } from "./@types";
+import type { CurrentSettings, QuestFile, Task, TaskTag } from "./@types";
 import * as TaskParser from "./TaskParser";
 
 /**
@@ -15,7 +15,7 @@ export class QuestIndex {
 
     constructor(
         private app: App,
-        private settings: TaskIndexSettings,
+        private settings: CurrentSettings,
     ) {}
 
     /**
@@ -44,9 +44,9 @@ export class QuestIndex {
         }
 
         // Check if file is in a quest folder
-        return this.settings.questFolders.some((folder) =>
-            file.path.startsWith(folder),
-        );
+        return this.settings
+            .current()
+            .questFolders.some((folder) => file.path.startsWith(folder));
     }
 
     /**
@@ -116,7 +116,7 @@ export class QuestIndex {
 
         // Must have a valid type from settings
         const type = frontmatter.type;
-        if (!type || !this.settings.validTypes.includes(type)) {
+        if (!type || !this.settings.current().validTypes.includes(type)) {
             return null;
         }
 
