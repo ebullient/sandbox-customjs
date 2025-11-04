@@ -176,10 +176,10 @@ export class Activity {
                         min: 0,
                         max: 7,
                         angleLines: {
-                            color: "#898989",
+                            color: "rgba(128, 128, 128, 0.2)",
                         },
                         grid: {
-                            color: "#898989",
+                            color: "rgba(128, 128, 128, 0.2)",
                         },
                         ticks: {
                             showLabelBackdrop: false,
@@ -252,7 +252,7 @@ export class Activity {
                         min: 0,
                         max: 7,
                         grid: {
-                            color: "rgb(183, 183, 183)",
+                            color: "rgba(128, 128, 128, 0.2)",
                         },
                     },
                 },
