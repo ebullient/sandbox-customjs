@@ -33,7 +33,7 @@ export class WeeklyPlanningModal extends Modal {
 
         if (this.allQuests.length === 0) {
             contentEl.createDiv({
-                text: "No quests with actionable tasks (#next or due dates) found. Review your projects first!",
+                text: "No quests with actionable tasks (#next, due dates, or completed tasks) found. Review your projects first!",
             });
             return;
         }
@@ -119,6 +119,7 @@ export class WeeklyPlanningModal extends Modal {
 
         let totalNextTasks = 0;
         let totalDueTasks = 0;
+        let totalCompletedTasks = 0;
 
         for (const quest of this.filteredQuests) {
             for (const task of quest.tasks) {
@@ -127,6 +128,9 @@ export class WeeklyPlanningModal extends Modal {
                 }
                 if (TaskParser.isOverdueOrDueToday(task)) {
                     totalDueTasks++;
+                }
+                if (task.status === "x" || task.status === "-") {
+                    totalCompletedTasks++;
                 }
             }
         }
@@ -142,8 +146,13 @@ export class WeeklyPlanningModal extends Modal {
                 `${totalDueTasks} due task${totalDueTasks !== 1 ? "s" : ""}`,
             );
         }
+        if (totalCompletedTasks > 0) {
+            parts.push(
+                `${totalCompletedTasks} completed task${totalCompletedTasks !== 1 ? "s" : ""}`,
+            );
+        }
 
-        const summaryText = `Found ${parts.join(" and ")} across ${this.filteredQuests.length} quest${this.filteredQuests.length !== 1 ? "s" : ""}`;
+        const summaryText = `Found ${parts.join(", ")} across ${this.filteredQuests.length} quest${this.filteredQuests.length !== 1 ? "s" : ""}`;
         summary.createEl("p", { text: summaryText });
     }
 
@@ -193,6 +202,14 @@ export class WeeklyPlanningModal extends Modal {
             href: `${quest.path}#Tasks`,
         });
         link.createEl("strong", { text: quest.title });
+
+        // Add cleanup indicator if quest has completed tasks
+        if (quest.hasCompletedTasks) {
+            item.createSpan({
+                text: " 🌪️",
+                cls: "cleanup-indicator",
+            });
+        }
 
         // Make the link clickable
         link.addEventListener("click", (e) => {

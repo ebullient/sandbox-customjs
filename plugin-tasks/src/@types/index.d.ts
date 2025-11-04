@@ -91,6 +91,7 @@ export interface QuestFile {
     // Computed flags
     hasNextTasks: boolean;
     hasWaitingTasks: boolean;
+    hasCompletedTasks: boolean; // Has completed (x) or cancelled (-) tasks that need cleanup
     untriagedCount: number;
     hasOverdueTasks: boolean; // Has tasks with due dates today or in the past
     oldestWaitingDate?: number; // TODO: Track when tasks were marked #waiting

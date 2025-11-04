@@ -150,6 +150,9 @@ export class QuestIndex {
         const tasks = quest.tasks || [];
         const hasNextTasks = tasks.some((t) => t.tags.includes("next"));
         const hasWaitingTasks = tasks.some((t) => t.tags.includes("waiting"));
+        const hasCompletedTasks = tasks.some(
+            (t) => t.status === "x" || t.status === "-",
+        );
         const untriagedCount = tasks.filter(
             (t) => !TaskParser.isTaskTriaged(t),
         ).length;
@@ -164,6 +167,7 @@ export class QuestIndex {
             ...quest,
             hasNextTasks,
             hasWaitingTasks,
+            hasCompletedTasks,
             hasOverdueTasks,
             untriagedCount,
             oldestWaitingDate,

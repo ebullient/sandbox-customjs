@@ -232,15 +232,15 @@ export default class TaskIndexPlugin extends Plugin implements CurrentSettings {
      * Show weekly planning view
      */
     private showWeeklyPlanning() {
-        // Get all quests that have actionable tasks (#next OR due dates)
+        // Get all quests that have actionable tasks (#next OR due dates) OR completed tasks needing cleanup
         const allQuests = this.index.getAllQuests();
         const actionableQuests = allQuests.filter(
-            (q) => q.hasNextTasks || q.hasOverdueTasks,
+            (q) => q.hasNextTasks || q.hasOverdueTasks || q.hasCompletedTasks,
         );
 
         if (actionableQuests.length === 0) {
             new Notice(
-                "No quests with actionable tasks (#next or due dates) found. Review your projects first!",
+                "No quests with actionable tasks (#next, due dates, or completed tasks) found. Review your projects first!",
             );
             return;
         }
