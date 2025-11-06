@@ -133,7 +133,7 @@ export class Dated {
      * @returns {string} The file path for the specified date.
      */
     dailyFile = (target: Moment): string => {
-        return target.format("[/chronicles]/YYYY/YYYY-MM-DD[.md]");
+        return target.format("[chronicles]/YYYY/YYYY-MM-DD[.md]");
     };
 
     /**
@@ -142,7 +142,7 @@ export class Dated {
      * @returns {string} The file path for the specified Monday.
      */
     weeklyFile = (monday: Moment): string => {
-        return monday.format("[/chronicles]/YYYY/YYYY-MM-DD[_week.md]");
+        return monday.format("[chronicles]/YYYY/YYYY-MM-DD[_week.md]");
     };
 
     /**
@@ -151,7 +151,7 @@ export class Dated {
      * @returns {string} The file path for the specified month.
      */
     monthlyFile = (target: Moment): string => {
-        return target.format("[/chronicles]/YYYY/YYYY-MM[_month.md]");
+        return target.format("[chronicles]/YYYY/YYYY-MM[_month.md]");
     };
 
     /**
@@ -160,7 +160,7 @@ export class Dated {
      * @returns {string} The file path for the specified year.
      */
     yearlyFile = (target: Moment): string => {
-        return target.format("[/chronicles]/YYYY/YYYY[.md]");
+        return target.format("[chronicles]/YYYY/YYYY[.md]");
     };
 
     /**
@@ -387,9 +387,9 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
         const weekEntries: string[] = [];
 
         for (const yearFilePath of yearFiles) {
-            const yearFile = this.app.vault.getAbstractFileByPath(
-                yearFilePath,
-            ) as TFile;
+            const yearFile = this.app.vault.getFileByPath(yearFilePath);
+            console.log("weeklyEvents", yearFilePath, yearFile);
+
             if (!yearFile) {
                 continue;
             }
