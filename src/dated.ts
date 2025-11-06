@@ -379,12 +379,16 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
 
     weeklyEvents = async (filename: string): Promise<string> => {
         const dates = this.parseDate(filename);
+        const twoWeeksFromMonday = window
+            .moment(dates.nextMonday)
+            .add(1, "week");
         const yearFiles = new Set([
             this.yearlyFile(dates.monday),
             this.yearlyFile(dates.nextMonday),
         ]);
 
-        const weekEntries: string[] = [];
+        const thisWeekEntries: string[] = [];
+        const nextWeekEntries: string[] = [];
 
         for (const yearFilePath of yearFiles) {
             const yearFile = this.app.vault.getFileByPath(yearFilePath);
@@ -405,10 +409,10 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
             const yearStart = window.moment([year, 0, 1]); // Jan 1 of year
             const yearEnd = window.moment([year, 11, 31]); // Dec 31 of year
 
-            // Only look for dates within the year AND within our week
+            // Look for dates within the year AND within our two-week range
             const searchStart = window.moment.max(dates.monday, yearStart);
             const searchEnd = window.moment.min(
-                dates.nextMonday.clone().subtract(1, "day"),
+                twoWeeksFromMonday.clone().subtract(1, "day"),
                 yearEnd,
             );
 
@@ -460,22 +464,46 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
                             day,
                         ]);
 
-                        // Check if this date falls within our search range
+                        // Check if this date falls within this week
                         if (
                             entryDate.isBetween(
-                                searchStart,
-                                searchEnd,
+                                dates.monday,
+                                dates.nextMonday.clone().subtract(1, "day"),
                                 "day",
                                 "[]",
                             )
                         ) {
-                            weekEntries.push(`> ${trimmedLine}`);
+                            thisWeekEntries.push(`> ${trimmedLine}`);
+                        }
+                        // Check if this date falls within next week
+                        else if (
+                            entryDate.isBetween(
+                                dates.nextMonday,
+                                twoWeeksFromMonday.clone().subtract(1, "day"),
+                                "day",
+                                "[]",
+                            )
+                        ) {
+                            nextWeekEntries.push(`> ${trimmedLine}`);
                         }
                     }
                 }
             }
         }
 
-        return weekEntries.join("\n");
+        const sections: string[] = [];
+        if (thisWeekEntries.length > 0) {
+            sections.push("> **This week:**");
+            sections.push(...thisWeekEntries);
+        }
+        if (thisWeekEntries.length > 0 && nextWeekEntries.length > 0) {
+            sections.push(">");
+        }
+        if (nextWeekEntries.length > 0) {
+            sections.push("> **Next week:**");
+            sections.push(...nextWeekEntries);
+        }
+
+        return sections.join("\n");
     };
 }
