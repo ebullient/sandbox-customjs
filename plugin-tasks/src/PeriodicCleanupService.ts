@@ -1,12 +1,21 @@
 import type { App, TFile } from "obsidian";
+import * as LogParser from "./LogParser";
 
 /**
  * Service for cleaning up completed daily and weekly periodic files
  * Replaces regex pipeline plugin functionality with programmatic transformations
  */
+interface TaskBlockParams {
+    method: "thisWeekTasks" | "fixedWeekTasks";
+    dateString?: string;
+    tag?: string | string[];
+    all?: boolean;
+}
+
 export class PeriodicCleanupService {
     dailyRegex = new RegExp(/(\d{4}-\d{2}-\d{2})\.md/);
     weeklyRegex = new RegExp(/(\d{4}-\d{2}-\d{2})_week\.md/);
+    taskPaths = ["demesne", "quests"];
 
     constructor(private app: App) {}
 
@@ -25,14 +34,18 @@ export class PeriodicCleanupService {
             `[PeriodicCleanup] Cleaning ${fileType} file: ${activeFile.name}`,
         );
 
-        await this.app.vault.process(activeFile, (content) => {
+        // Process file with type-specific cleanup
+        await this.app.vault.process(activeFile, async (content) => {
             if (fileType === "daily") {
                 return this.cleanupDailyFile(content);
             }
             if (fileType === "weekly") {
-                return this.cleanupWeeklyFile(content);
+                const cleaned = this.cleanupWeeklyFile(content);
+                return await this.replaceTaskBlocks(cleaned, activeFile);
             }
-            return this.cleanupOtherFile(content);
+            // "other" type
+            const cleaned = this.cleanupOtherFile(content);
+            return await this.replaceTaskBlocks(cleaned, activeFile);
         });
     }
 
@@ -181,6 +194,166 @@ export class PeriodicCleanupService {
                 .replace(/\[(#[^\]]+)\]\(index\.html#[^)]+\)/g, "$1")
                 .replace(/app:\/\/obsidian\.md/g, "");
         });
+    }
+
+    /**
+     * Parse js-engine code block calling Tasks methods
+     * Returns null if not a recognized pattern
+     */
+    private parseTaskBlock(blockContent: string): TaskBlockParams | null {
+        // Match thisWeekTasks(engine)
+        if (blockContent.includes("Tasks.thisWeekTasks(engine)")) {
+            return { method: "thisWeekTasks" };
+        }
+
+        // Match fixedWeekTasks(engine, "date", "tag", all)
+        const fixedMatch = blockContent.match(
+            /Tasks\.fixedWeekTasks\(engine,\s*"([^"]+)"(?:,\s*"([^"]+)")?(?:,\s*(true|false))?\)/,
+        );
+        if (fixedMatch) {
+            return {
+                method: "fixedWeekTasks",
+                dateString: fixedMatch[1],
+                tag: fixedMatch[2] || undefined,
+                all: fixedMatch[3] === "true",
+            };
+        }
+
+        return null;
+    }
+
+    /**
+     * Generate task list markdown based on parameters
+     * Mimics Tasks.thisWeekTasks and Tasks.fixedWeekTasks functionality
+     */
+    private async generateTaskList(
+        currentFile: TFile,
+        params: TaskBlockParams,
+    ): Promise<string> {
+        // Determine date range
+        let beginDate: string;
+        if (params.method === "thisWeekTasks") {
+            // Extract date from filename and get Monday of that week
+            const titledate = currentFile.name
+                .replace(".md", "")
+                .replace("_week", "");
+            const begin = window.moment(titledate).day(1); // Monday
+            beginDate = begin.format("YYYY-MM-DD");
+        } else {
+            // fixedWeekTasks - use provided date
+            beginDate = params.dateString || "";
+        }
+
+        const endMoment = window.moment(beginDate).add(6, "d");
+        const endDate = endMoment.format("YYYY-MM-DD");
+
+        // Get all quest/project files
+        const files = this.app.vault
+            .getMarkdownFiles()
+            .filter((f) => {
+                if (
+                    f.path.includes("archive") ||
+                    f.path.includes("-test") ||
+                    f === currentFile
+                ) {
+                    return false;
+                }
+                return this.taskPaths.some((p) => f.path.includes(p));
+            })
+            .filter((f) => {
+                // Apply tag filter if specified
+                return params.tag
+                    ? LogParser.fileMatchesTag(
+                          this.app,
+                          f,
+                          params.tag as string,
+                          params.all || false,
+                      )
+                    : true;
+            });
+
+        // Parse all completed tasks from all files
+        const allTasks: LogParser.CompletedTask[] = [];
+        for (const file of files) {
+            const tasks = await LogParser.parseCompletedTasksFromFile(
+                this.app,
+                file,
+            );
+            allTasks.push(...tasks);
+        }
+
+        // Filter by date range
+        const tasksInRange = LogParser.filterTasksByDateRange(
+            allTasks,
+            beginDate,
+            endDate,
+        );
+
+        // Group by sphere and generate markdown
+        const removeTriageTags = params.method === "fixedWeekTasks";
+        const groupedTasks = LogParser.groupTasksBySphere(
+            tasksInRange,
+            removeTriageTags,
+        );
+
+        return LogParser.generateMarkdown(groupedTasks, beginDate, endDate);
+    }
+
+    /**
+     * Replace js-engine code blocks with fresh task list content
+     */
+    private async replaceTaskBlocks(
+        content: string,
+        currentFile: TFile,
+    ): Promise<string> {
+        const lines = content.split("\n");
+        const newLines: string[] = [];
+        let i = 0;
+
+        while (i < lines.length) {
+            const line = lines[i];
+
+            // Check if this is a js-engine code block start
+            if (line.trim() === "```js-engine") {
+                // Find the end of the code block
+                let blockEnd = i + 1;
+                let blockContent = "";
+
+                while (
+                    blockEnd < lines.length &&
+                    lines[blockEnd].trim() !== "```"
+                ) {
+                    blockContent += `${lines[blockEnd]}\n`;
+                    blockEnd++;
+                }
+
+                // Try to parse as a Tasks block
+                const params = this.parseTaskBlock(blockContent);
+
+                if (params) {
+                    // Generate fresh content
+                    const markdown = await this.generateTaskList(
+                        currentFile,
+                        params,
+                    );
+                    // Replace block with just the markdown (no code block)
+                    newLines.push(markdown);
+                    // Skip to end of block
+                    i = blockEnd + 1;
+                } else {
+                    // Not a recognized Tasks block, keep original
+                    for (let j = i; j <= blockEnd; j++) {
+                        newLines.push(lines[j]);
+                    }
+                    i = blockEnd + 1;
+                }
+            } else {
+                newLines.push(line);
+                i++;
+            }
+        }
+
+        return newLines.join("\n");
     }
 
     /**
