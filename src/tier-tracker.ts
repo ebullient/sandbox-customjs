@@ -133,12 +133,45 @@ export class TierTracker {
     ): HTMLElement => {
         const container = createEl("div");
         container.style.cssText = `
-			display: inline-block;
+			display: flex;
+			align-items: center;
+			gap: 20px;
 			padding: 20px;
 			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 		`;
 
-        // Create grid container
+        // Create legend first (on the left)
+        const legend = container.createEl("div");
+        legend.style.cssText = `
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+			font-size: 12px;
+		`;
+
+        // Add legend items for each tier
+        for (let tier = 1; tier <= 4; tier++) {
+            const item = legend.createEl("div");
+            item.style.cssText = `
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			`;
+
+            const colorBox = item.createEl("div");
+            const color = this.tierColors[tier as keyof typeof this.tierColors];
+            colorBox.style.cssText = `
+				width: 16px;
+				height: 16px;
+				border-radius: 2px;
+				background-color: rgb(${color});
+			`;
+
+            const label = item.createEl("span");
+            label.setText(`Tier ${tier}`);
+        }
+
+        // Create grid container (on the right)
         const grid = container.createEl("div");
         grid.style.cssText = `
 			display: grid;
@@ -150,9 +183,18 @@ export class TierTracker {
 
         const current = window.moment();
         const endOfWeek = window.moment(current).day(7); // Sunday
-        const startDate = window.moment(startDateStr);
 
-        // Iterate through each day from actual start to end of current week
+        // Adjust start date to nearest Monday (beginning of week)
+        const startDate = window.moment(startDateStr);
+        const startDayOfWeek = startDate.day(); // 0 = Sunday, 1 = Monday, etc.
+        if (startDayOfWeek !== 1) {
+            // If not Monday, go back to the previous Monday
+            const daysToSubtract =
+                startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
+            startDate.subtract(daysToSubtract, "days");
+        }
+
+        // Iterate through each day from Monday of first week to end of current week
         const iterDate = window.moment(startDate);
         while (iterDate.isSameOrBefore(endOfWeek)) {
             const dateStr = iterDate.format("YYYY-MM-DD");
@@ -182,9 +224,8 @@ export class TierTracker {
                 tooltipText += " • No tier data";
             }
 
-            // Set tooltip
+            // Set tooltip (aria-label for Obsidian's tooltip system)
             cell.setAttribute("aria-label", tooltipText);
-            cell.setAttribute("title", tooltipText);
 
             // Determine cell styling based on tier data
             if (iterDate.isAfter(current)) {
