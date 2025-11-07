@@ -20,12 +20,6 @@ export class PeriodicCleanupService {
         }
 
         const fileType = this.detectFileType(activeFile);
-        if (!fileType) {
-            console.debug(
-                `[PeriodicCleanup] File ${activeFile.name} is not a daily or weekly note`,
-            );
-            return;
-        }
 
         console.log(
             `[PeriodicCleanup] Cleaning ${fileType} file: ${activeFile.name}`,
@@ -35,21 +29,25 @@ export class PeriodicCleanupService {
             if (fileType === "daily") {
                 return this.cleanupDailyFile(content);
             }
-            return this.cleanupWeeklyFile(content);
+            if (fileType === "weekly") {
+                return this.cleanupWeeklyFile(content);
+            }
+            return this.cleanupOtherFile(content);
         });
     }
 
     /**
-     * Detect if a file is a daily or weekly note based on configured patterns
+     * Detect if a file is a daily, weekly, or other note based on configured patterns
      */
-    private detectFileType(file: TFile): "daily" | "weekly" | null {
+    private detectFileType(file: TFile): "daily" | "weekly" | "other" {
         if (this.dailyRegex.test(file.name)) {
             return "daily";
         }
         if (this.weeklyRegex.test(file.name)) {
             return "weekly";
         }
-        return null;
+        // "other" is any markdown file that's not daily or weekly
+        return "other";
     }
 
     /**
@@ -94,10 +92,10 @@ export class PeriodicCleanupService {
         // Step 1: Convert checkbox markers to emoji
         lines = this.convertCheckboxesToEmoji(lines);
 
-        // Step 2: Remove app:// links
-        lines = lines.filter((line) => !line.includes("app://obsidian.md"));
+        // Step 2: Clean up links (tag links and app:// links)
+        lines = this.cleanupLinks(lines);
 
-        // Step 3: Fix list whitespace after app link removal
+        // Step 3: Fix list whitespace after link cleanup
         lines = lines.map((line) => line.replace(/^(\s*)-\s+(.*)$/, "$1- $2"));
 
         // Step 4: Remove unmarked tasks and completed standard tasks
@@ -105,6 +103,21 @@ export class PeriodicCleanupService {
 
         // Step 5: Add frontmatter if not present
         lines = this.ensureFrontmatter(lines, "Week of ");
+
+        return lines.join("\n");
+    }
+
+    /**
+     * Clean up other files (not daily or weekly)
+     */
+    private cleanupOtherFile(content: string): string {
+        let lines = content.split("\n");
+
+        // Step 1: Convert checkbox markers to emoji
+        lines = this.convertCheckboxesToEmoji(lines);
+
+        // Step 2: Clean up links (tag links and app:// links)
+        lines = this.cleanupLinks(lines);
 
         return lines.join("\n");
     }
@@ -154,6 +167,19 @@ export class PeriodicCleanupService {
                     // [-] -> 〰️ ~~text~~
                     .replace(/^(\s*)- \[-\]\s+(.*)$/, "$1- 〰️ ~~$2~~")
             );
+        });
+    }
+
+    /**
+     * Clean up unwanted links:
+     * - Convert tag links back to plain tags: [#next](index.html#next) -> #next
+     * - Remove app://obsidian.md links (replace with empty string)
+     */
+    private cleanupLinks(lines: string[]): string[] {
+        return lines.map((line) => {
+            return line
+                .replace(/\[(#[^\]]+)\]\(index\.html#[^)]+\)/g, "$1")
+                .replace(/app:\/\/obsidian\.md/g, "");
         });
     }
 
