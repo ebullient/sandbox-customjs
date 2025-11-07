@@ -132,10 +132,7 @@ export class Tasks {
             const tasks = await this.fileTasks(file);
             for (const task of tasks) {
                 if (task.mark.match(/[x-]/)) {
-                    let completed = this.completedPattern.exec(task.text);
-                    if (!completed) {
-                        completed = this.dailyNotePattern.exec(task.text);
-                    }
+                    const completed = this.completedPattern.exec(task.text);
 
                     if (
                         completed &&
