@@ -115,9 +115,3 @@ export type RangedCalEventInfo = {
     date: RecurringCalEventDate;
 };
 export type RecurringCalEvent = BaseCalEvent & RangedCalEventInfo;
-
-declare global {
-    interface Window {
-        Calendarium: Calendarium;
-    }
-}

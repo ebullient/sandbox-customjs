@@ -1,9 +1,9 @@
 import type * as obsidian from "obsidian";
-import type { Utils } from "src/_utils";
-import type { AreaRelated } from "src/areaRelated";
-import type { Campaign } from "src/campaign";
-import type { Timeline } from "src/cmd-timeline";
-import type { Reference } from "src/reference";
+import type { Utils } from "../_utils";
+import type { AreaRelated } from "../areaRelated";
+import type { Campaign } from "../campaign";
+import type { Timeline } from "../cmd-timeline";
+import type { Reference } from "../reference";
 
 // Note: Partial CustomJS API
 
@@ -18,13 +18,3 @@ export type CustomJSType = {
     Timeline: Timeline;
     Utils: Utils;
 };
-
-declare global {
-    interface Window {
-        forceLoadCustomJS?: () => Promise<void>;
-        cJS?: (
-            moduleOrCallback?: string | ((customJS: CustomJSType) => void),
-        ) => Promise<CustomJSType>;
-        customJS?: CustomJSType;
-    }
-}

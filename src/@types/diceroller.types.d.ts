@@ -19,9 +19,3 @@ export interface RollResult {
 export interface BasicRoller extends Component {
     roll(): Promise<unknown>;
 }
-
-declare global {
-    interface Window {
-        DiceRoller: DiceRoller;
-    }
-}

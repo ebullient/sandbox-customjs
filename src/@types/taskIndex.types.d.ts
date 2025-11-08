@@ -4,11 +4,3 @@ export interface TaskIndex {
     getValidSpheres(): string[];
     compareRoles(role1: string, role2: string): number;
 }
-
-declare global {
-    interface Window {
-        taskIndex: {
-            api: TaskIndex;
-        };
-    }
-}
