@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "prebuild:customjs": "npx @biomejs/biome check ./src",
-    "build:customjs": "tsc",
+    "build:customjs": "npx tsc",
     "prebuild:plugin": "npx @biomejs/biome check ./plugin/src",
     "build:plugin": "node ./plugin/esbuild.config.mjs production",
     "prebuild:plugin-tasks": "npx @biomejs/biome check ./plugin-tasks/src",
@@ -15,11 +15,12 @@
     "fix": "npx @biomejs/biome check --write",
     "format": "npx @biomejs/biome format",
     "lint": "npx @biomejs/biome lint",
-    "dev:customjs": "tsc -w & node ./build/build-dev.mjs watch",
+    "dev:customjs": "npx tsc -w & node ./build/build-dev.mjs watch",
     "dev:plugin": "node ./plugin/esbuild.config.mjs",
     "dev:plugin-tasks": "node ./plugin-tasks/esbuild.config.mjs",
     "dev": "npm run dev:plugin & npm run dev:plugin-tasks & node ./build/build-dev.mjs dev",
-    "push": "node ./build/build-dev.mjs"
+    "push": "node ./build/build-dev.mjs",
+    "test": "npx tsc --project test/tsconfig.json && node dist/test/test/testPrefilter.js"
   },
   "keywords": [],
   "devDependencies": {

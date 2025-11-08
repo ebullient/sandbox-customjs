@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "outDir": "../dist/test",
+    "module": "CommonJS",
+    "target": "es2020",
+    "moduleResolution": "node"
+  },
+  "include": [
+    "testPrefilter.ts",
+    "../src/tier-prefilter.ts",
+    "../src/window-type.ts",
+    "../src/@types/**/*.ts"
+  ]
+}
