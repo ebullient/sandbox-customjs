@@ -24,10 +24,10 @@ export class Agenda {
         }
 
         const agendaFile = this.app.vault.getAbstractFileByPath(
-            "assets/Agenda.txt",
+            "assets/Agenda.md",
         ) as TFile;
         if (!agendaFile) {
-            console.log("assets/Agenda.txt not found");
+            console.log("assets/Agenda.md not found");
             return;
         }
 
