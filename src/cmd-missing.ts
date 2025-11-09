@@ -16,7 +16,7 @@ export class Missing {
     app: App;
 
     targetFile = "assets/no-sync/missing.md";
-    configFile = "assets/missing-config.yaml";
+    configFile = "assets/config/missing-config.yaml";
 
     // Default values (fallback if config file can't be loaded)
     ignoreAnchors: string[] = [
