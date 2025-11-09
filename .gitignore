@@ -7,3 +7,4 @@ node_modules
 .claude/settings.local.json
 nohup.out
 reference
+private-*

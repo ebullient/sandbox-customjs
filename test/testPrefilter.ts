@@ -19,6 +19,11 @@ if (!filename) {
 try {
     const content = readFileSync(filename, "utf-8");
     const tierPrefilter = new TierPrefilter();
+    tierPrefilter.familyCheckin = {
+        Chris: new RegExp("\\b[Cc]hris(topher)?\\b"),
+        Eric: new RegExp("\\b[Ee]ric\\b"),
+        Caitlin: new RegExp("\\bCaitlin\\b"),
+    };
     const result = tierPrefilter.prefilter(content);
 
     console.log(result);
