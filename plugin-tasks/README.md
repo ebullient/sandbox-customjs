@@ -67,14 +67,14 @@ Opens a planning modal showing all quests with actionable items.
 
 ## Structure
 
-- `src/main.ts` - Plugin entry point with review and planning commands
-- `src/QuestIndex.ts` - Indexes quest/area files and parses tasks
-- `src/ReviewDetector.ts` - Identifies projects needing review with priority scoring
-- `src/ReviewModal.ts` - Interactive review UI with defer/skip functionality
-- `src/WeeklyPlanningModal.ts` - Planning UI showing actionable tasks grouped by sphere
-- `src/TaskParser.ts` - Parses markdown tasks with GTD tags and due dates
-- `src/FileUpdater.ts` - Updates quest files with changes from review
-- `src/TaskIndex-Api.ts` - Public API for CustomJS scripts
+- `src/taskindex-Plugin.ts` (exported via `src/main.ts`) - Plugin entry point with review and planning commands
+- `src/taskindex-QuestIndex.ts` - Indexes quest/area files and parses tasks
+- `src/taskindex-ReviewDetector.ts` - Identifies projects needing review with priority scoring
+- `src/taskindex-ReviewModal.ts` - Interactive review UI with defer/skip functionality
+- `src/taskindex-WeeklyPlanningModal.ts` - Planning UI showing actionable tasks grouped by sphere
+- `src/taskindex-TaskParser.ts` - Parses markdown tasks with GTD tags and due dates
+- `src/taskindex-FileUpdater.ts` - Updates quest files with changes from review
+- `src/taskindex-Api.ts` - Public API for CustomJS scripts
 - `src/@types/` - TypeScript type definitions
 
 ## Configuration

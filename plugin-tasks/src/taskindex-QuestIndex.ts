@@ -5,7 +5,7 @@ import {
     TFile,
 } from "obsidian";
 import type { CurrentSettings, QuestFile, Task, TaskTag } from "./@types";
-import * as TaskParser from "./TaskParser";
+import * as TaskParser from "./taskindex-TaskParser";
 
 /**
  * Index of quest/area files and their tasks

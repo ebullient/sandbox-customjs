@@ -1,6 +1,6 @@
 import { type App, Modal, Setting } from "obsidian";
 import type { QuestFile, Task, TaskIndexSettings } from "./@types";
-import * as TaskParser from "./TaskParser";
+import * as TaskParser from "./taskindex-TaskParser";
 
 /**
  * Simple modal showing all quests with actionable tasks (#next or due dates)

@@ -1,6 +1,6 @@
 import { type App, Modal, Setting } from "obsidian";
 import type { CurrentSettings, QuestFile, ReviewReason } from "./@types";
-import type { ReviewDetector } from "./ReviewDetector";
+import type { ReviewDetector } from "./taskindex-ReviewDetector";
 
 /**
  * Modal for reviewing a single quest/area

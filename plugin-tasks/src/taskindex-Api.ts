@@ -1,5 +1,5 @@
 import type { CurrentSettings, QuestFile } from "./@types";
-import type { QuestIndex } from "./QuestIndex";
+import type { QuestIndex } from "./taskindex-QuestIndex";
 
 /**
  * Public API for CustomJS scripts and templates

@@ -1,5 +1,5 @@
 import type { App, TFile } from "obsidian";
-import * as LogParser from "./LogParser";
+import * as LogParser from "./taskindex-LogParser";
 
 /**
  * Service for cleaning up completed daily and weekly periodic files

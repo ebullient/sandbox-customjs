@@ -1,6 +1,6 @@
 import type { App, CachedMetadata } from "obsidian";
 import type { QuestFile, SectionBoundaries } from "./@types";
-import * as TaskParser from "./TaskParser";
+import * as TaskParser from "./taskindex-TaskParser";
 
 /**
  * Handles writing quest changes back to files

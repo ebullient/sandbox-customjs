@@ -99,14 +99,14 @@ TypeScript scripts that replace Dataview functionality in Obsidian vaults. These
 
 "Task Index" plugin providing ADHD-friendly quest/project review workflow:
 
-- **Main plugin** (`src/main.ts`) - Plugin entry point with review queue management
+- **Main plugin** (`src/taskindex-Plugin.ts`, exported via `src/main.ts`) - Plugin entry point with review queue management
 - **Core services**:
-    - QuestIndex - Indexes quest/area files with tasks and metadata
-    - ReviewDetector - Identifies projects needing attention (stale, no #next tasks, missing sphere)
-    - ReviewModal - Interactive review UI with progress tracking and defer functionality
-    - TaskParser - Parses markdown tasks with GTD tags (#next, #waiting, #someday)
-    - FileUpdater - Updates quest files with changes from review
-- **API layer** (`src/TaskIndex-Api.ts`) - Exposes quest data and configuration via `window.taskIndex.api`
+    - taskindex-QuestIndex - Indexes quest/area files with tasks and metadata
+    - taskindex-ReviewDetector - Identifies projects needing attention (stale, no #next tasks, missing sphere)
+    - taskindex-ReviewModal - Interactive review UI with progress tracking and defer functionality
+    - taskindex-TaskParser - Parses markdown tasks with GTD tags (#next, #waiting, #someday)
+    - taskindex-FileUpdater - Updates quest files with changes from review
+- **API layer** (`src/taskindex-Api.ts`) - Exposes quest data and configuration via `window.taskIndex.api`
 - **ADHD Features**:
     - Frozen review list (no loops)
     - Progress indicators (X of Y, percentage)

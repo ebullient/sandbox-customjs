@@ -1,5 +1,4 @@
-// globals.d.ts
-import type { TaskIndexAPI } from "TaskIndex-Api";
+import type { TaskIndexAPI } from "../taskindex-Api";
 
 declare global {
     interface Window {

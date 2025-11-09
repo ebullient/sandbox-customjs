@@ -1,5 +1,5 @@
 import { type App, PluginSettingTab, Setting } from "obsidian";
-import type TaskIndexPlugin from "./main";
+import type { TaskIndexPlugin } from "./taskindex-Plugin";
 
 export class TaskIndexSettingsTab extends PluginSettingTab {
     plugin: TaskIndexPlugin;
