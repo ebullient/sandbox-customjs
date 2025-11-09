@@ -1,28 +1,25 @@
 import type { App, TFile } from "obsidian";
-import * as LogParser from "./taskindex-LogParser";
+import * as CommonPatterns from "./taskindex-CommonPatterns";
+import type { TaskEngine } from "./taskindex-TaskEngine";
 
 /**
- * Service for cleaning up completed daily and weekly periodic files
- * Replaces regex pipeline plugin functionality with programmatic transformations
+ * Finalizes daily and weekly periodic files
+ * "Seals" or "tidies up" completed periodic notes by:
+ * - Converting checkboxes to emoji (final state)
+ * - Removing template scaffolding
+ * - Replacing js-engine task blocks with static markdown
  */
-interface TaskBlockParams {
-    method: "thisWeekTasks" | "fixedWeekTasks";
-    dateString?: string;
-    tag?: string | string[];
-    all?: boolean;
-}
 
-export class PeriodicCleanupService {
-    dailyRegex = new RegExp(/(\d{4}-\d{2}-\d{2})\.md/);
-    weeklyRegex = new RegExp(/(\d{4}-\d{2}-\d{2})_week\.md/);
-    taskPaths = ["demesne", "quests"];
-
-    constructor(private app: App) {}
+export class PeriodicFinalizer {
+    constructor(
+        private app: App,
+        private taskEngine: TaskEngine,
+    ) {}
 
     /**
-     * Clean up the currently active file if it's a daily or weekly note
+     * Finalize the currently active file if it's a daily or weekly note
      */
-    async cleanupActiveFile(): Promise<void> {
+    async finalizeActiveFile(): Promise<void> {
         const activeFile = this.app.workspace.getActiveFile();
         if (!activeFile) {
             return;
@@ -31,32 +28,37 @@ export class PeriodicCleanupService {
         const fileType = this.detectFileType(activeFile);
 
         console.log(
-            `[PeriodicCleanup] Cleaning ${fileType} file: ${activeFile.name}`,
+            `[PeriodicFinalization] Finalizing ${fileType} file: ${activeFile.name}`,
         );
 
-        // Process file with type-specific cleanup
-        await this.app.vault.process(activeFile, async (content) => {
-            if (fileType === "daily") {
-                return this.cleanupDailyFile(content);
-            }
-            if (fileType === "weekly") {
-                const cleaned = this.cleanupWeeklyFile(content);
-                return await this.replaceTaskBlocks(cleaned, activeFile);
-            }
+        // Read file content
+        const content = await this.app.vault.read(activeFile);
+
+        // Transform content based on file type
+        let transformed: string;
+        if (fileType === "daily") {
+            transformed = this.finalizeDailyFile(content);
+        } else if (fileType === "weekly") {
+            const cleaned = this.finalizeWeeklyFile(content);
+            transformed = await this.replaceTaskBlocks(cleaned, activeFile);
+        } else {
             // "other" type
-            const cleaned = this.cleanupOtherFile(content);
-            return await this.replaceTaskBlocks(cleaned, activeFile);
-        });
+            const cleaned = this.finalizeOtherFile(content);
+            transformed = await this.replaceTaskBlocks(cleaned, activeFile);
+        }
+
+        // Write transformed content back
+        await this.app.vault.modify(activeFile, transformed);
     }
 
     /**
      * Detect if a file is a daily, weekly, or other note based on configured patterns
      */
     private detectFileType(file: TFile): "daily" | "weekly" | "other" {
-        if (this.dailyRegex.test(file.name)) {
+        if (CommonPatterns.DAILY_NOTE_REGEX.test(file.name)) {
             return "daily";
         }
-        if (this.weeklyRegex.test(file.name)) {
+        if (CommonPatterns.WEEKLY_NOTE_REGEX.test(file.name)) {
             return "weekly";
         }
         // "other" is any markdown file that's not daily or weekly
@@ -64,9 +66,9 @@ export class PeriodicCleanupService {
     }
 
     /**
-     * Clean up a daily note file
+     * Finalize a daily note file
      */
-    private cleanupDailyFile(content: string): string {
+    private finalizeDailyFile(content: string): string {
         let lines = content.split("\n");
 
         // Remove generic/standard time blocks (uncompleted tasks)
@@ -78,7 +80,7 @@ export class PeriodicCleanupService {
         // Add frontmatter if not present
         lines = this.ensureFrontmatter(lines, "My Day");
 
-        // Remove template text, consoldiate empty lines.
+        // Remove template text, consolidate empty lines
         let revised = lines
             .join("\n")
             .replace(/%% agenda %%(([\s\S]*?)%% agenda %%)?/g, "")
@@ -97,9 +99,9 @@ export class PeriodicCleanupService {
     }
 
     /**
-     * Clean up a weekly note file
+     * Finalize a weekly note file
      */
-    private cleanupWeeklyFile(content: string): string {
+    private finalizeWeeklyFile(content: string): string {
         let lines = content.split("\n");
 
         // Step 1: Convert checkbox markers to emoji
@@ -121,9 +123,9 @@ export class PeriodicCleanupService {
     }
 
     /**
-     * Clean up other files (not daily or weekly)
+     * Finalize other files (not daily or weekly)
      */
-    private cleanupOtherFile(content: string): string {
+    private finalizeOtherFile(content: string): string {
         let lines = content.split("\n");
 
         // Step 1: Convert checkbox markers to emoji
@@ -197,18 +199,26 @@ export class PeriodicCleanupService {
     }
 
     /**
-     * Parse js-engine code block calling Tasks methods
+     * Parse js-engine code block calling TaskIndex API methods
      * Returns null if not a recognized pattern
      */
-    private parseTaskBlock(blockContent: string): TaskBlockParams | null {
-        // Match thisWeekTasks(engine)
-        if (blockContent.includes("Tasks.thisWeekTasks(engine)")) {
+    private parseTaskBlock(blockContent: string): {
+        method: string;
+        dateString?: string;
+        tag?: string;
+        all?: boolean;
+    } | null {
+        // Match generateWeeklyTasksForEngine(engine)
+        if (
+            blockContent.includes("generateWeeklyTasksForEngine(engine)") ||
+            blockContent.includes("Tasks.thisWeekTasks(engine)")
+        ) {
             return { method: "thisWeekTasks" };
         }
 
-        // Match fixedWeekTasks(engine, "date", "tag", all)
+        // Match generateFixedWeekTasksForEngine(engine, "date", "tag", all)
         const fixedMatch = blockContent.match(
-            /Tasks\.fixedWeekTasks\(engine,\s*"([^"]+)"(?:,\s*"([^"]+)")?(?:,\s*(true|false))?\)/,
+            /generateFixedWeekTasksForEngine\(engine,\s*"([^"]+)"(?:,\s*"([^"]+)")?(?:,\s*(true|false))?\)/,
         );
         if (fixedMatch) {
             return {
@@ -219,84 +229,49 @@ export class PeriodicCleanupService {
             };
         }
 
+        // Legacy: Match Tasks.fixedWeekTasks(engine, "date", "tag", all)
+        const legacyFixedMatch = blockContent.match(
+            /Tasks\.fixedWeekTasks\(engine,\s*"([^"]+)"(?:,\s*"([^"]+)")?(?:,\s*(true|false))?\)/,
+        );
+        if (legacyFixedMatch) {
+            return {
+                method: "fixedWeekTasks",
+                dateString: legacyFixedMatch[1],
+                tag: legacyFixedMatch[2] || undefined,
+                all: legacyFixedMatch[3] === "true",
+            };
+        }
+
         return null;
     }
 
     /**
      * Generate task list markdown based on parameters
-     * Mimics Tasks.thisWeekTasks and Tasks.fixedWeekTasks functionality
+     * Delegates to TaskService for task collection
      */
     private async generateTaskList(
         currentFile: TFile,
-        params: TaskBlockParams,
+        params: {
+            method: string;
+            dateString?: string;
+            tag?: string;
+            all?: boolean;
+        },
     ): Promise<string> {
-        // Determine date range
-        let beginDate: string;
         if (params.method === "thisWeekTasks") {
-            // Extract date from filename and get Monday of that week
-            const titledate = currentFile.name
-                .replace(".md", "")
-                .replace("_week", "");
-            const begin = window.moment(titledate).day(1); // Monday
-            beginDate = begin.format("YYYY-MM-DD");
-        } else {
-            // fixedWeekTasks - use provided date
-            beginDate = params.dateString || "";
+            return this.taskEngine.generateWeeklyTasks(currentFile);
         }
 
-        const endMoment = window.moment(beginDate).add(6, "d");
-        const endDate = endMoment.format("YYYY-MM-DD");
-
-        // Get all quest/project files
-        const files = this.app.vault
-            .getMarkdownFiles()
-            .filter((f) => {
-                if (
-                    f.path.includes("archive") ||
-                    f.path.includes("-test") ||
-                    f === currentFile
-                ) {
-                    return false;
-                }
-                return this.taskPaths.some((p) => f.path.includes(p));
-            })
-            .filter((f) => {
-                // Apply tag filter if specified
-                return params.tag
-                    ? LogParser.fileMatchesTag(
-                          this.app,
-                          f,
-                          params.tag as string,
-                          params.all || false,
-                      )
-                    : true;
-            });
-
-        // Parse all completed tasks from all files
-        const allTasks: LogParser.CompletedTask[] = [];
-        for (const file of files) {
-            const tasks = await LogParser.parseCompletedTasksFromFile(
-                this.app,
-                file,
+        if (params.method === "fixedWeekTasks") {
+            return this.taskEngine.generateFixedWeekTasks(
+                currentFile,
+                params.dateString || "",
+                params.tag,
+                params.all || false,
             );
-            allTasks.push(...tasks);
         }
 
-        // Filter by date range
-        const tasksInRange = LogParser.filterTasksByDateRange(
-            allTasks,
-            beginDate,
-            endDate,
-        );
-
-        // Group by sphere and generate markdown
-        const removeTriageTags = params.method === "fixedWeekTasks";
-        const groupedTasks = LogParser.groupTasksBySphere(
-            tasksInRange,
-            removeTriageTags,
-        );
-
-        return LogParser.generateMarkdown(groupedTasks, beginDate, endDate);
+        return "";
     }
 
     /**

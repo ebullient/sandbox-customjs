@@ -239,8 +239,9 @@ export class Dated {
             `![invisible-embed](${this.dayOfWeekFile(dates.monday, 7)}#Log)\n\n`;
 
         const weeklyProjects = `js-engine
-const { Tasks } = await window.cJS();
-return await Tasks.thisWeekTasks(engine);`;
+return engine.markdown.create(
+    await window.taskIndex.api.generateWeeklyTasksForEngine(engine)
+);`;
 
         return {
             dates,

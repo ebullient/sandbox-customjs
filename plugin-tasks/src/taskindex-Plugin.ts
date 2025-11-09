@@ -1,13 +1,16 @@
 import { debounce, Notice, Plugin, type TAbstractFile } from "obsidian";
 import type { CurrentSettings, ReviewItem, TaskIndexSettings } from "./@types";
+import { AllTasksCommand } from "./commands/taskindex-AllTasksCommand";
 import { TaskIndexAPI } from "./taskindex-Api";
 import { FileUpdater } from "./taskindex-FileUpdater";
-import { PeriodicCleanupService } from "./taskindex-PeriodicCleanupService";
+import { PeriodicFinalizer } from "./taskindex-PeriodicFinalizer";
+import { QuestArchiver } from "./taskindex-QuestArchiver";
 import { QuestIndex } from "./taskindex-QuestIndex";
 import { ReviewDetector } from "./taskindex-ReviewDetector";
 import { ReviewModal } from "./taskindex-ReviewModal";
 import { DEFAULT_SETTINGS } from "./taskindex-Settings";
 import { TaskIndexSettingsTab } from "./taskindex-SettingsTab";
+import { TaskEngine } from "./taskindex-TaskEngine";
 import { WeeklyPlanningModal } from "./taskindex-WeeklyPlanningModal";
 
 export class TaskIndexPlugin extends Plugin implements CurrentSettings {
@@ -15,7 +18,7 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
     index: QuestIndex;
     detector: ReviewDetector;
     updater: FileUpdater;
-    cleanup: PeriodicCleanupService;
+    taskEngine: TaskEngine;
     api: TaskIndexAPI;
 
     current(): TaskIndexSettings {
@@ -27,12 +30,11 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
 
         await this.loadSettings();
 
-        // Initialize services
+        // Initialize stateful services
         this.index = new QuestIndex(this.app, this);
         this.detector = new ReviewDetector(this.app, this);
         this.updater = new FileUpdater(this.app);
-        this.api = new TaskIndexAPI(this.index, this);
-        this.cleanup = new PeriodicCleanupService(this.app);
+        this.taskEngine = new TaskEngine(this.app);
 
         // Add settings tab
         this.addSettingTab(new TaskIndexSettingsTab(this.app, this));
@@ -40,7 +42,7 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
         // Add commands
         this.addCommand({
             id: "rebuild-task-index",
-            name: "Rebuild Task Index",
+            name: "(TI) Rebuild Task Index",
             callback: async () => {
                 await this.index.rebuildIndex();
                 new Notice("Task index rebuilt");
@@ -49,7 +51,7 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
 
         this.addCommand({
             id: "what-needs-review",
-            name: "What needs review?",
+            name: "(TI) What needs review?",
             callback: () => {
                 this.showReviewList();
             },
@@ -57,18 +59,42 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
 
         this.addCommand({
             id: "plan-this-week",
-            name: "Plan this week",
+            name: "(TI) Plan this week",
             callback: () => {
                 this.showWeeklyPlanning();
             },
         });
 
         this.addCommand({
-            id: "cleanup-periodic-file",
-            name: "Clean up completed daily/weekly plan",
+            id: "finalize-periodic-file",
+            name: "(TI) Finalize daily/weekly note",
             callback: async () => {
-                await this.cleanup.cleanupActiveFile();
-                new Notice("Periodic file cleaned up");
+                const finalizer = new PeriodicFinalizer(
+                    this.app,
+                    this.taskEngine,
+                );
+                await finalizer.finalizeActiveFile();
+                new Notice("Periodic file finalized");
+            },
+        });
+
+        this.addCommand({
+            id: "generate-all-tasks",
+            name: "(TI) Generate all-tasks.md",
+            callback: async () => {
+                const command = new AllTasksCommand(this.app, this.taskEngine);
+                await command.execute();
+            },
+        });
+
+        this.addCommand({
+            id: "archive-quest-logs",
+            name: "(TI) Archive old quest/area logs",
+            callback: async () => {
+                new Notice("Archiving old completed tasks...");
+                const archiver = new QuestArchiver(this.app);
+                await archiver.cleanupAllQuests();
+                new Notice("Quest archival complete");
             },
         });
 
@@ -76,7 +102,9 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
         this.app.workspace.onLayoutReady(() => {
             this.index.rebuildIndex();
 
-            // Expose API to window for CustomJS scripts
+            // Initialize API with TaskEngine and expose to window
+            this.api = new TaskIndexAPI(this.index, this, this.taskEngine);
+
             if (!window.taskIndex) {
                 window.taskIndex = {};
             }

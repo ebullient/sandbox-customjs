@@ -28,6 +28,6 @@ tR += 'tags:\n- "me/✅/📓"';
 # 👩‍💻 Week of <% friday.format("MMM D") %> - <% thursday.format("MMM D") %>
 
 ```<% jsEngine %>
-const { Tasks } = await window.cJS();
-return await Tasks.fixedWeekTasks(engine, "<% dateString %>",  "#me/🎯/ibm");
+return engine.markdown.create(
+    await window.taskIndex.api.generateFixedWeekTasksForEngine(engine, "<% dateString %>",  "#me/🎯/ibm");
 ```

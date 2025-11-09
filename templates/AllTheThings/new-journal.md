@@ -13,7 +13,7 @@ if (`${journalPath}.md` !== tp.file.path(true)) {
     await tp.file.move(journalPath);
 }
 
-tR += `tags:\n- "me/✅/✍️ "`;
+tR += `tags:\n- "me/✅/✍️"`;
 if (isWeekly) {
     // Weekly template
 %>
@@ -42,13 +42,14 @@ if (isWeekly) {
     const title = fileDate.format("dddd, MMMM DD, YYYY");
     const dateStem = fileDate.format("YYYY/YYYY-MM-DD");
     const daily = `![invisible-embed](/chronicles/${dateStem}`;
+    const day = `[daily](/chronicles/${dateStem}`;
     const am = `${daily}#^daily-am)`;
     const pm = `${daily}#^daily-pm)`;
     const log = `${daily}#Log)`;
 %>
 ---
 # ✍️ <% title %>
-
+%% <% daily %> %%
 <% am %>
 <% pm %>
 

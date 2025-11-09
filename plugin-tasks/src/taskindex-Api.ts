@@ -1,14 +1,18 @@
+import type { TFile } from "obsidian";
 import type { CurrentSettings, QuestFile } from "./@types";
+import type { EngineAPI } from "./@types/jsengine.types";
 import type { QuestIndex } from "./taskindex-QuestIndex";
+import type { TaskEngine } from "./taskindex-TaskEngine";
 
 /**
  * Public API for CustomJS scripts and templates
- * Read-only access to quest index and configuration
+ * Provides access to quest index, task engine, and configuration
  */
 export class TaskIndexAPI {
     constructor(
         private index: QuestIndex,
         private settings: CurrentSettings,
+        private taskEngine: TaskEngine,
     ) {}
 
     // ============================================================
@@ -78,5 +82,87 @@ export class TaskIndexAPI {
      */
     getQuestsBySphere = (sphere: string): QuestFile[] => {
         return this.index.getQuestsBySphere(sphere);
+    };
+
+    // ============================================================
+    // Task Service Methods (for CustomJS scripts)
+    // ============================================================
+
+    /**
+     * Generate completed tasks for a week (Monday-Sunday)
+     * Used by weekly planning files
+     * @param {TFile} current Current (weekly) file
+     * @returns {Promise<string>} Markdown formatted task list
+     */
+    generateWeeklyTasks = async (current: TFile): Promise<string> => {
+        return this.taskEngine.generateWeeklyTasks(current);
+    };
+
+    /**
+     * Generate completed tasks for a fixed date range with optional tag filter
+     * Used by retrospective/review files
+     * @param {TFile} current Current (weekly) file
+     * @param {string} startDate Date string (YYYY-MM-DD format)
+     * @param {string | string[]} tag Optional tag filter
+     * @param {boolean} all Match all tags (default: false)
+     * @returns {Promise<string>} Markdown formatted task list
+     */
+    generateFixedWeekTasks = async (
+        current: TFile,
+        startDate: string,
+        tag?: string | string[],
+        all = false,
+    ): Promise<string> => {
+        return this.taskEngine.generateFixedWeekTasks(
+            current,
+            startDate,
+            tag,
+            all,
+        );
+    };
+
+    // ============================================================
+    // JSEngine Helper Methods
+    // ============================================================
+
+    /**
+     * Generate weekly tasks for use in JSEngine templates
+     * Automatically detects current file from JSEngine context or active file
+     * @param {EngineAPI} engine JSEngine instance
+     * @returns {Promise<string>} Markdown formatted task list
+     */
+    generateWeeklyTasksForEngine = async (
+        engine: EngineAPI,
+    ): Promise<string> => {
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            engine.app.workspace.getActiveFile();
+        return this.taskEngine.generateWeeklyTasks(current);
+    };
+
+    /**
+     * Generate fixed week tasks for use in JSEngine templates
+     * Automatically detects current file from JSEngine context or active file
+     * @param {EngineAPI} engine JSEngine instance
+     * @param {string} startDate Date string (YYYY-MM-DD format)
+     * @param {string | string[]} tag Optional tag filter
+     * @param {boolean} all Match all tags (default: false)
+     * @returns {Promise<string>} Markdown formatted task list
+     */
+    generateFixedWeekTasksForEngine = async (
+        engine: EngineAPI,
+        startDate: string,
+        tag?: string | string[],
+        all = false,
+    ): Promise<string> => {
+        const current =
+            engine.instanceId?.executionContext?.file ||
+            engine.app.workspace.getActiveFile();
+        return this.taskEngine.generateFixedWeekTasks(
+            current,
+            startDate,
+            tag,
+            all,
+        );
     };
 }

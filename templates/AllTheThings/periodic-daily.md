@@ -2,12 +2,17 @@
     const result = Dated.daily(tp.file.title);
     await tp.file.move(result.dailyFile);
     const today = result.dates.day.isoWeekday();
-    const copingCard = window.simpleFlashcards?.api
-        ? window.simpleFlashcards.api.embedCard()
-        : "";
+    const copingCard = window.simpleFlashcards?.api?.embedCard() || "";
+    console.log(window.simpleFlashcards, copingCard);
     const journalLink = `[📖 ✍️](chronicles/journal/${result.dates.day.format("YYYY[/journal-]YYYY-MM-DD")}.md)`;
 -%><% result.header %>
-%% %%
+
+%%
+- 🎉 Completion / Landed the task.
+- 🎠 Distracted / chasing novelty.
+- 😵‍💫 Tier 2 hyperfocus. Must finish.
+- ☄️ Tier 4 hyperfocus. Feels good, costs later. Time for Tier 4 rules.
+%%
 
 <% copingCard %>
 
@@ -27,13 +32,7 @@
 2. .
 3. .
 
----
-
 ## ❧ Day Planner
-%%
-- 🎉 Focused for the entire time block
-- 🎠 Got a little distracted
-%%
 
 ### ❧ Morning
 
@@ -41,40 +40,41 @@
 - [ ] 07:15 Meditation / Mindfulness
 - [ ] 07:30 Reflection / Planning
 - [ ] 08:00 Start : GH Notifications / Email
-- [ ] 08:45 BREAK / chat
+- [ ] 08:50 BREAK / chat
 - [ ] 09:00 Start :
-- [ ] 09:45 BREAK / chat
+- [ ] 09:50 BREAK / chat
 - [ ] 10:00 Start :
-- [ ] 10:45 BREAK / Sudo
+- [ ] 10:50 BREAK / Sudo
 - [ ] 11:00 Start :
-- [ ] 11:45 Lunch
+- [ ] 11:50 Lunch
 
 ### ❧ After Lunch
 
 - [ ] 12:00 Start :
-- [ ] 12:45 BREAK / chat
+- [ ] 12:50 BREAK / chat
 - [ ] 13:00 Start :
-- [ ] 13:45 BREAK / chat
+- [ ] 13:50 BREAK / chat
 
 ### ❧ Afternoon
 
 - [ ] 14:00 Start :
-- [ ] 14:45 BREAK / chat
+- [ ] 14:50 BREAK / chat
 - [ ] 15:00 Start :
-- [ ] 15:45 BREAK / chat
+- [ ] 15:50 BREAK / chat
 - [ ] 16:00 Start :
-- [ ] 16:45 BREAK / chat
+- [ ] 16:50 BREAK / chat
 
 ### ❧ Wrap up
 
 - [ ] 17:00 Preview tomorrow's Agenda
-- [ ] 17:30 Reflection
-- [ ] 18:00 END
+- [ ] 18:00 BREAK
+- [ ] 19:30 Reflection
+- [ ] 20:00 END
+cons
 <%* } -%>
 
----
-
 > [!charm] Journaling
+> - *What [tier](demesne/self/adhd/tier-system.md) was I in today?*
 > - *Today's highlight*
 > - *Insight of today*
 ^daily-pm
