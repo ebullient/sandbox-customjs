@@ -1,5 +1,5 @@
 import { type App, PluginSettingTab, Setting } from "obsidian";
-import type CampaignNotesPlugin from "./main";
+import type { CampaignNotesPlugin } from "./campaignnotes-Plugin";
 
 export class CampaignNotesSettingsTab extends PluginSettingTab {
     plugin: CampaignNotesPlugin;

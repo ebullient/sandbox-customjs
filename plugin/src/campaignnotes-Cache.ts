@@ -1,14 +1,3 @@
-import {
-    addToMappedArray,
-    addToMappedMap,
-    addToMappedNestedArray,
-    cleanLinkTarget,
-    entityToLink,
-    markdownLinkPath,
-    npcToIffGroup,
-    scopeToRegex,
-    segmentFilterRegex,
-} from "CampaignNotes-utils";
 import { type App, type Reference, TFile } from "obsidian";
 import {
     type Area,
@@ -24,7 +13,18 @@ import {
     type RelationshipCache,
     type StringMap,
 } from "./@types";
-import type { CampaignNotesIndex } from "./CampaignNotes-Index";
+import type { CampaignNotesIndex } from "./campaignnotes-Index";
+import {
+    addToMappedArray,
+    addToMappedMap,
+    addToMappedNestedArray,
+    cleanLinkTarget,
+    entityToLink,
+    markdownLinkPath,
+    npcToIffGroup,
+    scopeToRegex,
+    segmentFilterRegex,
+} from "./campaignnotes-Utils";
 
 export class CampaignNotesCache {
     // Relationship caches

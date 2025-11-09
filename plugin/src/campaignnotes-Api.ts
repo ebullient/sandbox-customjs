@@ -1,4 +1,3 @@
-import type { CampaignNotesCache } from "CampaignNotes-Cache";
 import type { Editor, Plugin, TFile } from "obsidian";
 import type {
     Area,
@@ -11,8 +10,9 @@ import type {
     Place,
 } from "./@types";
 import type { CampaignReferenceAPI, EntityLinkOptions } from "./@types/api";
-import type { EntitySelectorService } from "./CampaignNotes-EntitySelector";
-import type { CampaignNotesIndex } from "./CampaignNotes-Index";
+import type { CampaignNotesCache } from "./campaignnotes-Cache";
+import type { EntitySelectorService } from "./campaignnotes-EntitySelector";
+import type { CampaignNotesIndex } from "./campaignnotes-Index";
 
 /**
  * A simple API for other plugins or scripts to access the campaign notes data

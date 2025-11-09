@@ -87,13 +87,13 @@ TypeScript scripts that replace Dataview functionality in Obsidian vaults. These
 
 "Campaign Index" plugin that provides APIs and indexing for campaign note management:
 
-- **Main plugin** (`src/main.ts`) - Plugin entry point with service initialization
+- **Main plugin** (`src/campaignnotes-Plugin.ts`, exported via `src/main.ts`) - Plugin entry point with service initialization
 - **Core services**:
     - CampaignNotesIndex - File indexing and metadata management
     - CampaignNotesCache - Caching layer for performance
     - EntitySelectorService - Entity selection UI components
     - TableGenerationService - Dynamic table generation
-- **API layer** (`src/CampaignNotes-Api.ts`) - Exposes plugin functionality to CustomJS scripts via `window.campaignNotes.api`
+- **API layer** (`src/campaignnotes-Api.ts`) - Exposes plugin functionality to CustomJS scripts via `window.campaignNotes.api`
 
 ### 3. Task Index Plugin (`plugin-tasks/`)
 

@@ -1,14 +1,3 @@
-import type { CampaignNotesCache } from "CampaignNotes-Cache";
-import type { CampaignNotesIndex } from "CampaignNotes-Index";
-import {
-    addToMappedArray,
-    entityToLink,
-    iffStatusIcon,
-    scopeToRegex,
-    segmentFilterRegex,
-    statusIcon,
-    typeIcon,
-} from "CampaignNotes-utils";
 import { type App, Notice, type TFile } from "obsidian";
 import {
     type Area,
@@ -22,6 +11,17 @@ import {
     type Place,
     type RowCount,
 } from "./@types";
+import type { CampaignNotesCache } from "./campaignnotes-Cache";
+import type { CampaignNotesIndex } from "./campaignnotes-Index";
+import {
+    addToMappedArray,
+    entityToLink,
+    iffStatusIcon,
+    scopeToRegex,
+    segmentFilterRegex,
+    statusIcon,
+    typeIcon,
+} from "./campaignnotes-Utils";
 
 /**
  * Class for regenerating index tables in markdown files

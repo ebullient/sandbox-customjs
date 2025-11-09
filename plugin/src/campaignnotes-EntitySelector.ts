@@ -5,7 +5,7 @@ import {
     FuzzySuggestModal,
 } from "obsidian";
 import { type CampaignEntity, EntityType } from "./@types";
-import type CampaignNotesPlugin from "./main";
+import type { CampaignNotesPlugin } from "./campaignnotes-Plugin";
 
 export class EntitySelectorService {
     app: App;

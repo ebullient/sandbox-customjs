@@ -1,5 +1,4 @@
-// globals.d.ts
-import type { CampaignReferenceAPI } from "./@types/api";
+import type { CampaignReferenceAPI } from "./api";
 
 declare global {
     interface Window {

@@ -1,10 +1,4 @@
 import {
-    addToMappedMap,
-    lowerKebab,
-    markdownLinkPath,
-    scopeToRegex,
-} from "CampaignNotes-utils";
-import {
     type FrontMatterCache,
     getAllTags,
     type TAbstractFile,
@@ -25,7 +19,13 @@ import {
     type Place,
 } from "./@types";
 import type { CampaignNotesSettings } from "./@types/settings";
-import type CampaignNotesPlugin from "./main";
+import type { CampaignNotesPlugin } from "./campaignnotes-Plugin";
+import {
+    addToMappedMap,
+    lowerKebab,
+    markdownLinkPath,
+    scopeToRegex,
+} from "./campaignnotes-Utils";
 
 const generalTagPrefixes = ["group", "item", "place", "region", "type"];
 const validEntityTypes: Set<string> = new Set(Object.values(EntityType));
