@@ -1,5 +1,5 @@
 import type { App, TFile } from "obsidian";
-import type { Utils } from "./_utils";
+import type { NoteContext, Utils } from "./_utils";
 
 export class Conversation {
     app: App;
@@ -26,7 +26,10 @@ export class Conversation {
         }
 
         try {
-            const day = window.moment(activeFile.basename).format("YYYY-MM-DD");
+            const sourceContext = this.utils().getNoteContext(activeFile.path);
+            const day =
+                sourceContext.date ||
+                window.moment(activeFile.basename).format("YYYY-MM-DD");
             const regex = this.utils().segmentFilterRegex(
                 "chronicles/conversations",
             );
@@ -49,7 +52,11 @@ export class Conversation {
                 return; // User cancelled
             }
 
-            const result = await this.createConversationEntry(day, choice);
+            const targetContext = this.utils().getNoteContext(choice);
+            const result = await this.createConversationEntry(
+                day,
+                targetContext,
+            );
 
             if (result) {
                 // Insert the result at cursor position
@@ -76,11 +83,11 @@ export class Conversation {
      */
     private async createConversationEntry(
         day: string,
-        filePath: string,
+        targetContext: NoteContext,
     ): Promise<string> {
-        const file = this.app.vault.getFileByPath(filePath) as TFile;
+        const file = this.app.vault.getFileByPath(targetContext.path) as TFile;
         if (!file) {
-            console.log(`File not found: ${filePath}`);
+            console.log(`File not found: ${targetContext.path}`);
             return "";
         }
 
@@ -109,8 +116,8 @@ export class Conversation {
         }
 
         return [
-            `- [**${title}**](${file.path}#${day})`,
-            `    ![${day}](${file.path}#${day})`,
+            `- [**${title}**](${targetContext.path}#${day})`,
+            `    ![${day}](${targetContext.path}#${day})`,
             "",
         ].join("\n");
     }

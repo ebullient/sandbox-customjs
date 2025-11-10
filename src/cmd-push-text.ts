@@ -1,5 +1,5 @@
 import type { App, TFile } from "obsidian";
-import type { Utils } from "./_utils";
+import type { NoteContext, Utils } from "./_utils";
 
 /**
  * Information about a line or selection in a file
@@ -7,6 +7,7 @@ import type { Utils } from "./_utils";
 interface LineInfo {
     title: string;
     path: string;
+    context: NoteContext;
     heading: string | undefined;
     text: string | undefined;
     mark: string | undefined;
@@ -31,7 +32,6 @@ export class PushText {
         task: /^(\s*-\s*)\[(.)\]\s(.*)$/,
         completedMark: /[x-]/,
     };
-
     constructor() {
         this.app = window.customJS.app;
         console.log("loaded PushText");
@@ -44,7 +44,6 @@ export class PushText {
 
     /**
      * Push text from current location to target file
-     * Replaces the Templater template: templates/AllTheThings/push-text.md
      */
     async invoke(): Promise<void> {
         const activeFile = this.app.workspace.getActiveFile();
@@ -77,21 +76,21 @@ export class PushText {
 
             // Analyze the current line/selection
             const lineInfo = await this.findLine(activeFile, selection);
+            const targetContext = this.getPushContext(choice);
             // Check for weekly file involvement (either source or target)
             const isWeeklyInvolved =
-                lineInfo.path.endsWith("_week.md") ||
-                choice.endsWith("_week.md");
+                lineInfo.context.isWeekly || targetContext.isWeekly;
 
             // Perform the appropriate push operation based on context
             if (lineInfo.selectedLines && lineInfo.selectedLines.length > 1) {
-                await this.pushMultipleLinesAsBlob(choice, lineInfo);
+                await this.pushMultipleLinesAsBlob(targetContext, lineInfo);
             } else {
                 if (lineInfo.heading) {
-                    await this.pushHeader(choice, lineInfo);
+                    await this.pushHeader(targetContext, lineInfo);
                 } else if (isWeeklyInvolved) {
-                    await this.pushWeeklyTask(choice, lineInfo);
+                    await this.pushWeeklyTask(targetContext, lineInfo);
                 } else {
-                    await this.pushText(choice, lineInfo);
+                    await this.pushText(targetContext, lineInfo);
                 }
             }
         } catch (error) {
@@ -140,6 +139,7 @@ export class PushText {
             return {
                 title,
                 path: activeFile.path,
+                context: this.getPushContext(activeFile.path),
                 heading: undefined,
                 text: undefined,
                 mark: undefined,
@@ -168,6 +168,7 @@ export class PushText {
         return {
             title,
             path: activeFile.path,
+            context: this.getPushContext(activeFile.path),
             heading,
             text,
             mark,
@@ -180,16 +181,18 @@ export class PushText {
      * Uses regex to mark list items as complete and maintains order.
      */
     private async pushMultipleLinesAsBlob(
-        targetPath: string,
+        targetContext: NoteContext,
         lineInfo: LineInfo,
     ): Promise<void> {
         if (!lineInfo.selectedLines) {
             return;
         }
 
-        const targetFile = this.app.vault.getFileByPath(targetPath) as TFile;
+        const targetFile = this.app.vault.getFileByPath(
+            targetContext.path,
+        ) as TFile;
         if (!targetFile) {
-            console.log(`Target file not found: ${targetPath}`);
+            console.log(`Target file not found: ${targetContext.path}`);
             return;
         }
 
@@ -203,7 +206,7 @@ export class PushText {
         }
 
         const source = this.getSourceAttribution(lineInfo.path, lineInfo.title);
-        const target = this.getCompletionStatus(targetPath);
+        const target = targetContext;
 
         const originalText = lineInfo.selectedLines.join("\n");
         let processedText = originalText;
@@ -221,7 +224,7 @@ export class PushText {
                 `- [ ] $1${from}`,
             );
         } else {
-            const task = target.shouldHaveCheckbox ? "[x] " : "";
+            const task = target.asTask ? "[x] " : "";
             const from = source.fromDaily
                 ? ""
                 : `[${source.pretty}](${lineInfo.path}): `;
@@ -270,26 +273,27 @@ export class PushText {
      *
      * Purpose: Reference what happened in a conversation on a specific day
      * Source: Conversation files with dated headings like "## 2023-10-11 Foundation materials review"
-     * Target: Daily notes or project logs
+     * Target: Weekly/Daily notes or project logs
      *
      * Creates links to conversation sections, using "interesting" part or file title
      * if no interesting part exists.
      */
     private async pushHeader(
-        targetPath: string,
+        targetContext: NoteContext,
         lineInfo: LineInfo,
     ): Promise<void> {
-        const targetFile = this.app.vault.getFileByPath(targetPath) as TFile;
+        const targetFile = this.app.vault.getFileByPath(
+            targetContext.path,
+        ) as TFile;
         if (!targetFile) {
-            console.log(`Target file not found: ${targetPath}`);
+            console.log(`Target file not found: ${targetContext.path}`);
             return;
         }
 
         const type = await this.utils().showFileSuggester(
             this.pushOptions.header,
-            "Choose header type",
+            "Choose push type",
         );
-
         if (!type) {
             return;
         }
@@ -298,7 +302,8 @@ export class PushText {
             lineInfo.heading || "",
         );
         const source = this.getSourceAttribution(lineInfo.path, lineInfo.title);
-        const linkText = lineInfo.path === targetPath ? "⤴" : source.pretty;
+        const linkText =
+            lineInfo.path === targetContext.path ? "⤴" : source.pretty;
         const lineText = interesting || lineInfo.title; // Use file title if no interesting part
         const anchor = this.createAnchor(lineInfo.heading || "");
 
@@ -320,13 +325,12 @@ export class PushText {
                 anchor,
             );
         } else if (type === "Tasks item") {
-            const addThis = `- [ ] [${linkText}](${lineInfo.path}#${anchor}): ${lineText}\n`;
+            const addThis = `- [ ] [${linkText}](${lineInfo.path}#${anchor}): ${lineText}`;
             await this.addToSection(targetFile, "Tasks", addThis);
         } else {
             // Log item - create completed reference to conversation
-            const target = this.getCompletionStatus(targetPath);
             const hasDate = this.hasCompletionDate(lineText);
-            const task = target.shouldHaveCheckbox ? "[x] " : "";
+            const task = targetContext.asTask ? "[x] " : "";
             const prefix = source.fromDaily
                 ? ""
                 : `[${linkText}](${lineInfo.path}#${anchor}): `;
@@ -354,24 +358,26 @@ export class PushText {
      * - Preserves completion date if already present
      */
     private async pushWeeklyTask(
-        targetPath: string,
+        targetContext: NoteContext,
         lineInfo: LineInfo,
     ): Promise<void> {
-        const targetFile = this.app.vault.getFileByPath(targetPath) as TFile;
+        const targetFile = this.app.vault.getFileByPath(
+            targetContext.path,
+        ) as TFile;
         if (!targetFile) {
-            console.log(`Target file not found: ${targetPath}`);
+            console.log(`Target file not found: ${targetContext.path}`);
             return;
         }
 
         const source = this.getSourceAttribution(lineInfo.path, lineInfo.title);
-        const isTargetWeekly = targetPath.endsWith("_week.md");
-        const isSourceWeekly = lineInfo.path.endsWith("_week.md");
+        const isTargetWeekly = targetContext.isWeekly;
+        const isSourceWeekly = lineInfo.context.isWeekly;
         const isForward = !source.fromDaily && isTargetWeekly; // Project → Weekly
-        const isReturn = isSourceWeekly && !targetPath.endsWith("_week.md"); // Weekly → Project
+        const isReturn = isSourceWeekly && !targetContext.isWeekly; // Weekly → Project
 
         console.log(
             "PUSH WEEKLY TASK",
-            `"${lineInfo.path}" → "${targetPath}"`,
+            `"${lineInfo.path}" → "${targetContext.path}"`,
             `forward: ${isForward}, return: ${isReturn}`,
         );
 
@@ -429,7 +435,7 @@ export class PushText {
                 "Weekly task push: Could not determine direction",
                 lineInfo.path,
                 "→",
-                targetPath,
+                targetContext.path,
             );
         }
     }
@@ -446,27 +452,34 @@ export class PushText {
      * - Task item: "- [ ] ... from [_Daily Note_](path)" (unchecked, for future work)
      */
     private async pushText(
-        targetPath: string,
+        targetContext: NoteContext,
         lineInfo: LineInfo,
     ): Promise<void> {
-        const targetFile = this.app.vault.getFileByPath(targetPath) as TFile;
+        const targetFile = this.app.vault.getFileByPath(
+            targetContext.path,
+        ) as TFile;
         if (!targetFile) {
-            console.log(`Target file not found: ${targetPath}`);
-            return;
-        }
-
-        const type = await this.utils().showFileSuggester(
-            this.pushOptions.item,
-            "Choose item type",
-        );
-
-        if (!type) {
+            console.log(`Target file not found: ${targetContext.path}`);
             return;
         }
 
         const source = this.getSourceAttribution(lineInfo.path, lineInfo.title);
-        const target = this.getCompletionStatus(targetPath);
         const date = this.getBestDate(lineInfo.text, lineInfo.path);
+        const isProjectToDaily =
+            !lineInfo.context.isDaily && targetContext.isDaily;
+
+        let type: string | undefined;
+        if (isProjectToDaily) {
+            type = "Log item";
+        } else {
+            type = await this.utils().showFileSuggester(
+                this.pushOptions.item,
+                "Choose item type",
+            );
+            if (!type) {
+                return;
+            }
+        }
 
         console.log(
             "PUSH TEXT",
@@ -484,13 +497,13 @@ export class PushText {
             );
         } else {
             // Create log entry (completed if going to project file)
-            const task = target.shouldHaveCheckbox ? "[x] " : "";
+            const task = targetContext.asTask ? "[x] " : "";
             const from = source.fromDaily
                 ? ""
                 : `[${source.pretty}](${lineInfo.path}): `;
             const text = source.fromDaily
                 ? lineInfo.text.replace(
-                      / #(self|work|home|community|family)/,
+                      / #(self|work|home|community|family)/g,
                       "",
                   )
                 : lineInfo.text;
@@ -498,7 +511,11 @@ export class PushText {
             const completed = task && !hasDate ? ` (${date})` : "";
 
             const addThis = `- ${task}${from}${text}${completed}`;
-            await this.addToSection(targetFile, "Log", addThis);
+            if (isProjectToDaily) {
+                await this.appendToDailyNote(targetFile, addThis);
+            } else {
+                await this.addToSection(targetFile, "Log", addThis);
+            }
         }
     }
 
@@ -548,6 +565,20 @@ export class PushText {
     }
 
     /**
+     * Cache and return the date embedded in a file path, if present.
+     */
+    private getCachedPathDate = (path: string): string | undefined => {
+        return this.utils().getNoteDate(path);
+    };
+
+    /**
+     * Build context information about a file path (daily/weekly, etc.)
+     */
+    private getPushContext = (path: string): NoteContext => {
+        return this.utils().getNoteContext(path);
+    };
+
+    /**
      * Get formatted source attribution for push operations
      */
     private getSourceAttribution = (
@@ -559,33 +590,15 @@ export class PushText {
         fromReminders: boolean;
         date: string;
     } => {
-        const fromDaily = this.patterns.dated.test(path);
+        const pathDate = this.getCachedPathDate(path);
+        const fromDaily = Boolean(pathDate);
         const fromReminders = path.contains("Reminders.md");
         const pretty = path.contains("conversations")
             ? `**${title}**`
             : `_${title}_`;
-        const date = fromDaily
-            ? this.patterns.dated.exec(path)?.[1] || ""
-            : window.moment().format("YYYY-MM-DD");
+        const date = pathDate || window.moment().format("YYYY-MM-DD");
 
         return { pretty, fromDaily, fromReminders, date };
-    };
-
-    /**
-     * Determine completion status based on target file type
-     */
-    private getCompletionStatus = (
-        targetPath: string,
-    ): {
-        isDaily: boolean;
-        isWeekly: boolean;
-        shouldHaveCheckbox: boolean;
-    } => {
-        const isDaily = this.patterns.dated.test(targetPath);
-        const isWeekly = targetPath.endsWith("_week.md");
-        const shouldHaveCheckbox = !isDaily || isWeekly;
-
-        return { isDaily, isWeekly, shouldHaveCheckbox };
     };
 
     /**
@@ -603,9 +616,9 @@ export class PushText {
         }
 
         // Then try the source file path (for daily notes)
-        const sourceDate = this.patterns.dated.exec(sourcePath);
+        const sourceDate = this.getCachedPathDate(sourcePath);
         if (sourceDate) {
-            return sourceDate[1];
+            return sourceDate;
         }
 
         // Fall back to current date
@@ -696,6 +709,27 @@ export class PushText {
     };
 
     /**
+     * Append content to the end of a daily note, skipping trailing blank lines.
+     */
+    private appendToDailyNote = async (
+        file: TFile,
+        content: string,
+    ): Promise<void> => {
+        await this.app.vault.process(file, (fileContent) => {
+            const lines = fileContent.split("\n");
+            while (
+                lines.length > 0 &&
+                lines[lines.length - 1].trim().length === 0
+            ) {
+                lines.pop();
+            }
+
+            lines.push(content);
+            return `${lines.join("\n")}\n`;
+        });
+    };
+
+    /**
      * Add text to a specified section in a file.
      */
     private async addToSection(
@@ -722,6 +756,8 @@ export class PushText {
                 split.splice(headings[0].position.start.line + 1, 0, content);
                 return split.join("\n");
             });
+        } else {
+            console.warn(`Section "${sectionName}" not found in ${file.path}`);
         }
     }
 }

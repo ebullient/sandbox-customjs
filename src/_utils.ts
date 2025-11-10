@@ -9,6 +9,14 @@ import type {
 } from "obsidian";
 import type { EngineAPI } from "./@types/jsengine.types";
 
+export interface NoteContext {
+    path: string;
+    date?: string;
+    isDaily: boolean;
+    isWeekly: boolean;
+    asTask: boolean;
+}
+
 export type CompareFn = () => number;
 export type Conditions = string | string[];
 export type FileCompareFn = (a: TFile, b: TFile) => number;
@@ -33,6 +41,7 @@ export class Utils {
     taskPattern: RegExp = /^([\s>]*- )\[(.)\] (.*)$/;
     completedPattern: RegExp = /.*\((\d{4}-\d{2}-\d{2})\)\s*$/;
     dailyNotePattern: RegExp = /^(\d{4}-\d{2}-\d{2}).md$/;
+    noteDatePattern: RegExp = /^.*?(\d{4}-\d{2}-\d{2}).*$/;
     lastSegment: SegmentFn = (x) => x.slice(x.lastIndexOf("/") + 1);
 
     pathConditionPatterns: RegExp[] = [
@@ -42,6 +51,7 @@ export class Utils {
     ];
 
     app: App;
+    private noteDateCache: Map<string, string | undefined> = new Map();
 
     constructor() {
         this.app = window.customJS.app;
@@ -1013,5 +1023,41 @@ export class Utils {
         ).map((f) => f.path);
 
         return [...weeklyFiles, ...files];
+    };
+
+    /**
+     * Return cached date information for a given path, if present.
+     */
+    getNoteDate = (path: string): string | undefined => {
+        if (!path) {
+            return undefined;
+        }
+
+        if (this.noteDateCache.has(path)) {
+            return this.noteDateCache.get(path);
+        }
+
+        const match = this.noteDatePattern.exec(path);
+        const date = match ? match[1] : undefined;
+        this.noteDateCache.set(path, date);
+        return date;
+    };
+
+    /**
+     * Build a context object describing the target note.
+     */
+    getNoteContext = (path: string): NoteContext => {
+        const date = this.getNoteDate(path);
+        const isDaily = Boolean(date);
+        const isWeekly = path.endsWith("_week.md");
+        const asTask = !isDaily || isWeekly;
+
+        return {
+            path,
+            date,
+            isDaily,
+            isWeekly,
+            asTask,
+        };
     };
 }
