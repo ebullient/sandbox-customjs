@@ -238,7 +238,7 @@ export class Dated {
             `### Log ${this.dateOfWeek(dates.monday, 7)}\n` +
             `![invisible-embed](${this.dayOfWeekFile(dates.monday, 7)}#Log)\n\n`;
 
-        const weeklyProjects = `js-engine
+        const weeklyProjects = `js-engine-debug
 return engine.markdown.create(
     await window.taskIndex.api.generateWeeklyTasksForEngine(engine)
 );`;
@@ -342,7 +342,7 @@ return engine.markdown.create(
             birthdays[MM] = list;
         }
 
-        const yearByWeek = `js-engine
+        const yearByWeek = `js-engine-debug
 const { Utils } = await window.cJS();
 return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\d{2}_week\\.md/);`;
 

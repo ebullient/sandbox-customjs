@@ -289,7 +289,7 @@ export class PeriodicFinalizer {
             const line = lines[i];
 
             // Check if this is a js-engine code block start
-            if (line.trim() === "```js-engine") {
+            if (line.trim() === "```js-engine-debug") {
                 // Find the end of the code block
                 let blockEnd = i + 1;
                 let blockContent = "";

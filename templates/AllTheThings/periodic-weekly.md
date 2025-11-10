@@ -11,7 +11,7 @@ console.log(upcoming, ibmReportDue, ibmWorkWeek);
 const ghFile = result.weekFile.replace('week', 'gh');
 -%><% result.header %>
 
-```js-engine
+```js-engine-debug
 const { TierTracker } = await window.cJS();
 return await TierTracker.createGrid(engine);
 ```
@@ -19,7 +19,7 @@ return await TierTracker.createGrid(engine);
 ### Goals / Focus
 
 - **Habit**: .  
-- **Goal for the week**: . 
+- **Goal for the week**: .
 
 <%* if (upcoming && upcoming.trim()) { -%>
 
@@ -27,13 +27,16 @@ return await TierTracker.createGrid(engine);
 <% upcoming %>
 
 <%* } -%>
+
 ### Tasks
+
 - [ ] [_IBM_](demesne/ibm/ibm.md): [📖 👩‍💻](chronicles/work/<% ibmWorkWeek %>.md) {<% ibmReportDue %>}
 <% tp.file.include(tp.file.find_tfile("assets/templates/weekly-leftovers.md")) %>
+
 #### Self care
 
 - [ ] [Reflect on last week](<% result.weeklyReflection %>)
-<%* if(result.monthlyReflection) {-%>
+<%*if(result.monthlyReflection) {-%>
 <% result.monthlyReflection %>
 <%*}-%>
 - [ ] Update activity rings, review status/progress
@@ -53,7 +56,8 @@ return await TierTracker.createGrid(engine);
 
 ---
 
-### Project items completed this week:
+### Project items completed this week
+
 ```<% result.weeklyProjects %>
 ```
 
@@ -63,4 +67,5 @@ return await TierTracker.createGrid(engine);
 ---
 
 ## Logs
+
 <% result.log %>

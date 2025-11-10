@@ -19,7 +19,7 @@ sphere: <%sphere %>
 
 %% How does this align with my passion and interest? %%
 
-```js-engine
+```js-engine-debug
 const { AreaRelated } = await window.cJS();
 return AreaRelated.allRelated(engine);
 ```
@@ -29,9 +29,11 @@ return AreaRelated.allRelated(engine);
 - [ ] Define initial tasks
 
 ## ❧ Percolator
+
 %% ideas in flight %%
 
 ## ❧ Resources
+
 %% links, contacts %%
 
 ## Log

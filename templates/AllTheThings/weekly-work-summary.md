@@ -18,7 +18,7 @@ if (`${summaryPath}.md` !== tp.file.path(true)) {
 const weeklyFile = Dated.weeklyFile(monday);
 const file = tp.file.find_tfile(weeklyFile);
 
-const jsEngine = "js-engine";
+const jsEngine = "js-engine-debug";
 
 tR += `week-begin: ${dateString}\n`;
 tR += `week-end: ${thursday.format("YYYY-MM-DD")}\n`;
