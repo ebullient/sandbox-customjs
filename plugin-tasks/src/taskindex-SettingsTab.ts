@@ -71,6 +71,27 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
                     }),
             );
 
+        // Archive thresholds
+        containerEl.createEl("h3", { text: "Archive Thresholds" });
+
+        new Setting(containerEl)
+            .setName("Minimum archive lines")
+            .setDesc(
+                "Minimum number of log entries required before creating an archive file",
+            )
+            .addText((text) =>
+                text
+                    .setPlaceholder("50")
+                    .setValue(String(this.plugin.settings.minArchiveLines))
+                    .onChange(async (value) => {
+                        const num = Number.parseInt(value, 10);
+                        if (!Number.isNaN(num) && num > 0) {
+                            this.plugin.settings.minArchiveLines = num;
+                            await this.plugin.saveSettings();
+                        }
+                    }),
+            );
+
         // Quest folders
         containerEl.createEl("h3", { text: "File Locations" });
 

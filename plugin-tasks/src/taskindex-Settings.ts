@@ -9,6 +9,8 @@ export const DEFAULT_SETTINGS: TaskIndexSettings = {
     staleProjectWeeks: 4,
     waitingTaskDays: 14,
 
+    minArchiveLines: 50,
+
     questFolders: ["areas", "projects"],
     validTypes: ["quest", "area", "project", "demesne"],
 

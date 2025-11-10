@@ -13,6 +13,9 @@ export interface TaskIndexSettings {
     staleProjectWeeks: number;
     waitingTaskDays: number;
 
+    // Archive thresholds
+    minArchiveLines: number;
+
     // File patterns
     questFolders: string[];
     validTypes: string[]; // Valid frontmatter type values (e.g., "quest", "area", "project", "demesne")

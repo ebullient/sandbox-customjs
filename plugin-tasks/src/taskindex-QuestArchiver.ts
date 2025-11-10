@@ -7,7 +7,10 @@ import * as CommonPatterns from "./taskindex-CommonPatterns";
  * Denatures old completed tasks (removes task checkbox) and moves previous years to archive files
  */
 export class QuestArchiver {
-    constructor(private app: App) {}
+    constructor(
+        private app: App,
+        private readonly minArchiveLines: number = 50,
+    ) {}
 
     /**
      * Clean up old tasks across all quest/area files
@@ -137,59 +140,67 @@ export class QuestArchiver {
             let archiveStart: number | null = null;
             let archiveEnd: number | null = null;
             let archiveYear: string | null = null;
+            let archiving = false;
+            const currentYearString = currentYear.toString();
 
             for (; i < split.length; i++) {
+                const line = split[i];
+
                 // Stop at next heading or frontmatter
-                if (split[i].startsWith("#") || split[i] === "---") {
+                if (line.startsWith("#") || line === "---") {
                     break;
                 }
 
                 // Check if we hit an existing archive link
-                if (CommonPatterns.isArchiveLink(split[i])) {
+                if (CommonPatterns.isArchiveLink(line)) {
+                    console.log(
+                        "QuestArchiver: existing archive link encountered",
+                        file.path,
+                        line.trim(),
+                    );
                     if (archiveStart !== null) {
                         archiveEnd = i - 1;
                     }
                     break;
                 }
 
-                // Process list items (but stop at done items)
-                if (CommonPatterns.LIST_ITEM_REGEX.test(split[i])) {
-                    if (CommonPatterns.isDoneLine(split[i])) {
-                        break;
+                // Only interested in list entries inside the Log section
+                if (!CommonPatterns.LIST_ITEM_REGEX.test(line)) {
+                    continue;
+                }
+
+                const completionDate =
+                    CommonPatterns.extractCompletionDate(line);
+                const year =
+                    completionDate &&
+                    CommonPatterns.extractYear(completionDate);
+                const completedMoment =
+                    completionDate && window.moment(completionDate);
+
+                // Track first previous-year task for archiving, even if already denatured
+                if (shouldArchive && year && year < currentYearString) {
+                    if (!archiving) {
+                        archiveStart = i;
+                        archiveYear = year;
+                        archiving = true;
                     }
+                    archiveEnd = i;
+                } else if (archiving) {
+                    // Encountered a newer entry after archive block; stop scanning
+                    break;
+                }
 
-                    const parsed = CommonPatterns.parseTaskLine(split[i]);
+                // Convert checkbox tasks older than current month to emoji entries
+                if (
+                    completedMoment?.isBefore(monthMoment) &&
+                    CommonPatterns.isTaskLine(line)
+                ) {
+                    const parsed = CommonPatterns.parseTaskLine(line);
                     if (parsed) {
-                        const completionDate =
-                            CommonPatterns.extractCompletionDate(parsed.text);
-
-                        if (completionDate) {
-                            const year =
-                                CommonPatterns.extractYear(completionDate);
-                            const completed = window.moment(completionDate);
-
-                            // Track first previous year task for archiving
-                            if (
-                                shouldArchive &&
-                                year &&
-                                year < currentYear.toString() &&
-                                archiveStart === null
-                            ) {
-                                archiveStart = i;
-                                archiveYear = year;
-                            }
-
-                            // Cleanup old tasks (denature)
-                            if (completed?.isBefore(monthMoment)) {
-                                if (parsed.status === "x") {
-                                    split[i] =
-                                        `${parsed.indent} ✔️ ${parsed.text}`;
-                                } else {
-                                    split[i] =
-                                        `${parsed.indent} 〰️ ~~${parsed.text}~~`;
-                                }
-                            }
-                        }
+                        split[i] =
+                            parsed.status === "x"
+                                ? `${parsed.indent}- ✔️ ${parsed.text}`
+                                : `${parsed.indent}- 〰️ ~~${parsed.text}~~`;
                     }
                 }
             }
@@ -206,15 +217,27 @@ export class QuestArchiver {
                 archiveYear !== null
             ) {
                 const logEntries = split.slice(archiveStart, archiveEnd + 1);
-                archiveParams = { year: archiveYear, logEntries };
 
-                // Replace lines with archive link
-                const archiveLink = `- [${file.basename}-log-${archiveYear}](Ω-archives/area-logs/${file.basename}-log-${archiveYear}.md)`;
-                split.splice(
-                    archiveStart,
-                    archiveEnd - archiveStart + 1,
-                    archiveLink,
-                );
+                // Check threshold BEFORE modifying the file
+                if (logEntries.length <= this.minArchiveLines) {
+                    console.log(
+                        "QuestArchiver: skip archive (below threshold)",
+                        file.path,
+                        `year=${archiveYear}`,
+                        `${logEntries.length} lines`,
+                    );
+                    // Don't set archiveParams, don't modify file
+                } else {
+                    archiveParams = { year: archiveYear, logEntries };
+
+                    // Replace lines with archive link
+                    const archiveLink = `- [${file.basename}-log-${archiveYear}](Ω-archives/area-logs/${file.basename}-log-${archiveYear}.md)`;
+                    split.splice(
+                        archiveStart,
+                        archiveEnd - archiveStart + 1,
+                        archiveLink,
+                    );
+                }
             }
 
             return split.join("\n");
@@ -228,6 +251,12 @@ export class QuestArchiver {
                 archiveParams.logEntries,
                 file.basename,
                 file.path,
+            );
+            console.log(
+                "QuestArchiver: archived log segment",
+                file.path,
+                `year=${archiveParams.year}`,
+                `${archiveParams.logEntries.length} lines`,
             );
         }
     }

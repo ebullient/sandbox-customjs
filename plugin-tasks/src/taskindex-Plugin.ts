@@ -92,7 +92,10 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
             name: "(TI) Archive old quest/area logs",
             callback: async () => {
                 new Notice("Archiving old completed tasks...");
-                const archiver = new QuestArchiver(this.app);
+                const archiver = new QuestArchiver(
+                    this.app,
+                    this.settings.minArchiveLines,
+                );
                 await archiver.cleanupAllQuests();
                 new Notice("Quest archival complete");
             },
