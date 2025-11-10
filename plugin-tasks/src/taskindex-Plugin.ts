@@ -101,6 +101,20 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
             },
         });
 
+        this.addCommand({
+            id: "validate-quest-logs",
+            name: "(TI) Validate quest/area logs",
+            callback: async () => {
+                new Notice("Validating log sections...");
+                const archiver = new QuestArchiver(
+                    this.app,
+                    this.settings.minArchiveLines,
+                );
+                await archiver.validateAllQuests();
+                new Notice("Log validation complete - see console for issues");
+            },
+        });
+
         // Start indexing when workspace is ready
         this.app.workspace.onLayoutReady(() => {
             this.index.rebuildIndex();

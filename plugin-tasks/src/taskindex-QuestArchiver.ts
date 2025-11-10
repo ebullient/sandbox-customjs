@@ -3,8 +3,31 @@ import type { App, HeadingCache, TFile } from "obsidian";
 import * as CommonPatterns from "./taskindex-CommonPatterns";
 
 /**
+ * Validation issue types
+ */
+export type ValidationIssueType =
+    | "date-order"
+    | "duplicate-line"
+    | "broken-archive-link";
+
+export interface ValidationIssue {
+    type: ValidationIssueType;
+    file: TFile;
+    lineNumber: number;
+    message: string;
+    line?: string;
+}
+
+type ProcessLogFn = (
+    file: TFile,
+    logHeading: HeadingCache,
+    monthMoment: Moment,
+) => Promise<void>;
+
+/**
  * Archives completed tasks from quest/area Log sections
  * Denatures old completed tasks (removes task checkbox) and moves previous years to archive files
+ * Also validates Log sections for data integrity issues
  */
 export class QuestArchiver {
     constructor(
@@ -18,6 +41,14 @@ export class QuestArchiver {
      * - Archives tasks from previous years to separate files (February+)
      */
     async cleanupAllQuests(): Promise<void> {
+        return await this.iterateAllQuests(this.cleanupQuestLog.bind(this));
+    }
+
+    async validateAllQuests(): Promise<void> {
+        return await this.iterateAllQuests(this.validateQuestLog.bind(this));
+    }
+
+    async iterateAllQuests(logFn: ProcessLogFn): Promise<void> {
         console.log("Cleaning up old tasks in quest/area files");
         const monthMoment = window.moment().startOf("month");
 
@@ -44,7 +75,7 @@ export class QuestArchiver {
                     h.heading.endsWith("Log"),
                 );
                 return logHeading
-                    ? this.cleanupQuestLog(file, logHeading, monthMoment)
+                    ? logFn(file, logHeading, monthMoment)
                     : Promise.resolve();
             });
 
@@ -258,6 +289,73 @@ export class QuestArchiver {
                 `year=${archiveParams.year}`,
                 `${archiveParams.logEntries.length} lines`,
             );
+        }
+    }
+
+    private async validateQuestLog(
+        file: TFile,
+        logHeading: HeadingCache,
+        _monthMoment: Moment,
+    ): Promise<void> {
+        const content = await this.app.vault.read(file);
+        const lines = content.split("\n");
+
+        let i = logHeading.position.start.line + 1;
+        const seenLines = new Set<string>();
+        let previousDate: string | null = null;
+
+        for (; i < lines.length; i++) {
+            const line = lines[i];
+
+            // Stop at next heading or frontmatter
+            if (line.startsWith("#") || line === "---") {
+                break;
+            }
+
+            // Skip empty lines
+            if (!line.trim()) {
+                continue;
+            }
+
+            // Check for broken archive links
+            if (CommonPatterns.isArchiveLink(line)) {
+                const archivePath = line.match(/\((.*?)\)/)?.[1];
+                if (archivePath) {
+                    const archiveFile =
+                        this.app.vault.getFileByPath(archivePath);
+                    if (!archiveFile) {
+                        console.log(
+                            `🔗 Broken archive link: ${file.path}:${i + 1} - ${archivePath}`,
+                        );
+                    }
+                }
+                break; // Archive link marks end of current content
+            }
+
+            // Only check outermost list items (no leading whitespace)
+            if (!line.match(/^- /)) {
+                continue;
+            }
+
+            // Check for duplicate lines
+            const normalizedLine = line.trim();
+            if (seenLines.has(normalizedLine)) {
+                console.log(
+                    `🔄 Duplicate line: ${file.path}:${i + 1} - ${normalizedLine}`,
+                );
+            }
+            seenLines.add(normalizedLine);
+
+            // Check for date order violations (only on outermost tasks)
+            const completionDate = CommonPatterns.extractCompletionDate(line);
+            if (completionDate) {
+                if (previousDate && completionDate > previousDate) {
+                    console.log(
+                        `📅 Date order violation: ${file.path}:${i + 1} - ${completionDate} after ${previousDate}`,
+                    );
+                }
+                previousDate = completionDate;
+            }
         }
     }
 }
