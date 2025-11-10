@@ -345,12 +345,15 @@ export class PeriodicFinalizer {
      */
     private removeWeeklyStandardTasks(lines: string[]): string[] {
         const standardTaskPatterns = [
+            /^%% \*?\*?(self care|maintenance)\*?\*? %%$/i,
+            /^(\s*)- ✔️ \[Reflect on last week\]\(.*\).*$/,
+            /^(\s*)- ✔️ Update activity rings.*$/,
             /^(\s*)- ✔️ Review \[gh-triage\]\(gh-triage.md\).*$/,
-            /^(\s*)- ✔️ File any \[Inbox\]\(Inbox.md\) items.*$/,
-            /^(\s*)- ✔️ Review \[All Tasks\]\(all-tasks.md\) and \[percolator\]\(percolator.md\).*$/,
-            /^(\s*)- ✔️ Review \[percolator\]\(percolator.md\).*$/,
             /^(\s*)- ✔️ Check "missing".*$/,
-            /^(\s*)- ✔️ updates on .*$/,
+            /^(\s*)- ✔️ Review \[All Tasks\]\(all-tasks.md\).*$/,
+            /^(\s*)- ✔️ Review \[percolator\]\(percolator.md\).*$/,
+            /^(\s*)- ✔️ File any \[Inbox\]\(Inbox.md\) items.*$/,
+            /^(\s*)- ✔️ (`qk` and )?updates on .*$/,
             /^(\s*)- ✔️ check on moria.*$/,
             /^(\s*)- ✔️ water plants.*$/,
         ];
