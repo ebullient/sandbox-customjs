@@ -91,32 +91,51 @@ export class TierPrefilter {
         // Iteration info
         lines.push(`Iteration: ${metrics.iteration.current} of 4`);
         lines.push(
-            `Can ask more questions: ${metrics.iteration.canAskMore ? this.yes : this.no}`,
+            `Can ask more questions: ${metrics.iteration.canAskMore ? "yes" : "no"}`,
         );
         if (metrics.health.tierTag) {
             lines.push(`Self-assessment: ${metrics.health.tierTag}`);
         }
-        lines.push("");
 
         // Health metrics
-        const healthParts = Object.entries(metrics.health)
-            .filter(([key]) => key !== "tierTag")
-            .map(([key, value]) => `${key}: ${value}`);
-        lines.push(`Health metrics: ${healthParts.join("; ")}`);
+        lines.push("");
+        this.pushPresentAbsent(
+            lines,
+            "Health metrics",
+            Object.entries(metrics.health).filter(
+                ([key, _v]) => key !== "tierTag",
+            ),
+        );
 
         lines.push("");
         lines.push(`Workday: ${metrics.workday.display}`);
-
-        const workParts = Object.entries(metrics.work).map(
-            ([key, value]) => `${key}: ${value}`,
+        this.pushPresentAbsent(
+            lines,
+            "Work patterns",
+            Object.entries(metrics.work),
         );
-        lines.push(`Work patterns: ${workParts.join("; ")}`);
-        lines.push("");
 
         lines.push(`Family mentions: ${metrics.familyMentions}`);
         lines.push("");
 
         return lines.join("\n");
+    }
+
+    private pushPresentAbsent(
+        lines: string[],
+        prefix: string,
+        entries: [string, string][],
+    ): void {
+        const present = entries
+            .filter(([_k, value]) => value.startsWith(this.yes))
+            .map(([key, value]) => `${key}: ${value}`);
+        const absent = entries
+            .filter(([_k, value]) => value.startsWith(this.no))
+            .map(([key, value]) => `${key}: ${value}`);
+        lines.push(
+            `${prefix}:\n- present: ${present.join("; ")}\n- absent: ${absent.join("; ")}`,
+        );
+        lines.push("");
     }
 
     private extractIteration(content: string): {
@@ -172,7 +191,7 @@ export class TierPrefilter {
 
     private extractHealthTags(content: string) {
         const hasTag = (tags: string[]) =>
-            tags.some((t) => content.includes(t)) ? this.yes : this.no;
+            tags.some((t) => content.includes(t));
 
         // Extract tier tag(s)
         const tierMatches = content.match(/#me\/🌓\/(tier[1-4]|mixed)/g);
@@ -182,13 +201,16 @@ export class TierPrefilter {
               ].join(", ")
             : "none";
 
-        const yoga = hasTag(["#me/✅/🧘"]);
-        const movementRing = hasTag(["#me/✅/🔴"]);
-        const standRing = hasTag(["#me/✅/🔵"]);
-        const exerciseRing = hasTag(["#me/✅/🟢"]);
-        const extraGreens = hasTag(["#me/✅/☘️", "#me/✅/🍀"]);
-        const vitamins = extraGreens || hasTag(["#me/✅/✨"]);
-        const water = vitamins || hasTag(["#me/✅/💧"]);
+        const yoga = hasTag(["#me/✅/🧘"]) ? this.yes : this.no;
+        const movementRing = hasTag(["#me/✅/🔴"]) ? this.yes : this.no;
+        const standRing = hasTag(["#me/✅/🔵"]) ? this.yes : this.no;
+        const exerciseRing = hasTag(["#me/✅/🟢"]) ? this.yes : this.no;
+        const extraGreens = hasTag(["#me/✅/☘️", "#me/✅/🍀"])
+            ? this.yes
+            : this.no;
+        const vitamins =
+            extraGreens || hasTag(["#me/✅/✨"]) ? this.yes : this.no;
+        const water = vitamins || hasTag(["#me/✅/💧"]) ? this.yes : this.no;
         const chores = hasTag([
             "#me/✅/🧼",
             "#me/✅/🧽",
@@ -196,16 +218,18 @@ export class TierPrefilter {
             "#me/✅/🧺",
             "#me/✅/🪣",
             "#me/✅/🪏",
-        ]);
+        ])
+            ? this.yes
+            : this.no;
 
         return {
-            chores,
-            vitamins,
-            water,
             "extra greens": extraGreens,
             "exercise ring": exerciseRing,
             "movement ring": movementRing,
             "stand ring": standRing,
+            chores,
+            vitamins,
+            water,
             yoga,
             tierTag,
         };
