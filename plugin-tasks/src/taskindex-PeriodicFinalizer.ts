@@ -85,6 +85,7 @@ export class PeriodicFinalizer {
             .join("\n")
             .replace(/%% agenda %%(([\s\S]*?)%% agenda %%)?/g, "")
             .replace(/\n%%\n- 🎉[\s\S]*?\n%%\n/, "")
+            .replace(/\n%% %%\n/g, "\n")
             .replace(/\n- \.\n/g, "")
             .replace(/\n\d\. \.\n/g, "")
             .replace(/\n\n\n+/g, "\n\n");
@@ -95,7 +96,10 @@ export class PeriodicFinalizer {
             "",
         );
 
-        return revised;
+        // Remove template callout blocks
+        revised = this.removeTemplateCallouts(revised);
+
+        return revised.replace(/\n\n\n+/g, "\n\n");
     }
 
     /**
@@ -119,7 +123,7 @@ export class PeriodicFinalizer {
         // Step 5: Add frontmatter if not present
         lines = this.ensureFrontmatter(lines, "Week of ");
 
-        return lines.join("\n");
+        return lines.join("\n").replace(/\n\n\n+/g, "\n\n");
     }
 
     /**
@@ -245,6 +249,10 @@ export class PeriodicFinalizer {
         return null;
     }
 
+    private isTierBlock(blockContent: string): boolean {
+        return blockContent.includes("TierTracker.createGrid(engine)");
+    }
+
     /**
      * Generate task list markdown based on parameters
      * Delegates to TaskService for task collection
@@ -289,7 +297,7 @@ export class PeriodicFinalizer {
             const line = lines[i];
 
             // Check if this is a js-engine code block start
-            if (line.trim() === "```js-engine-debug") {
+            if (line.trim().match("```js-engine(-debug)?")) {
                 // Find the end of the code block
                 let blockEnd = i + 1;
                 let blockContent = "";
@@ -313,15 +321,16 @@ export class PeriodicFinalizer {
                     );
                     // Replace block with just the markdown (no code block)
                     newLines.push(markdown);
-                    // Skip to end of block
-                    i = blockEnd + 1;
+                } else if (this.isTierBlock(blockContent)) {
+                    newLines.push("");
                 } else {
                     // Not a recognized Tasks block, keep original
                     for (let j = i; j <= blockEnd; j++) {
                         newLines.push(lines[j]);
                     }
-                    i = blockEnd + 1;
                 }
+                // Skip to end of block
+                i = blockEnd + 1;
             } else {
                 newLines.push(line);
                 i++;
@@ -361,6 +370,26 @@ export class PeriodicFinalizer {
 
             return true;
         });
+    }
+
+    /**
+     * Remove template callout blocks (mood, tier strategies)
+     * These are flashcard-style prompts that don't need to be preserved
+     */
+    private removeTemplateCallouts(content: string): string {
+        // Remove mood callout block (entire callout including all lines and block ref)
+        content = content.replace(
+            /^> \[!mood\]-[^\n]*(?:\n>.*)*(?:\n\^[^\n]+)?(?:\n|$)/gm,
+            "",
+        );
+
+        // Remove tier strategy callout block (entire callout including embed and block ref)
+        content = content.replace(
+            /^> \[!tip\]- Tier \d+ Strategies[^\n]*(?:\n>.*)*(?:\n\^[^\n]+)?(?:\n|$)/gm,
+            "",
+        );
+
+        return content;
     }
 
     /**
