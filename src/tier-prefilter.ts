@@ -67,7 +67,7 @@ export class TierPrefilter {
 
     prefilter: FilterFn = (content) => {
         const metrics = this.extractMetrics(content);
-        const structuredSection = this.formatMetrics(metrics);
+        const structuredSection = this.formatMetrics(content, metrics);
 
         return `--- STRUCTURED METRICS ---\n${structuredSection}\n--- JOURNAL TEXT ---\n${content}`;
     };
@@ -84,16 +84,18 @@ export class TierPrefilter {
     }
 
     private formatMetrics(
+        content: string,
         metrics: ReturnType<typeof this.extractMetrics>,
     ): string {
         const lines: string[] = [];
+        const dailyJournal = !content.includes("# ✍️ Week of ");
 
         // Iteration info
         lines.push(`Iteration: ${metrics.iteration.current} of 4`);
         lines.push(
             `Can ask more questions: ${metrics.iteration.canAskMore ? "yes" : "no"}`,
         );
-        if (metrics.health.tierTag) {
+        if (dailyJournal && metrics.health.tierTag) {
             lines.push(`Self-assessment: ${metrics.health.tierTag}`);
         }
 
@@ -107,13 +109,15 @@ export class TierPrefilter {
             ),
         );
 
-        lines.push("");
-        lines.push(`Workday: ${metrics.workday.display}`);
-        this.pushPresentAbsent(
-            lines,
-            "Work patterns",
-            Object.entries(metrics.work),
-        );
+        if (dailyJournal) {
+            lines.push("");
+            lines.push(`Workday: ${metrics.workday.display}`);
+            this.pushPresentAbsent(
+                lines,
+                "Work patterns",
+                Object.entries(metrics.work),
+            );
+        }
 
         lines.push(`Family mentions: ${metrics.familyMentions}`);
         lines.push("");
