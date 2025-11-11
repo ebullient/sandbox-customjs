@@ -33,22 +33,23 @@ export class PeriodicFinalizer {
 
         // Read file content
         const content = await this.app.vault.read(activeFile);
+        let transformed = content.split("\n");
 
         // Transform content based on file type
-        let transformed: string;
         if (fileType === "daily") {
-            transformed = this.finalizeDailyFile(content);
+            transformed = this.finalizeDailyFile(transformed);
         } else if (fileType === "weekly") {
-            const cleaned = this.finalizeWeeklyFile(content);
-            transformed = await this.replaceTaskBlocks(cleaned, activeFile);
+            transformed = this.finalizeWeeklyFile(transformed);
+            transformed = await this.replaceTaskBlocks(transformed, activeFile);
         } else {
             // "other" type
-            const cleaned = this.finalizeOtherFile(content);
-            transformed = await this.replaceTaskBlocks(cleaned, activeFile);
+            transformed = this.finalizeOtherFile(transformed);
+            transformed = await this.replaceTaskBlocks(transformed, activeFile);
         }
+        transformed = this.collapseBlankLines(transformed);
 
         // Write transformed content back
-        await this.app.vault.modify(activeFile, transformed);
+        await this.app.vault.modify(activeFile, transformed.join("\n"));
     }
 
     /**
@@ -68,9 +69,7 @@ export class PeriodicFinalizer {
     /**
      * Finalize a daily note file
      */
-    private finalizeDailyFile(content: string): string {
-        let lines = content.split("\n");
-
+    private finalizeDailyFile(lines: string[]): string[] {
         // Remove generic/standard time blocks (uncompleted tasks)
         lines = this.removeGenericTimeBlocks(lines);
 
@@ -87,8 +86,7 @@ export class PeriodicFinalizer {
             .replace(/\n%%\n- 🎉[\s\S]*?\n%%\n/, "")
             .replace(/\n%% %%\n/g, "\n")
             .replace(/\n- \.\n/g, "")
-            .replace(/\n\d\. \.\n/g, "")
-            .replace(/\n\n\n+/g, "\n\n");
+            .replace(/\n\d\. \.\n/g, "");
 
         // Collapse empty Day Planner sections
         revised = revised.replace(
@@ -97,17 +95,13 @@ export class PeriodicFinalizer {
         );
 
         // Remove template callout blocks
-        revised = this.removeTemplateCallouts(revised);
-
-        return revised.replace(/\n\n\n+/g, "\n\n");
+        return this.removeTemplateCallouts(revised.split("\n"));
     }
 
     /**
      * Finalize a weekly note file
      */
-    private finalizeWeeklyFile(content: string): string {
-        let lines = content.split("\n");
-
+    private finalizeWeeklyFile(lines: string[]): string[] {
         // Step 1: Convert checkbox markers to emoji
         lines = this.convertCheckboxesToEmoji(lines);
 
@@ -121,24 +115,18 @@ export class PeriodicFinalizer {
         lines = this.removeWeeklyStandardTasks(lines);
 
         // Step 5: Add frontmatter if not present
-        lines = this.ensureFrontmatter(lines, "Week of ");
-
-        return lines.join("\n").replace(/\n\n\n+/g, "\n\n");
+        return this.ensureFrontmatter(lines, "Week of ");
     }
 
     /**
      * Finalize other files (not daily or weekly)
      */
-    private finalizeOtherFile(content: string): string {
-        let lines = content.split("\n");
-
+    private finalizeOtherFile(lines: string[]): string[] {
         // Step 1: Convert checkbox markers to emoji
         lines = this.convertCheckboxesToEmoji(lines);
 
         // Step 2: Clean up links (tag links and app:// links)
-        lines = this.cleanupLinks(lines);
-
-        return lines.join("\n");
+        return this.cleanupLinks(lines);
     }
 
     /**
@@ -286,10 +274,9 @@ export class PeriodicFinalizer {
      * Replace js-engine code blocks with fresh task list content
      */
     private async replaceTaskBlocks(
-        content: string,
+        lines: string[],
         currentFile: TFile,
-    ): Promise<string> {
-        const lines = content.split("\n");
+    ): Promise<string[]> {
         const newLines: string[] = [];
         let i = 0;
 
@@ -320,7 +307,7 @@ export class PeriodicFinalizer {
                         params,
                     );
                     // Replace block with just the markdown (no code block)
-                    newLines.push(markdown);
+                    newLines.push(...markdown.split("\n"));
                 } else if (this.isTierBlock(blockContent)) {
                     newLines.push("");
                 } else {
@@ -336,8 +323,7 @@ export class PeriodicFinalizer {
                 i++;
             }
         }
-
-        return newLines.join("\n");
+        return newLines;
     }
 
     /**
@@ -379,7 +365,8 @@ export class PeriodicFinalizer {
      * Remove template callout blocks (mood, tier strategies)
      * These are flashcard-style prompts that don't need to be preserved
      */
-    private removeTemplateCallouts(content: string): string {
+    private removeTemplateCallouts(lines: string[]): string[] {
+        let content = lines.join("\n");
         // Remove mood callout block (entire callout including all lines and block ref)
         content = content.replace(
             /^> \[!mood\]-[^\n]*(?:\n>.*)*(?:\n\^[^\n]+)?(?:\n|$)/gm,
@@ -392,7 +379,7 @@ export class PeriodicFinalizer {
             "",
         );
 
-        return content;
+        return content.split("\n");
     }
 
     /**
@@ -414,17 +401,36 @@ export class PeriodicFinalizer {
             }
         }
 
+        const defaultYaml = ["---", "obsidianUIMode: preview", "---"];
+
         if (titleIndex === -1) {
             // No title found, add frontmatter at top
-            return ["---", "obsidianUIMode: preview", "---", "", ...lines];
+            return [...defaultYaml, "", ...lines];
         }
 
         // Insert frontmatter before title
-        return [
-            "---",
-            "obsidianUIMode: preview",
-            "---",
-            ...lines.slice(titleIndex),
-        ];
+        return [...defaultYaml, ...lines.slice(titleIndex)];
+    }
+
+    /**
+     * Collapse consecutive blank lines (ignoring whitespace) down to two
+     */
+    private collapseBlankLines(lines: string[]): string[] {
+        const collapsed: string[] = [];
+        let seenBlank = false;
+
+        for (const line of lines) {
+            if (line.trim().length === 0) {
+                if (!seenBlank) {
+                    collapsed.push("");
+                    seenBlank = true;
+                }
+            } else {
+                seenBlank = false;
+                collapsed.push(line);
+            }
+        }
+
+        return collapsed;
     }
 }
