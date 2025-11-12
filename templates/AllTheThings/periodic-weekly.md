@@ -2,10 +2,10 @@
 const result = Dated.weekly(tp.file.title);
 await tp.file.move(result.weekFile);
 const upcoming = await Dated.weeklyEvents(tp.file.title);
-const ibmStart = window.moment(result.dates.monday).subtract(3, "d");
-const ibmReportDue = window.moment(result.dates.monday).day(5).format("YYYY-MM-DD");
+const ibmStart = result.dates.monday.clone().subtract(3, "d");
+const ibmReportDue = result.dates.monday.clone().day(5).format("YYYY-MM-DD");
 const year = ibmStart.format("YYYY");
-const thursday = window.moment(result.dates.monday).day(4).format("DD");
+const thursday = result.dates.monday.clone().day(4).format("DD");
 const ibmWorkWeek = `${year}/ibm-${ibmStart.format("YYYY-MM-DD")}_${thursday}`
 console.log(upcoming, ibmReportDue, ibmWorkWeek);
 const ghFile = result.weekFile.replace('week', 'gh');
@@ -27,22 +27,16 @@ return await TierTracker.createGrid(engine);
 <% upcoming %>
 
 <%* } -%>
-
 ### Tasks
-
 - [ ] [_IBM_](demesne/ibm/ibm.md): [📖 👩‍💻](chronicles/work/<% ibmWorkWeek %>.md) {<% ibmReportDue %>}
 <% tp.file.include(tp.file.find_tfile("assets/templates/weekly-leftovers.md")) %>
-
-#### Self care
-
+%% self care %%
 - [ ] [Reflect on last week](<% result.weeklyReflection %>)
-<%*if(result.monthlyReflection) {-%>
+<%* if(result.monthlyReflection) {-%>
 <% result.monthlyReflection %>
 <%*}-%>
 - [ ] Update activity rings, review status/progress
-
-#### Maintenance
-
+%% maintenance %%
 - [ ] Check "missing"
 - [ ] Review [All Tasks](all-tasks.md) (priority, next actions, etc)
 - [ ] File any [Inbox](Inbox.md) items from last week
@@ -56,8 +50,7 @@ return await TierTracker.createGrid(engine);
 
 ---
 
-### Project items completed this week
-
+### Project items completed this week:
 ```<% result.weeklyProjects %>
 ```
 
@@ -67,5 +60,4 @@ return await TierTracker.createGrid(engine);
 ---
 
 ## Logs
-
 <% result.log %>

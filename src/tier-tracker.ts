@@ -41,7 +41,7 @@ export class TierTracker {
         const current = window.moment();
 
         // Calculate 52 weeks back from the end of current week (Sunday)
-        const endOfWeek = window.moment(current).day(7); // Sunday
+        const endOfWeek = current.clone().day(7); // Sunday
         const maxStartDate = window
             .moment(endOfWeek)
             .subtract(52, "weeks")
@@ -182,7 +182,7 @@ export class TierTracker {
 		`;
 
         const current = window.moment();
-        const endOfWeek = window.moment(current).day(7); // Sunday
+        const endOfWeek = current.clone().day(7); // Sunday
 
         // Adjust start date to nearest Monday (beginning of week)
         const startDate = window.moment(startDateStr);

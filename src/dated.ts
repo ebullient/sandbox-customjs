@@ -92,13 +92,13 @@ export class Dated {
         const day = window.moment(titledate);
         const dayOfWeek = day.isoWeekday();
 
-        let theMonday = window.moment(day).day(1);
-        let nextWorkDay = window.moment(day).add(1, "d");
+        let theMonday = day.clone().day(1);
+        let nextWorkDay = day.clone().add(1, "d");
         let nextWorkDayName = "tomorrow";
         if (dayOfWeek === 0 || dayOfWeek === 7) {
-            theMonday = window.moment(day).add(-1, "week").day(1);
+            theMonday = day.clone().add(-1, "week").day(1);
         } else if (dayOfWeek > 4) {
-            nextWorkDay = window.moment(theMonday).add(1, "week");
+            nextWorkDay = theMonday.clone().add(1, "week");
             nextWorkDayName = "Monday";
         }
 
@@ -107,14 +107,14 @@ export class Dated {
             nextWorkDay: nextWorkDay,
             nextWorkDayName: nextWorkDayName,
 
-            lastMonday: window.moment(theMonday).add(-1, "week"),
+            lastMonday: theMonday.clone().add(-1, "week"),
             monday: theMonday,
-            nextMonday: window.moment(theMonday).add(1, "week"),
+            nextMonday: theMonday.clone().add(1, "week"),
         };
     };
 
     dateOfWeek = (monday: Moment, dayOfWeek: number): string => {
-        return window.moment(monday).day(dayOfWeek).format("YYYY-MM-DD");
+        return monday.clone().day(dayOfWeek).format("YYYY-MM-DD");
     };
 
     /**
@@ -124,7 +124,7 @@ export class Dated {
      * @returns {string} The file path for the specified day of the week.
      */
     dayOfWeekFile = (monday: Moment, dayOfWeek: number): string => {
-        return this.dailyFile(window.moment(monday).day(dayOfWeek));
+        return this.dailyFile(monday.clone().day(dayOfWeek));
     };
 
     /**
@@ -170,7 +170,7 @@ export class Dated {
      */
     daily = (filename: string): DailyInfo => {
         const dates = this.parseDate(filename);
-        const header = `# My Day\n${dates.day.format("dddd, MMMM DD, YYYY")} .... [${dates.nextWorkDayName}](${this.dailyFile(dates.nextWorkDay)})  \nWeek of [${dates.monday.format("MMMM DD")}](${this.weeklyFile(dates.monday)})  \n`;
+        const header = `# My Day\n${dates.day.format("dddd, MMMM DD, YYYY")} ~ ❦ ~ Week of [${dates.monday.format("MMMM DD")}](${this.weeklyFile(dates.monday)})  \n`;
 
         return {
             dates,
@@ -195,13 +195,13 @@ export class Dated {
 
         let header =
             `# Week of ${dates.monday.format("MMM D")}\n` +
-            `[< ${dates.lastMonday.format("MMM D")}](${lastWeekFile}) --` +
+            " ✧" +
             ` [Mo](${this.dayOfWeekFile(dates.monday, 1)})` +
             ` [Tu](${this.dayOfWeekFile(dates.monday, 2)})` +
             ` [We](${this.dayOfWeekFile(dates.monday, 3)})` +
             ` [Th](${this.dayOfWeekFile(dates.monday, 4)})` +
             ` [Fr](${this.dayOfWeekFile(dates.monday, 5)})` +
-            ` -- [${dates.nextMonday.format("MMM D")} >](${this.weeklyFile(dates.nextMonday)})  \n` +
+            " ✧  \n" +
             `Goals for [${dates.monday.format("MMMM")}](${thisMonthFile})`;
 
         if (dates.monday.month() !== dates.nextMonday.month()) {
@@ -264,10 +264,10 @@ return engine.markdown.create(
     monthlyDates = (fileName: string): MonthlyDates => {
         const dateString = fileName.replace(".md", "").replace("_month", "-01");
         const date = window.moment(dateString);
-        const lastMonth = window.moment(date).add(-1, "month");
-        const nextMonth = window.moment(date).add(1, "month");
+        const lastMonth = date.clone().add(-1, "month");
+        const nextMonth = date.clone().add(1, "month");
 
-        const firstMonday = window.moment(date).startOf("month").day("Monday");
+        const firstMonday = date.clone().startOf("month").day("Monday");
         if (firstMonday.date() > 7) {
             // We might be at the end of the previous month. So
             // find the next Monday.. the first Monday *in* the month
@@ -317,9 +317,9 @@ return engine.markdown.create(
         const date = window.moment(dateString);
         const year = date.format("YYYY");
         const yearFile = this.yearlyFile(date);
-        const lastYear = window.moment(date).add(-1, "year");
+        const lastYear = date.clone().add(-1, "year");
         const lastYearFile = this.yearlyFile(lastYear);
-        const nextYear = window.moment(date).add(1, "year");
+        const nextYear = date.clone().add(1, "year");
         const nextYearFile = this.yearlyFile(nextYear);
         const header =
             `# Overview of ${year}\n` +

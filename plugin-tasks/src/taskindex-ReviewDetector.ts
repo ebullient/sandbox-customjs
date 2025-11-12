@@ -133,7 +133,7 @@ export class ReviewDetector {
      */
     private getCurrentWeekFilePath(): string {
         const today = window.moment();
-        const monday = window.moment(today).day(1);
+        const monday = today.clone().day(1);
         return monday.format("[chronicles]/YYYY/YYYY-MM-DD[_week.md]");
     }
 

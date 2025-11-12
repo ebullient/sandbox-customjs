@@ -112,7 +112,7 @@ export class TaskEngine {
     async generateWeeklyTasks(current: TFile): Promise<string> {
         const titledate = current.name.replace(".md", "").replace("_week", "");
         const begin = window.moment(titledate).day(1); // Monday
-        const end = window.moment(begin).add(6, "d");
+        const end = begin.clone().add(6, "d");
 
         return this.findCompletedTasksInRange(
             begin,
@@ -135,7 +135,7 @@ export class TaskEngine {
         all = false,
     ): Promise<string> {
         const begin = window.moment(startDate); // exact day
-        const end = window.moment(begin).add(6, "d");
+        const end = begin.clone().add(6, "d");
 
         return this.findCompletedTasksInRange(
             begin,

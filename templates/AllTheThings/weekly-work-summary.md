@@ -4,13 +4,12 @@ const dateString = tp.file.title.match(/(\d{4}-\d{2}-\d{2})/)?.[1] || tp.file.ti
 
 const friday = window.moment(dateString);
 const year = friday.format("YYYY");
-const monday = window.moment(friday).add(3, "d");
-const thursday = window.moment(friday).add(6, "d");
+const monday = friday.clone().add(3, "d");
+const thursday = friday.clone().add(6, "d");
 console.log(dateString, dateString, thursday.format("YYYY-MM-DD"));
 
-const summaryPath = `chronicles/work/ibm-${year}/${tp.file.title}`;
+console.log(summaryPath, tp.file.title, tp.file.path(true));
 if (`${summaryPath}.md` !== tp.file.path(true)) {
-    console.log(summaryPath, tp.file.title, tp.file.path(true));
     await tp.file.move(summaryPath);
 }
 
@@ -29,5 +28,5 @@ tR += 'tags:\n- "me/✅/📓"';
 
 ```<% jsEngine %>
 return engine.markdown.create(
-    await window.taskIndex.api.generateFixedWeekTasksForEngine(engine, "<% dateString %>",  "#me/🎯/ibm");
+    await window.taskIndex.api.generateFixedWeekTasksForEngine(engine, "<% dateString %>",  "#me/🎯/ibm"));
 ```
