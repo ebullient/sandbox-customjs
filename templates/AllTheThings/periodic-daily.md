@@ -3,18 +3,9 @@
     await tp.file.move(result.dailyFile);
     const today = result.dates.day.isoWeekday();
     const copingCard = window.simpleFlashcards?.api?.embedCard() || "";
-    console.log(window.simpleFlashcards, copingCard);
-    const journalLink = `[📖 ✍️](chronicles/journal/${result.dates.day.format("YYYY[/journal-]YYYY-MM-DD")}.md)`;
+    const journalLink = `[📖 ✍️](${Dated.dailyJournalFile(result.dates.day)})`;
+    console.log(window.simpleFlashcards, copingCard, journalLink);
 -%><% result.header %>
-
-%%
-- 🎉 Completion / Landed the task.
-- 🎠 Distracted / chasing novelty.
-- 😵‍💫 Tier 2 hyperfocus. Must finish.
-- ☄️ Tier 4 hyperfocus. Feels good, costs later. Time for Tier 4 rules.
-%%
-
-<% copingCard %>
 
 %% %%
 > [!charm] Journaling
@@ -23,7 +14,16 @@
 > - *Affirmation of the day*
 ^daily-am
 
+<% copingCard %>
+
 %% agenda %%
+
+%%
+- 🎉 Completion / Landed the task.
+- 🎠 Distracted / chasing novelty.
+- 😵‍💫 Tier 2 hyperfocus. Must finish.
+- ☄️ Tier 4 hyperfocus. Feels good, costs later. Time for Tier 4 rules.
+%%
 
 <%* if (1 <= today && today <= 5 ) { -%>
 **Top Priority**
@@ -70,7 +70,6 @@
 - [ ] 18:00 BREAK
 - [ ] 19:30 Reflection
 - [ ] 20:00 END
-cons
 <%* } -%>
 
 > [!charm] Journaling

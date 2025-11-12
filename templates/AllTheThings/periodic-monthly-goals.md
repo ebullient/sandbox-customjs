@@ -7,21 +7,25 @@ await tp.file.move(result.dates.monthFile);
 
 %% %%
 > [!charm] Affirmations
-> 
+>
 >
 
 ## Goals
 
 ## 🤓 Weekly review
+
 <%* const monday = result.dates.firstMonday;
   var month = monday.month();
   while(month === monday.month()) {
     var weekStart = monday.format("YYYY-MM-DD");
-    var weekFile = Dated.weeklyFile(monday, monday);
+    var weekFile = Dated.weeklyFile(monday);
+    var journalFile = Dated.weeklyJournalFile(monday);
 %>
+
 ### <% weekStart %>
 
 - [Plan for the week](<% weekFile %>)
+- [Journal for the week](<% journalFile %>)
 
 **🎉 Big wins**
 

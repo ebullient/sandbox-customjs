@@ -1,21 +1,14 @@
 ---
 <%* const { Dated } = await window.cJS();
-const dateString = tp.file.title.match(/(\d{4}-\d{2}-\d{2})/)?.[1] || tp.file.title;
-
-const friday = window.moment(dateString);
-const year = friday.format("YYYY");
-const monday = friday.clone().add(3, "d");
-const thursday = friday.clone().add(6, "d");
-console.log(dateString, dateString, thursday.format("YYYY-MM-DD"));
-
+const friday = Dated.weeklyWorkReportDay(tp.file.title);
+const summaryPath = Dated.weeklyWorkReportFile(friday);
 console.log(summaryPath, tp.file.title, tp.file.path(true));
-if (`${summaryPath}.md` !== tp.file.path(true)) {
-    await tp.file.move(summaryPath);
+if (summaryPath !== tp.file.path(true)) {
+    await tp.file.move(summaryPath.replace('.md', ''));
 }
-
 // Get the finalized weekly file
-const weeklyFile = Dated.weeklyFile(monday);
-const file = tp.file.find_tfile(weeklyFile);
+const dateString = friday.format("YYYY-MM-DD");
+const thursday = friday.clone().add(6, "d");
 
 const jsEngine = "js-engine-debug";
 

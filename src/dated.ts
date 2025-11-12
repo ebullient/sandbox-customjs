@@ -137,12 +137,66 @@ export class Dated {
     };
 
     /**
+     * Create the journal file path for a specific date.
+     * @param {Moment} target The date to generate the file path for.
+     * @returns {string} The file path for the specified date.
+     */
+    dailyJournalFile = (target: Moment): string => {
+        return target.format(
+            "[chronicles/journal]/YYYY/[journal-]YYYY-MM-DD[.md]",
+        );
+    };
+
+    /**
      * Create the file path for a specific Monday.
      * @param {Moment} monday The Monday to generate the file path for.
      * @returns {string} The file path for the specified Monday.
      */
     weeklyFile = (monday: Moment): string => {
         return monday.format("[chronicles]/YYYY/YYYY-MM-DD[_week.md]");
+    };
+
+    /**
+     * Create the file path for a specific Monday.
+     * @param {Moment} monday The Monday to generate the file path for.
+     * @returns {string} The file path for the specified Monday.
+     */
+    weeklyJournalFile = (monday: Moment): string => {
+        return monday.format(
+            "[chronicles/journal]/YYYY/[journal-]YYYY-MM-DD[_week.md]",
+        );
+    };
+
+    weeklyWorkReportDay = (fileName: string): Moment | undefined => {
+        const dateString =
+            fileName.match(/(\d{4}-\d{2}-\d{2})/)?.[1] || undefined;
+        if (dateString) {
+            return window.moment(dateString);
+        }
+    };
+
+    weeklyWorkReportFile = (friday: Moment): string => {
+        return friday
+            ? friday.format("[chronicles/work/ibm-]YYYY/[ibm-]YYYY-MM-DD[.md]")
+            : "";
+    };
+
+    /**
+     * Create the file path for a specific Monday.
+     * @param {Moment} monday The Monday to generate the file path for.
+     * @returns {string} The file path for the specified Monday.
+     */
+    weeklyWorkReport = (monday: Moment): string => {
+        const ibmStart = monday.clone().subtract(3, "d");
+        const ibmEnd = ibmStart.clone().add(6, "d");
+        const ibmReportBegin = ibmStart
+            .clone()
+            .day(5)
+            .format("[chronicles/work/ibm-]YYYY/[ibm-]YYYY-MM-DD");
+        const ibmReportEnd = ibmEnd.format("[_]DD[.md]");
+        const ibmReportDue = ibmEnd.format("YYYY-MM-DD");
+        console.log(ibmStart, ibmReportBegin, ibmReportEnd, ibmReportDue);
+        return `[📖 👩‍💻](${ibmReportBegin}${ibmReportEnd}) {${ibmReportDue}}`;
     };
 
     /**
@@ -219,10 +273,8 @@ export class Dated {
                 `- [ ] [Goals for ${thisMonth}](${thisMonthFile})`;
         }
 
-        const year = dates.monday.format("YYYY");
-        const monday = dates.monday.format("YYYY-MM-DD");
         const log =
-            `- [📖 ✍️](chronicles/journal/${year}/journal-${monday}.md)\n` +
+            `- [📖 ✍️](${this.weeklyJournalFile(dates.monday)})\n` +
             `### Log ${this.dateOfWeek(dates.monday, 1)}\n` +
             `![invisible-embed](${this.dayOfWeekFile(dates.monday, 1)}#Log)\n\n` +
             `### Log ${this.dateOfWeek(dates.monday, 2)}\n` +
@@ -452,6 +504,7 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
                         monthMatch[1],
                         inTargetMonth,
                     );
+                    // heading, continue to next line
                     continue;
                 }
                 // Only process day entries if we're in a target month

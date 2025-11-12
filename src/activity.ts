@@ -285,10 +285,7 @@ export class Activity {
         const prev12 = monday.clone().subtract(12, "weeks");
         const prev48 = monday.clone().subtract(48, "weeks");
 
-        const dataWeek = await this.countTags(
-            monday,
-            monday.clone().day(7),
-        );
+        const dataWeek = await this.countTags(monday, monday.clone().day(7));
         console.debug("this week", dataWeek);
         const lastWeek = await this.countTags(
             lastMonday,

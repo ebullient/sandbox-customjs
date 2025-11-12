@@ -38,7 +38,9 @@ export class PromptFilter {
      */
     async invoke(): Promise<void> {
         try {
-            const configFile = this.app.vault.getFileByPath(this.tierFilterConfigFile);
+            const configFile = this.app.vault.getFileByPath(
+                this.tierFilterConfigFile,
+            );
             if (!configFile) {
                 console.warn(
                     `Missing config file ${this.tierFilterConfigFile}, using defaults`,
@@ -57,11 +59,14 @@ export class PromptFilter {
                 )) {
                     this.familyCheckin[name] = new RegExp(
                         `\\b${expression}\\b`,
-                        'gi'
+                        "gi",
                     );
                 }
             }
-            console.log("Loaded prefilter configuration from", this.tierFilterConfigFile);
+            console.log(
+                "Loaded prefilter configuration from",
+                this.tierFilterConfigFile,
+            );
         } catch (error) {
             console.error("Failed to load configuration:", error);
         }
@@ -79,32 +84,35 @@ export class PromptFilter {
         filtered = this.removeDailyFileEntries(filtered);
 
         // 2. Remove frontmatter (appears after each BEGIN ENTRY marker)
-        filtered = filtered.replace(/=====\n---\n[\s\S]*?\n---\n/g, '=====\n');
+        filtered = filtered.replace(/=====\n---\n[\s\S]*?\n---\n/g, "=====\n");
 
         // 3. Remove list items that are only links
         filtered = this.removeLinkOnlyLines(filtered);
 
         // 4. Remove block references
-        filtered = filtered.replace(/^\^[\w-]+\s*?$/gm, '');
+        filtered = filtered.replace(/^\^[\w-]+\s*?$/gm, "");
 
         // 5. Remove empty file blocks (with only whitespace between BEGIN and END)
         filtered = filtered.replace(
             /^===== BEGIN ENTRY: .*? =====\n(?:#.*\n|\s)*===== END ENTRY =====\n?/gm,
-            ''
+            "",
         );
 
         // 6. Remove single line comments
-        filtered = filtered.replace(/%%.*?%%/gm, '');
+        filtered = filtered.replace(/%%.*?%%/gm, "");
 
         // 7. This is an odd one, leftover template detritus
         // Matches: > [!todo]- Today:  \n> Log:  \n
-        filtered = filtered.replace(/^>\s*\[!todo\]-?\s*Today:\s*\n>\s*Log:\s*\n/gm, '');
+        filtered = filtered.replace(
+            /^>\s*\[!todo\]-?\s*Today:\s*\n>\s*Log:\s*\n/gm,
+            "",
+        );
 
         // Finally, clean up excessive blank lines
-        filtered = filtered.replace(/\n{3,}/g, '\n\n');
+        filtered = filtered.replace(/\n{3,}/g, "\n\n");
 
         return filtered;
-    }
+    };
 
     private removeDailyFileEntries(content: string): string {
         // Remove entire planning file entries (daily and weekly)
@@ -117,13 +125,13 @@ export class PromptFilter {
         // Remove daily planning files
         filtered = filtered.replace(
             /^===== BEGIN ENTRY: \/?chronicles\/\d{4}\/\d{4}-\d{2}-\d{2}(\.md)?(#Log)? =====\n[\s\S]*?\n===== END ENTRY =====\n?/gm,
-            ''
+            "",
         );
 
         // Remove weekly planning files
         filtered = filtered.replace(
             /^===== BEGIN ENTRY: \/?chronicles\/\d{4}\/\d{4}-\d{2}-\d{2}_week(\.md)?(?:#[\w\s]+)? =====\n[\s\S]*?\n===== END ENTRY =====\n?/gm,
-            ''
+            "",
         );
 
         return filtered;
@@ -139,7 +147,10 @@ export class PromptFilter {
         // > ![invisible-embed](path)
         // > [text](path)
         // > - [text](path)
-        return content.replace(/^[\s>]*(-\s+|!)?\[([^\]]+)\]\([^)]+\)\s*\\?\s*\n/gm, '');
+        return content.replace(
+            /^[\s>]*(-\s+|!)?\[([^\]]+)\]\([^)]+\)\s*\\?\s*\n/gm,
+            "",
+        );
     }
 
     /**
@@ -292,7 +303,9 @@ export class PromptFilter {
 
     private extractDateRange(content: string): string {
         // Look for weekly plan link: /chronicles/2025/2025-11-03_week.md#Logs
-        const linkMatch = content.match(/\/chronicles\/\d{4}\/(\d{4}-\d{2}-\d{2})_week\.md/);
+        const linkMatch = content.match(
+            /\/chronicles\/\d{4}\/(\d{4}-\d{2}-\d{2})_week\.md/,
+        );
         if (!linkMatch) {
             return "unknown";
         }
@@ -301,10 +314,10 @@ export class PromptFilter {
         const date = window.moment(dateStr);
 
         // Get week boundaries starting on Monday
-        const weekStart = date.clone().startOf('isoWeek');
-        const weekEnd = date.clone().endOf('isoWeek');
+        const weekStart = date.clone().startOf("isoWeek");
+        const weekEnd = date.clone().endOf("isoWeek");
 
-        return `${weekStart.format('YYYY-MM-DD')} to ${weekEnd.format('YYYY-MM-DD')}`;
+        return `${weekStart.format("YYYY-MM-DD")} to ${weekEnd.format("YYYY-MM-DD")}`;
     }
 
     private extractHealthTags(content: string) {
@@ -315,8 +328,8 @@ export class PromptFilter {
         const tierMatches = content.match(/#me\/🌓\/(tier[1-4]|mixed)/g);
         const tierTag = tierMatches
             ? [
-                ...new Set(tierMatches.map((m) => m.replace("#me/🌓/", ""))),
-            ].join(", ")
+                  ...new Set(tierMatches.map((m) => m.replace("#me/🌓/", ""))),
+              ].join(", ")
             : "none";
 
         const yoga = hasTag(["#me/✅/🧘"]) ? this.yes : this.no;
@@ -408,7 +421,7 @@ export class PromptFilter {
 
         // Find the "Project items completed this week" section
         const sectionMatch = content.match(
-            /^###\s+Project items completed this week[:\s]*\n([\s\S]*?)(?=\n#{1,3}\s|$)/m
+            /^###\s+Project items completed this week[:\s]*\n([\s\S]*?)(?=\n#{1,3}\s|$)/m,
         );
 
         if (!sectionMatch) {
@@ -417,8 +430,8 @@ export class PromptFilter {
         console.log("Find completed project section");
 
         const sectionContent = sectionMatch[1];
-        const lines = sectionContent.split('\n');
-        let currentProject = '';
+        const lines = sectionContent.split("\n");
+        let currentProject = "";
 
         for (const line of lines) {
             // Match 4th level headings (####)

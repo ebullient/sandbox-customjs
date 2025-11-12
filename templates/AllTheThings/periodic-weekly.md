@@ -2,12 +2,8 @@
 const result = Dated.weekly(tp.file.title);
 await tp.file.move(result.weekFile);
 const upcoming = await Dated.weeklyEvents(tp.file.title);
-const ibmStart = result.dates.monday.clone().subtract(3, "d");
-const ibmReportDue = result.dates.monday.clone().day(5).format("YYYY-MM-DD");
-const year = ibmStart.format("YYYY");
-const thursday = result.dates.monday.clone().day(4).format("DD");
-const ibmWorkWeek = `${year}/ibm-${ibmStart.format("YYYY-MM-DD")}_${thursday}`
-console.log(upcoming, ibmReportDue, ibmWorkWeek);
+const ibmReport = Dated.weeklyWorkReport(result.dates.monday);
+console.log(result, upcoming, ibmReport);
 const ghFile = result.weekFile.replace('week', 'gh');
 -%><% result.header %>
 
@@ -28,7 +24,8 @@ return await TierTracker.createGrid(engine);
 
 <%* } -%>
 ### Tasks
-- [ ] [_IBM_](demesne/ibm/ibm.md): [📖 👩‍💻](chronicles/work/<% ibmWorkWeek %>.md) {<% ibmReportDue %>}
+
+- [ ] [_IBM_](demesne/ibm/ibm.md): <% ibmReport %>
 <% tp.file.include(tp.file.find_tfile("assets/templates/weekly-leftovers.md")) %>
 %% self care %%
 - [ ] [Reflect on last week](<% result.weeklyReflection %>)
