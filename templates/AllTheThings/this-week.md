@@ -1,4 +1,4 @@
 ```js-engine-debug
-const { Tasks } = await window.cJS();
-return await Tasks.thisWeekTasks(engine);
+return engine.markdown.create(
+    await window.taskIndex.api.generateWeeklyTasksForEngine(engine));
 ```

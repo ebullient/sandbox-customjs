@@ -41,19 +41,18 @@ if (isWeekly) {
     // Daily template - use exact date from filename
     const title = fileDate.format("dddd, MMMM DD, YYYY");
     const dateStem = fileDate.format("YYYY/YYYY-MM-DD");
+    const day = `[daily](/chronicles/${dateStem})`;
     const daily = `![invisible-embed](/chronicles/${dateStem}`;
-    const day = `[daily](/chronicles/${dateStem}`;
     const am = `${daily}#^daily-am)`;
     const pm = `${daily}#^daily-pm)`;
     const log = `${daily}#Log)`;
 %>
 ---
 # ✍️ <% title %>
-%% <% daily %> %%
-<% am %>
-<% pm %>
-
-> [!todo] Done today:
+%% <% day %> %%
+> [!todo]- Today:
+> <% am %>
+> <% pm %>
 > <% log %>
 
 <%*

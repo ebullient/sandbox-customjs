@@ -29,11 +29,9 @@ return AreaRelated.allRelated(engine);
 - [ ] Define initial tasks
 
 ## ❧ Percolator
-
 %% ideas in flight %%
 
 ## ❧ Resources
-
 %% links, contacts %%
 
 ## Log
