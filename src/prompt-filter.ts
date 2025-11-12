@@ -1,7 +1,7 @@
 import type { App } from "obsidian";
 import type { FilterFn } from "./@types/journal-reflect.types";
 
-interface PrefilterConfig {
+interface TierFilterConfig {
     familyCheckin: Record<string, string>;
 }
 
@@ -10,8 +10,8 @@ type HealthMetrics = {
     [key: string]: string;
 };
 
-export class TierPrefilter {
-    configFile = "assets/config/tier-prefilter-config.yaml";
+export class PromptFilter {
+    tierFilterConfigFile = "assets/config/tier-prefilter-config.yaml";
     familyCheckin: Record<string, RegExp> = {};
     app: App;
 
@@ -20,15 +20,17 @@ export class TierPrefilter {
 
     constructor() {
         // Constructor
-        console.log("loading TierPrefilter");
+        console.log("loading PromptFilter");
         this.app = window.customJS.app;
         window.journal = window.journal ?? {};
         window.journal.filters = window.journal.filters ?? {};
-        window.journal.filters.tierFilter = this.prefilter;
+        window.journal.filters.tierFilter = this.tierFilter;
+        window.journal.filters.contentFilter = this.contentFilter;
     }
 
     deconstructor() {
         window.journal.filters.tierFilter = undefined;
+        window.journal.filters.contentFilter = undefined;
     }
 
     /**
@@ -36,10 +38,10 @@ export class TierPrefilter {
      */
     async invoke(): Promise<void> {
         try {
-            const configFile = this.app.vault.getFileByPath(this.configFile);
+            const configFile = this.app.vault.getFileByPath(this.tierFilterConfigFile);
             if (!configFile) {
                 console.warn(
-                    `Missing config file ${this.configFile}, using defaults`,
+                    `Missing config file ${this.tierFilterConfigFile}, using defaults`,
                 );
                 return;
             }
@@ -47,7 +49,7 @@ export class TierPrefilter {
             const configText = await this.app.vault.cachedRead(configFile);
             const config = window.customJS.obsidian.parseYaml(
                 configText,
-            ) as PrefilterConfig;
+            ) as TierFilterConfig;
 
             if (config.familyCheckin) {
                 for (const [name, expression] of Object.entries(
@@ -55,17 +57,98 @@ export class TierPrefilter {
                 )) {
                     this.familyCheckin[name] = new RegExp(
                         `\\b${expression}\\b`,
+                        'gi'
                     );
                 }
-                console.log(this.familyCheckin);
             }
-            console.log("Loaded prefilter configuration from", this.configFile);
+            console.log("Loaded prefilter configuration from", this.tierFilterConfigFile);
         } catch (error) {
             console.error("Failed to load configuration:", error);
         }
     }
 
-    prefilter: FilterFn = (content) => {
+    /**
+     * CONTENT FILTER
+     * Removes visual and structural clutter
+     */
+    contentFilter: FilterFn = (content) => {
+        console.log("Content Filter");
+        let filtered = content;
+
+        // 1. Remove entire daily file entries (planning files, not journals)
+        filtered = this.removeDailyFileEntries(filtered);
+
+        // 2. Remove frontmatter (appears after each BEGIN ENTRY marker)
+        filtered = filtered.replace(/=====\n---\n[\s\S]*?\n---\n/g, '=====\n');
+
+        // 3. Remove list items that are only links
+        filtered = this.removeLinkOnlyLines(filtered);
+
+        // 4. Remove block references
+        filtered = filtered.replace(/^\^[\w-]+\s*?$/gm, '');
+
+        // 5. Remove empty file blocks (with only whitespace between BEGIN and END)
+        filtered = filtered.replace(
+            /^===== BEGIN ENTRY: .*? =====\n(?:#.*\n|\s)*===== END ENTRY =====\n?/gm,
+            ''
+        );
+
+        // 6. Remove single line comments
+        filtered = filtered.replace(/%%.*?%%/gm, '');
+
+        // 7. This is an odd one, leftover template detritus
+        // Matches: > [!todo]- Today:  \n> Log:  \n
+        filtered = filtered.replace(/^>\s*\[!todo\]-?\s*Today:\s*\n>\s*Log:\s*\n/gm, '');
+
+        // Finally, clean up excessive blank lines
+        filtered = filtered.replace(/\n{3,}/g, '\n\n');
+
+        return filtered;
+    }
+
+    private removeDailyFileEntries(content: string): string {
+        // Remove entire planning file entries (daily and weekly)
+        // Keep journal entries (/chronicles/journal/...)
+        // Patterns:
+        // - Daily: ===== BEGIN ENTRY: /chronicles/2025/2025-11-03.md =====
+        // - Weekly: ===== BEGIN ENTRY: /chronicles/2025/2025-11-03_week.md#Logs =====
+        let filtered = content;
+
+        // Remove daily planning files
+        filtered = filtered.replace(
+            /^===== BEGIN ENTRY: \/?chronicles\/\d{4}\/\d{4}-\d{2}-\d{2}(\.md)?(#Log)? =====\n[\s\S]*?\n===== END ENTRY =====\n?/gm,
+            ''
+        );
+
+        // Remove weekly planning files
+        filtered = filtered.replace(
+            /^===== BEGIN ENTRY: \/?chronicles\/\d{4}\/\d{4}-\d{2}-\d{2}_week(\.md)?(?:#[\w\s]+)? =====\n[\s\S]*?\n===== END ENTRY =====\n?/gm,
+            ''
+        );
+
+        return filtered;
+    }
+
+    private removeLinkOnlyLines(content: string): string {
+        // Remove lines that are only list items with links and optional whitespace
+        // Matches:
+        // - [text](path)  \n
+        // - [text](path)\n
+        // text](path)\n
+        // ![text](path)\n
+        // > ![invisible-embed](path)
+        // > [text](path)
+        // > - [text](path)
+        return content.replace(/^[\s>]*(-\s+|!)?\[([^\]]+)\]\([^)]+\)\s*\\?\s*\n/gm, '');
+    }
+
+    /**
+     * TIER FILTER
+     * Used specifically for preprocessing entries containing
+     * activity tags, etc.
+     */
+    tierFilter: FilterFn = (content) => {
+        console.log("Tier Filter");
         const metrics = this.extractMetrics(content);
         const structuredSection = this.formatMetrics(content, metrics);
 
@@ -80,6 +163,8 @@ export class TierPrefilter {
             workday: this.extractWorkday(content),
             work: this.extractWorkPatterns(content, health),
             familyMentions: this.extractFamilyMentions(content),
+            dateRange: this.extractDateRange(content),
+            completedProjects: this.extractCompletedProjects(content),
         };
     }
 
@@ -95,8 +180,13 @@ export class TierPrefilter {
         lines.push(
             `Can ask more questions: ${metrics.iteration.canAskMore ? "yes" : "no"}`,
         );
-        if (dailyJournal && metrics.health.tierTag) {
-            lines.push(`Self-assessment: ${metrics.health.tierTag}`);
+        if (dailyJournal) {
+            if (metrics.health.tierTag) {
+                lines.push(`Self-assessment: ${metrics.health.tierTag}`);
+            }
+            lines.push(`Workday: ${metrics.workday.display}`);
+            // } else {
+            //     lines.push(`Date range: ${metrics.dateRange}`);
         }
 
         // Health metrics
@@ -110,18 +200,25 @@ export class TierPrefilter {
         );
 
         if (dailyJournal) {
-            lines.push("");
-            lines.push(`Workday: ${metrics.workday.display}`);
             this.pushPresentAbsent(
                 lines,
                 "Work patterns",
                 Object.entries(metrics.work),
             );
+        } else {
+            // Add project completions for weekly summaries
+            const projectEntries = Object.entries(metrics.completedProjects);
+            if (projectEntries.length > 0) {
+                lines.push("");
+                lines.push("Projects per Sphere:");
+                for (const [project, count] of projectEntries) {
+                    lines.push(`- ${project}: ${count} items`);
+                }
+            }
         }
 
-        lines.push(`Family mentions: ${metrics.familyMentions}`);
         lines.push("");
-
+        lines.push(`Family mentions: ${metrics.familyMentions}`);
         return lines.join("\n");
     }
 
@@ -193,6 +290,23 @@ export class TierPrefilter {
         };
     }
 
+    private extractDateRange(content: string): string {
+        // Look for weekly plan link: /chronicles/2025/2025-11-03_week.md#Logs
+        const linkMatch = content.match(/\/chronicles\/\d{4}\/(\d{4}-\d{2}-\d{2})_week\.md/);
+        if (!linkMatch) {
+            return "unknown";
+        }
+
+        const dateStr = linkMatch[1]; // e.g., "2025-11-03"
+        const date = window.moment(dateStr);
+
+        // Get week boundaries starting on Monday
+        const weekStart = date.clone().startOf('isoWeek');
+        const weekEnd = date.clone().endOf('isoWeek');
+
+        return `${weekStart.format('YYYY-MM-DD')} to ${weekEnd.format('YYYY-MM-DD')}`;
+    }
+
     private extractHealthTags(content: string) {
         const hasTag = (tags: string[]) =>
             tags.some((t) => content.includes(t));
@@ -201,8 +315,8 @@ export class TierPrefilter {
         const tierMatches = content.match(/#me\/🌓\/(tier[1-4]|mixed)/g);
         const tierTag = tierMatches
             ? [
-                  ...new Set(tierMatches.map((m) => m.replace("#me/🌓/", ""))),
-              ].join(", ")
+                ...new Set(tierMatches.map((m) => m.replace("#me/🌓/", ""))),
+            ].join(", ")
             : "none";
 
         const yoga = hasTag(["#me/✅/🧘"]) ? this.yes : this.no;
@@ -287,5 +401,40 @@ export class TierPrefilter {
             counts.push(`${name} (${count})`);
         }
         return counts.join(", ");
+    }
+
+    private extractCompletedProjects(content: string): Record<string, number> {
+        const completions: Record<string, number> = {};
+
+        // Find the "Project items completed this week" section
+        const sectionMatch = content.match(
+            /^###\s+Project items completed this week[:\s]*\n([\s\S]*?)(?=\n#{1,3}\s|$)/m
+        );
+
+        if (!sectionMatch) {
+            return completions;
+        }
+        console.log("Find completed project section");
+
+        const sectionContent = sectionMatch[1];
+        const lines = sectionContent.split('\n');
+        let currentProject = '';
+
+        for (const line of lines) {
+            // Match 4th level headings (####)
+            const headingMatch = line.match(/^####\s+(.+)$/);
+            if (headingMatch) {
+                currentProject = headingMatch[1].trim();
+                completions[currentProject] = 0;
+                continue;
+            }
+
+            // Count list items under the current project
+            if (currentProject && /^\s*[-*]\s+/.test(line)) {
+                completions[currentProject]++;
+            }
+        }
+
+        return completions;
     }
 }

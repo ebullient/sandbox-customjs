@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readFileSync } from "node:fs";
-import { TierPrefilter } from "../src/tier-prefilter";
+import { PromptFilter } from "../src/prompt-filter";
 
 const filename = process.argv[2];
 
@@ -18,13 +18,8 @@ if (!filename) {
 
 try {
     const content = readFileSync(filename, "utf-8");
-    const tierPrefilter = new TierPrefilter();
-    tierPrefilter.familyCheckin = {
-        Chris: new RegExp("\\b[Cc]hris(topher)?\\b"),
-        Eric: new RegExp("\\b[Ee]ric\\b"),
-        Caitlin: new RegExp("\\bCaitlin\\b"),
-    };
-    const result = tierPrefilter.prefilter(content);
+    const promptFilter = new PromptFilter();
+    const result = promptFilter.tierFilter(content);
 
     console.log(result);
 } catch (error) {

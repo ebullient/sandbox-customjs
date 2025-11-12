@@ -8,7 +8,7 @@
     "moduleResolution": "node"
   },
   "include": [
-    "testPrefilter.ts",
+    "testPromptFilter.ts",
     "../src/tier-prefilter.ts",
     "../src/window-type.ts",
     "../src/@types/**/*.ts"
