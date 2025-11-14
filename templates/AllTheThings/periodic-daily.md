@@ -2,19 +2,16 @@
     const result = Dated.daily(tp.file.title);
     await tp.file.move(result.dailyFile);
     const today = result.dates.day.isoWeekday();
-    const copingCard = window.simpleFlashcards?.api?.embedCard() || "";
     const journalLink = `[📖 ✍️](${Dated.dailyJournalFile(result.dates.day)})`;
-    console.log(window.simpleFlashcards, copingCard, journalLink);
 -%><% result.header %>
 
-%% %%
+%% tier goes here %%
+
 > [!charm] Journaling
 > - *What’s working right now?*
 > - *What am I actually looking forward to today?*
 > - *Affirmation of the day*
 ^daily-am
-
-<% copingCard %>
 
 %% agenda %%
 
@@ -44,7 +41,7 @@
 - [ ] 09:00 Start :
 - [ ] 09:50 BREAK / chat
 - [ ] 10:00 Start :
-- [ ] 10:50 BREAK / Sudo
+- [ ] 10:50 BREAK / chat
 - [ ] 11:00 Start :
 - [ ] 11:50 Lunch
 
@@ -73,7 +70,7 @@
 <%* } -%>
 
 > [!charm] Journaling
-> - *What [tier](demesne/self/adhd/tier-system.md) was I in today?*
+> - *What [tier](demesne/self/adhd/tier-system/tier-system.md) was I in today?*
 > - *Today's highlight*
 > - *Insight of today*
 ^daily-pm

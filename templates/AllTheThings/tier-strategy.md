@@ -2,36 +2,50 @@
 const words = ["Tier 1", "Tier 2", "Tier 3", "Tier 4", "Mixed"];
 const tiers = ["1", "2", "3", "4", "mixed"];
 const tier = await tp.system.suggester(words, tiers);
-console.log(tier);
 
-let embed = "";
-let calloutType = "tip";
-let prefix = `Tier ${tier}`
+let block = "";
+let deck = ""
 switch(tier) {
   case "1":
-    embed = "demesne/self/adhd/strategies/tier-1-visibility.md";
-    calloutType = "warning";
+    block = "tier1-stay-visible";
+    deck = "tier-strategies/stay-visible ";
     break;
   case "2":
-    embed = "demesne/self/adhd/strategies/tier-2-work-activation.md";
+    block = "tier2-maintain";
+    deck = "tier-strategies/work-activation";
     break;
   case "3":
-    embed = "demesne/self/adhd/strategies/tier-3-stable.md";
+    block = "tier3-stable-growth";
     break;
   case "4":
-    embed = "demesne/self/adhd/strategies/tier-4-braking.md";
-    calloutType = "warning";
+    block = "tier4-slow-down";
+    deck = "tier-strategies/braking";
     break;
   case "2/4":
   case "mixed":
-    embed = "demesne/self/adhd/strategies/tier-mixed.md";
-    calloutType = "warning";
-    prefix = `Mixed Tier`
+    block = "tier-mixed";
+    deck = "tier-strategies/mixed";
     break;
 }
 
-if (embed) { %>
-> [!<% calloutType %>]- <% prefix %> Strategies
-> ![invisible-embed](<% embed %>)
-^tier-strategy
-<%* } -%>
+let embed = "";
+if (block) {
+    const base = "demesne/self/adhd/tier-system/tier-guides-concise.md";
+    const file = await tp.file.find_tfile(base);
+    const fileCache = this.app.metadataCache.getFileCache(file);
+    if (fileCache.blocks[block]) {
+        const blockPosition = fileCache.blocks[block].position;
+        const content = await app.vault.cachedRead(file);
+        embed= content.slice(
+                blockPosition.start.offset, 
+                blockPosition.end.offset);
+    }
+}
+if (embed) { -%>
+<% embed %>
+<%* if (deck) { 
+const strategy = window.simpleFlashcards?.api?.embedCard(deck);
+%>
+<% strategy %>
+<%* } 
+} -%>

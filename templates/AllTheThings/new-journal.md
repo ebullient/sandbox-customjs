@@ -49,9 +49,7 @@ if (isWeekly) {
     const log = `${daily}#Log)`;
 %>
 ---
-
 # ✍️ <% title %>
-
 %% <% day %> %%
 > [!todo]- Today:
 > <% am %>
