@@ -332,7 +332,7 @@ export class PromptFilter {
               ].join(", ")
             : "none";
 
-        const yoga = hasTag(["#me/✅/🧘"]) ? this.yes : this.no;
+        const mindfulness = hasTag(["#me/✅/🧘"]) ? this.yes : this.no;
         const movementRing = hasTag(["#me/✅/🔴"]) ? this.yes : this.no;
         const standRing = hasTag(["#me/✅/🔵"]) ? this.yes : this.no;
         const exerciseRing = hasTag(["#me/✅/🟢"]) ? this.yes : this.no;
@@ -353,15 +353,25 @@ export class PromptFilter {
             ? this.yes
             : this.no;
 
+        // Count breathe meditation sessions (2 minutes each)
+        const breatheMatches = content.match(/#me\/✅\/🧘\/breathe/g);
+        const breatheCount = breatheMatches?.length ?? 0;
+        const meditationMinutes = breatheCount * 2;
+        const meditation =
+            meditationMinutes > 0
+                ? `${this.yes} (${meditationMinutes} min)`
+                : this.no;
+
         return {
             "extra greens": extraGreens,
             "exercise ring": exerciseRing,
             "movement ring": movementRing,
             "stand ring": standRing,
+            mindfulness: mindfulness,
+            meditation,
             chores,
             vitamins,
             water,
-            yoga,
             tierTag,
         };
     }
