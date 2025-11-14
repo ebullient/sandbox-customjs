@@ -4,12 +4,12 @@ import { AllTasksCommand } from "./commands/taskindex-AllTasksCommand";
 import { TaskIndexAPI } from "./taskindex-Api";
 import { FileUpdater } from "./taskindex-FileUpdater";
 import { PeriodicFinalizer } from "./taskindex-PeriodicFinalizer";
-import { QuestArchiver } from "./taskindex-QuestArchiver";
 import { QuestIndex } from "./taskindex-QuestIndex";
 import { ReviewDetector } from "./taskindex-ReviewDetector";
 import { ReviewModal } from "./taskindex-ReviewModal";
 import { DEFAULT_SETTINGS } from "./taskindex-Settings";
 import { TaskIndexSettingsTab } from "./taskindex-SettingsTab";
+import { TaskArchiver } from "./taskindex-TaskArchiver";
 import { TaskEngine } from "./taskindex-TaskEngine";
 import { WeeklyPlanningModal } from "./taskindex-WeeklyPlanningModal";
 
@@ -92,7 +92,7 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
             name: "(TI) Archive old quest/area logs",
             callback: async () => {
                 new Notice("Archiving old completed tasks...");
-                const archiver = new QuestArchiver(
+                const archiver = new TaskArchiver(
                     this.app,
                     this.settings.minArchiveLines,
                 );
@@ -106,7 +106,7 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
             name: "(TI) Validate quest/area logs",
             callback: async () => {
                 new Notice("Validating log sections...");
-                const archiver = new QuestArchiver(
+                const archiver = new TaskArchiver(
                     this.app,
                     this.settings.minArchiveLines,
                 );

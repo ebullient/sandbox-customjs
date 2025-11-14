@@ -29,7 +29,7 @@ type ProcessLogFn = (
  * Denatures old completed tasks (removes task checkbox) and moves previous years to archive files
  * Also validates Log sections for data integrity issues
  */
-export class QuestArchiver {
+export class TaskArchiver {
     constructor(
         private app: App,
         private readonly minArchiveLines: number = 50,
