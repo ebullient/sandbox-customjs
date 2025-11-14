@@ -137,7 +137,7 @@ export class PeriodicFinalizer {
         const genericPatterns = [
             /^- \[[x ]\]\s+\d+:\d+\s+Start[ :]*$/,
             /^- \[[x ]\]\s+\d+:\d+\s+.*GH Notifications \/ Email$/,
-            /^- \[[x ]\]\s+\d+:\d+\s+BREAK$/,
+            /^- \[[x ]\]\s+\d+:\d+\s+BREAK( \/ chat)?$/,
             /^- \[[x ]\]\s+\d+:\d+\s+.* to the bus$/,
             /^- \[[x ]\]\s+\d+:\d+\s+Meditation.*$/,
             /^- \[[x ]\]\s+\d+:\d+\s+(Planning|Lunch|Email|Reflection|Preview).*$/,
