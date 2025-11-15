@@ -14,8 +14,14 @@ interface LineInfo {
     selectedLines?: string[];
 }
 
+interface DatedConfig {
+    excludeYears: number[];
+}
+
 export class PushText {
     app: App;
+    configFile = "assets/config/open-dated-config.yaml";
+    excludeYears: number[] = [];
 
     private readonly pushOptions = {
         header: ["Section", "Log item", "Tasks item"],
@@ -43,9 +49,34 @@ export class PushText {
     utils = (): Utils => window.customJS.Utils;
 
     /**
+     * Load configuration from YAML file (shared with cmd-open-dated)
+     */
+    async loadConfig(): Promise<void> {
+        try {
+            const configFile = this.app.vault.getFileByPath(this.configFile);
+            if (!configFile) {
+                // No config file, use defaults (no exclusions)
+                return;
+            }
+
+            const configText = await this.app.vault.cachedRead(configFile);
+            const config = window.customJS.obsidian.parseYaml(
+                configText,
+            ) as DatedConfig;
+
+            if (config.excludeYears) {
+                this.excludeYears = config.excludeYears;
+            }
+        } catch (error) {
+            console.error("Failed to load dated configuration:", error);
+        }
+    }
+
+    /**
      * Push text from current location to target file
      */
     async invoke(): Promise<void> {
+        await this.loadConfig();
         const activeFile = this.app.workspace.getActiveFile();
         if (!activeFile) {
             console.log("No active file");
@@ -54,7 +85,10 @@ export class PushText {
 
         try {
             // Get cached push target files
-            const files = await this.utils().getPushTargets(activeFile);
+            const allFiles = await this.utils().getPushTargets(activeFile);
+
+            // Filter out excluded years
+            const files = this.filterExcludedFiles(allFiles);
 
             if (files.length === 0) {
                 console.log("No push target files found");
@@ -520,6 +554,31 @@ export class PushText {
     }
 
     // === HELPER METHODS ===
+
+    /**
+     * Filter out files from excluded years and archive paths
+     * Extracts year from path patterns like chronicles/YYYY/...
+     */
+    private filterExcludedFiles(files: string[]): string[] {
+        const excludePatterns: RegExp[] = [/^Ω-archives.*/];
+
+        return files
+            .filter((path) => !excludePatterns.some((r) => r.test(path)))
+            .filter((path) => {
+                if (this.excludeYears.length === 0) {
+                    return true;
+                }
+
+                // Extract year from path (e.g., chronicles/2023/... -> 2023)
+                const yearMatch = path.match(/\/(\d{4})\//);
+                if (!yearMatch) {
+                    return true; // Keep files without year in path
+                }
+
+                const year = Number.parseInt(yearMatch[1], 10);
+                return !this.excludeYears.includes(year);
+            });
+    }
 
     /**
      * Delete the current line or selection from the source file
