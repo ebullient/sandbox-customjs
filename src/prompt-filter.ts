@@ -22,6 +22,11 @@ export class PromptFilter {
         // Constructor
         console.log("loading PromptFilter");
         this.app = window.customJS.app;
+        window.promptFlow = window.promptFlow ?? {};
+        window.promptFlow.filters = window.promptFlow.filters ?? {};
+        window.promptFlow.filters.tierFilter = this.tierFilter;
+        window.promptFlow.filters.contentFilter = this.contentFilter;
+
         window.journal = window.journal ?? {};
         window.journal.filters = window.journal.filters ?? {};
         window.journal.filters.tierFilter = this.tierFilter;
@@ -29,6 +34,9 @@ export class PromptFilter {
     }
 
     deconstructor() {
+        window.promptFlow.filters.tierFilter = undefined;
+        window.promptFlow.filters.contentFilter = undefined;
+
         window.journal.filters.tierFilter = undefined;
         window.journal.filters.contentFilter = undefined;
     }

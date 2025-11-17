@@ -23,5 +23,8 @@ declare global {
         journal?: {
             filters?: Record<string, FilterFn>;
         };
+        promptFlow?: {
+            filters?: Record<string, FilterFn>;
+        };
     }
 }
