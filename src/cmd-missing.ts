@@ -271,20 +271,23 @@ export class Missing {
             }
 
             // ignore missing links for periodic notes in the future
-            let match = /.*(\d{4}-\d{2}-\d{2})(_week)?\.md/.exec(target);
+            // Match: YYYY-MM-DD with optional suffix like _week, _20, etc.
+            let match = /.*(\d{4}-\d{2}-\d{2})(?:_\w+)?\.md/.exec(target);
             if (match != null) {
                 const filedate = window.moment(match[1]);
                 if (filedate.isAfter(now)) {
                     return;
                 }
             }
-            match = /.*(\d{4}-\d{2})_month\.md/.exec(target);
+            // Match: YYYY-MM with _month or other suffix
+            match = /.*(\d{4}-\d{2})_\w+\.md/.exec(target);
             if (match != null) {
                 const filedate = window.moment(`${match[1]}-01`);
                 if (filedate.isAfter(now)) {
                     return;
                 }
             }
+            // Match: YYYY.md (year files)
             match = /.*(\d{4})\.md/.exec(target);
             if (match != null) {
                 const filedate = window.moment(`${match[1]}-01-01`);
@@ -343,12 +346,14 @@ export class Missing {
                 const decodeAndNormalize = (text: string): string => {
                     return decodeURIComponent(text)
                         .toLowerCase()
-                        .replace(/[?:.#]/g, "")
+                        .replace(/%23/g, "")
+                        .replace(/[?:.]/g, "")
                         .replace(/\s+/g, " ")
                         .trim();
                 };
 
                 const normalizedAnchor = decodeAndNormalize(cleanLink.anchor);
+
                 const tgtHeading = tgtFileCache.headings
                     ? tgtFileCache.headings.find(
                           (x) =>
