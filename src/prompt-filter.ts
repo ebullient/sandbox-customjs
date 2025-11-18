@@ -26,11 +26,6 @@ export class PromptFilter {
         window.promptFlow.filters = window.promptFlow.filters ?? {};
         window.promptFlow.filters.tierFilter = this.tierFilter;
         window.promptFlow.filters.contentFilter = this.contentFilter;
-
-        window.journal = window.journal ?? {};
-        window.journal.filters = window.journal.filters ?? {};
-        window.journal.filters.tierFilter = this.tierFilter;
-        window.journal.filters.contentFilter = this.contentFilter;
     }
 
     deconstructor() {
