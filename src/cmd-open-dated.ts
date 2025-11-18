@@ -156,6 +156,20 @@ export class OpenDated {
             });
         }
 
+        // Today (journal)
+        const todayJournalPath = formatPath(
+            "[chronicles/journal/]YYYY/[journal-]YYYY-MM-DD[.md]",
+            today,
+        );
+        const todayJournalFile = this.app.vault.getFileByPath(todayJournalPath);
+        if (todayJournalFile) {
+            entries.push({
+                displayText: "📅 Today (journal)",
+                file: todayJournalFile,
+                date: today.format("YYYY-MM-DD"),
+            });
+        }
+
         // Yesterday (daily note)
         const yesterday = today.clone().subtract(1, "day");
         const yesterdayPath = formatPath(
@@ -171,6 +185,21 @@ export class OpenDated {
             });
         }
 
+        // Yesterday (journal)
+        const yesterdayJournalPath = formatPath(
+            "[chronicles/journal/]YYYY/[journal-]YYYY-MM-DD[.md]",
+            yesterday,
+        );
+        const yesterdayJournalFile =
+            this.app.vault.getFileByPath(yesterdayJournalPath);
+        if (yesterdayJournalFile) {
+            entries.push({
+                displayText: "📅 Yesterday (journal)",
+                file: yesterdayJournalFile,
+                date: yesterday.format("YYYY-MM-DD"),
+            });
+        }
+
         // This week (weekly note - Monday-based)
         const monday = today.clone().startOf("isoWeek");
         const weekPath = formatPath(
@@ -182,6 +211,20 @@ export class OpenDated {
             entries.push({
                 displayText: "📅 This Week",
                 file: weekFile,
+                date: monday.format("YYYY-MM-DD"),
+            });
+        }
+
+        // This week (journal)
+        const weekJournalPath = formatPath(
+            "[chronicles/journal/]YYYY/[journal-]YYYY-MM-DD[_week.md]",
+            monday,
+        );
+        const weekJournalFile = this.app.vault.getFileByPath(weekJournalPath);
+        if (weekJournalFile) {
+            entries.push({
+                displayText: "📅 This Week (journal)",
+                file: weekJournalFile,
                 date: monday.format("YYYY-MM-DD"),
             });
         }
