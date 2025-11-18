@@ -185,6 +185,7 @@ export class PeriodicFinalizer {
     private cleanupLinks(lines: string[]): string[] {
         return lines.map((line) => {
             return line
+                .replace(/\[tier\]\([^)]+?\/tier-system.md\)/, "tier")
                 .replace(/\[(#[^\]]+)\]\(index\.html#[^)]+\)/g, "$1")
                 .replace(/app:\/\/obsidian\.md/g, "");
         });
