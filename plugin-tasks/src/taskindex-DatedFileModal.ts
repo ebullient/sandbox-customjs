@@ -1,25 +1,12 @@
-import type { App, TFile } from "obsidian";
-import type { Utils } from "./_utils";
+import { type FuzzyMatch, FuzzySuggestModal, type TFile } from "obsidian";
+import type { DatedFileEntry } from "./@types";
+import type { TaskIndexPlugin } from "./taskindex-Plugin";
 
-interface DatedConfig {
-    excludeYears: number[];
-    workSummaryPattern?: string;
-}
-
-interface DatedFileEntry {
-    displayText: string;
-    file: TFile;
-    date: string;
-}
-
-export class OpenDated {
-    app: App;
-    configFile = "assets/config/open-dated-config.yaml";
-
-    // Default values (fallback if config file can't be loaded)
-    excludeYears: number[] = [];
-    workSummaryPattern = "chronicles/work/YYYY/YYYY-MM-DD_work.md";
-
+/**
+ * Modal for selecting dated files (daily, weekly, monthly, yearly notes)
+ * Provides quick access to recent dated files and a full list
+ */
+export class DatedFileModal extends FuzzySuggestModal<DatedFileEntry> {
     // Regex patterns for identifying dated files
     patterns = {
         daily: /^chronicles\/(\d{4})\/(\d{4}-\d{2}-\d{2})\.md$/,
@@ -30,57 +17,14 @@ export class OpenDated {
             /^chronicles\/journal\/(\d{4})\/journal-(\d{4}-\d{2}-\d{2})\.md$/,
         journalWeekly:
             /^chronicles\/journal\/(\d{4})\/journal-(\d{4}-\d{2}-\d{2})_week\.md$/,
-        // Work summary pattern will be built from config
     };
 
-    constructor() {
-        this.app = window.customJS.app;
-        console.log("loaded OpenDated");
+    constructor(private plugin: TaskIndexPlugin) {
+        super(plugin.app);
+        this.setPlaceholder("Choose dated file");
     }
 
-    utils = (): Utils => window.customJS.Utils;
-
-    /**
-     * Load configuration from YAML file
-     */
-    async loadConfig(): Promise<void> {
-        try {
-            const configFile = this.app.vault.getFileByPath(this.configFile);
-            if (!configFile) {
-                console.warn(
-                    `Missing config file ${this.configFile}, using defaults`,
-                );
-                return;
-            }
-
-            const configText = await this.app.vault.cachedRead(configFile);
-            const config = window.customJS.obsidian.parseYaml(
-                configText,
-            ) as DatedConfig;
-
-            if (config.excludeYears) {
-                this.excludeYears = config.excludeYears;
-            }
-            if (config.workSummaryPattern) {
-                this.workSummaryPattern = config.workSummaryPattern;
-            }
-
-            console.log(
-                "Loaded open-dated configuration from",
-                this.configFile,
-            );
-        } catch (error) {
-            console.error("Failed to load open-dated configuration:", error);
-            console.log("Using default configuration");
-        }
-    }
-
-    /**
-     * Open a dated file selector
-     */
-    async invoke(): Promise<void> {
-        await this.loadConfig();
-
+    getItems(): DatedFileEntry[] {
         const today = window.moment();
 
         // Build quick access entries
@@ -90,46 +34,50 @@ export class OpenDated {
         const datedFiles = this.gatherDatedFiles();
 
         // Sort by date (most recent first)
-        datedFiles.sort((a, b) => b.date.localeCompare(a.date));
+        datedFiles.sort((a, b) => {
+            const dates = b.date.localeCompare(a.date);
+            if (dates === 0) {
+                return a.type.localeCompare(b.type);
+            }
+            return dates;
+        });
 
         // Combine quick access + dated files
-        const allChoices = [
-            ...quickAccess.map((e) => e.displayText),
-            ...datedFiles.map((e) => e.displayText),
-        ];
+        return [...quickAccess, ...datedFiles];
+    }
 
-        // Show file suggester
-        const choice = await this.utils().showFileSuggester(
-            allChoices,
-            "Choose dated file",
-        );
+    getItemText(entry: DatedFileEntry): string {
+        return entry.displayText;
+    }
 
-        if (!choice) {
-            return; // User cancelled
+    renderSuggestion(item: FuzzyMatch<DatedFileEntry>, el: HTMLElement): void {
+        const entry = item.item;
+
+        el.createEl("span", {
+            text: `${entry.icon || " "} `,
+            cls: "dated-icon",
+        });
+
+        el.createEl("span", {
+            text: entry.displayText,
+            cls: "dated-date",
+        });
+
+        // Show type if present
+        if (entry.type) {
+            el.createEl("span", {
+                text: entry.type,
+                cls: "dated-type",
+            });
         }
+    }
 
-        // Find the selected entry
-        let selectedFile: TFile | undefined;
-
-        // Check if it's a quick access item
-        const quickEntry = quickAccess.find((e) => e.displayText === choice);
-        if (quickEntry) {
-            selectedFile = quickEntry.file;
-        } else {
-            // It's a regular dated file
-            const datedEntry = datedFiles.find((e) => e.displayText === choice);
-            if (datedEntry) {
-                selectedFile = datedEntry.file;
-            }
-        }
-
-        if (!selectedFile) {
-            console.warn("Could not find selected file:", choice);
-            return;
-        }
-
+    onChooseItem(
+        entry: DatedFileEntry,
+        _evt: MouseEvent | KeyboardEvent,
+    ): void {
         // Open the file
-        await this.app.workspace.openLinkText(selectedFile.path, "", true, {
+        this.app.workspace.openLinkText(entry.file.path, "", true, {
             state: { mode: "source" },
         });
     }
@@ -137,7 +85,7 @@ export class OpenDated {
     /**
      * Build quick access entries for today, yesterday, this week, this month, this year
      */
-    private buildQuickAccessEntries(today: moment.Moment): DatedFileEntry[] {
+    buildQuickAccessEntries(today: moment.Moment): DatedFileEntry[] {
         const entries: DatedFileEntry[] = [];
         const formatPath = (pattern: string, date: moment.Moment) =>
             date.format(pattern);
@@ -150,9 +98,10 @@ export class OpenDated {
         const todayFile = this.app.vault.getFileByPath(todayPath);
         if (todayFile) {
             entries.push({
-                displayText: "📅 Today",
+                displayText: "Today",
                 file: todayFile,
                 date: today.format("YYYY-MM-DD"),
+                icon: "📅",
             });
         }
 
@@ -164,9 +113,11 @@ export class OpenDated {
         const todayJournalFile = this.app.vault.getFileByPath(todayJournalPath);
         if (todayJournalFile) {
             entries.push({
-                displayText: "📅 Today (journal)",
+                displayText: "Today",
                 file: todayJournalFile,
                 date: today.format("YYYY-MM-DD"),
+                icon: "✍️",
+                type: "journal",
             });
         }
 
@@ -179,9 +130,10 @@ export class OpenDated {
         const yesterdayFile = this.app.vault.getFileByPath(yesterdayPath);
         if (yesterdayFile) {
             entries.push({
-                displayText: "📅 Yesterday",
+                displayText: "Yesterday",
                 file: yesterdayFile,
                 date: yesterday.format("YYYY-MM-DD"),
+                icon: "📅",
             });
         }
 
@@ -194,9 +146,11 @@ export class OpenDated {
             this.app.vault.getFileByPath(yesterdayJournalPath);
         if (yesterdayJournalFile) {
             entries.push({
-                displayText: "📅 Yesterday (journal)",
                 file: yesterdayJournalFile,
                 date: yesterday.format("YYYY-MM-DD"),
+                icon: "✍️",
+                displayText: "Yesterday",
+                type: "journal",
             });
         }
 
@@ -209,9 +163,10 @@ export class OpenDated {
         const weekFile = this.app.vault.getFileByPath(weekPath);
         if (weekFile) {
             entries.push({
-                displayText: "📅 This Week",
                 file: weekFile,
                 date: monday.format("YYYY-MM-DD"),
+                icon: "🗓️",
+                displayText: "This Week",
             });
         }
 
@@ -223,9 +178,11 @@ export class OpenDated {
         const weekJournalFile = this.app.vault.getFileByPath(weekJournalPath);
         if (weekJournalFile) {
             entries.push({
-                displayText: "📅 This Week (journal)",
                 file: weekJournalFile,
                 date: monday.format("YYYY-MM-DD"),
+                icon: "📖",
+                displayText: "This Week",
+                type: "journal",
             });
         }
 
@@ -237,9 +194,10 @@ export class OpenDated {
         const monthFile = this.app.vault.getFileByPath(monthPath);
         if (monthFile) {
             entries.push({
-                displayText: "📅 This Month",
                 file: monthFile,
                 date: today.format("YYYY-MM"),
+                icon: "🗓️",
+                displayText: "This Month",
             });
         }
 
@@ -248,9 +206,10 @@ export class OpenDated {
         const yearFile = this.app.vault.getFileByPath(yearPath);
         if (yearFile) {
             entries.push({
-                displayText: "📅 This Year",
                 file: yearFile,
                 date: today.format("YYYY"),
+                icon: "🗓️",
+                displayText: "This Year",
             });
         }
 
@@ -260,16 +219,17 @@ export class OpenDated {
     /**
      * Gather all dated files from the vault
      */
-    private gatherDatedFiles(): DatedFileEntry[] {
+    gatherDatedFiles(): DatedFileEntry[] {
         const files = this.app.vault.getMarkdownFiles();
         const entries: DatedFileEntry[] = [];
+        const excludeYears = this.plugin.settings.excludeYears;
 
         for (const file of files) {
             const entry = this.matchDatedFile(file);
             if (entry) {
                 // Check if year should be excluded
                 const year = Number.parseInt(entry.date.substring(0, 4), 10);
-                if (!this.excludeYears.includes(year)) {
+                if (!excludeYears.includes(year)) {
                     entries.push(entry);
                 }
             }
@@ -290,9 +250,11 @@ export class OpenDated {
         if (match) {
             const date = match[2];
             return {
-                displayText: `${date} (daily)`,
+                displayText: date,
                 file,
                 date,
+                icon: "📅",
+                type: "daily",
             };
         }
 
@@ -301,9 +263,11 @@ export class OpenDated {
         if (match) {
             const date = match[2];
             return {
-                displayText: `${date} (weekly)`,
+                displayText: date,
                 file,
                 date,
+                icon: "🗓️",
+                type: "weekly",
             };
         }
 
@@ -312,9 +276,11 @@ export class OpenDated {
         if (match) {
             const date = match[2];
             return {
-                displayText: `${date} (monthly)`,
+                displayText: date,
                 file,
-                date,
+                date: `${date}-01`,
+                icon: "🗓️",
+                type: "monthly",
             };
         }
 
@@ -323,9 +289,11 @@ export class OpenDated {
         if (match) {
             const date = match[2];
             return {
-                displayText: `${date} (yearly)`,
+                displayText: date,
                 file,
-                date,
+                date: `${date}-01-01`,
+                icon: "🗓️",
+                type: "yearly",
             };
         }
 
@@ -334,9 +302,11 @@ export class OpenDated {
         if (match) {
             const date = match[2];
             return {
-                displayText: `${date} (journal)`,
+                displayText: date,
                 file,
                 date,
+                icon: "✍️",
+                type: "journal",
             };
         }
 
@@ -345,9 +315,11 @@ export class OpenDated {
         if (match) {
             const date = match[2];
             return {
-                displayText: `${date} (journal weekly)`,
+                displayText: date,
                 file,
                 date,
+                icon: "📖",
+                type: "weekly journal",
             };
         }
 
@@ -357,9 +329,11 @@ export class OpenDated {
         if (match) {
             const date = match[2];
             return {
-                displayText: `${date} (work summary)`,
+                displayText: date,
                 file,
                 date,
+                icon: "📓",
+                type: "work summary",
             };
         }
 
@@ -372,8 +346,10 @@ export class OpenDated {
      *   /^chronicles\/work\/(\d{4})\/(\d{4}-\d{2}-\d{2})_work\.md$/
      */
     private buildWorkSummaryPattern(): RegExp {
+        const workSummaryPattern = this.plugin.settings.workSummaryPattern;
+
         // Escape the pattern and replace moment format tokens with regex
-        const pattern = this.workSummaryPattern
+        const pattern = workSummaryPattern
             .replace(/\//g, "\\/")
             .replace(/\./g, "\\.")
             .replace(/YYYY-MM-DD/g, "(\\d{4}-\\d{2}-\\d{2})")

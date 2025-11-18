@@ -2,6 +2,7 @@ import { debounce, Notice, Plugin, type TAbstractFile } from "obsidian";
 import type { CurrentSettings, ReviewItem, TaskIndexSettings } from "./@types";
 import { AllTasksCommand } from "./commands/taskindex-AllTasksCommand";
 import { TaskIndexAPI } from "./taskindex-Api";
+import { DatedFileModal } from "./taskindex-DatedFileModal";
 import { FileUpdater } from "./taskindex-FileUpdater";
 import { PeriodicFinalizer } from "./taskindex-PeriodicFinalizer";
 import { QuestIndex } from "./taskindex-QuestIndex";
@@ -112,6 +113,14 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
                 );
                 await archiver.validateAllQuests();
                 new Notice("Log validation complete - see console for issues");
+            },
+        });
+
+        this.addCommand({
+            id: "open-dated-file",
+            name: "(TI) Open Dated File",
+            callback: () => {
+                new DatedFileModal(this).open();
             },
         });
 

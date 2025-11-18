@@ -2,6 +2,8 @@
  * Core type definitions for Task Index plugin
  */
 
+import { TFile } from "obsidian";
+
 /**
  * Plugin settings
  */
@@ -22,6 +24,10 @@ export interface TaskIndexSettings {
 
     // Purpose tags (for tagging project purposes with goals/values)
     purposeTags: string[]; // e.g., ["#me/🎯/🤓", "#me/🧬/creativity/curiosity"]
+
+    // Exclude years when opening dated files
+    excludeYears: number[];
+    workSummaryPattern?: string;
 }
 
 /**
@@ -117,4 +123,12 @@ export interface ReviewItem {
     quest: QuestFile;
     reasons: ReviewReason[];
     priority: number; // Computed priority score
+}
+
+export interface DatedFileEntry {
+    displayText: string;
+    file: TFile;
+    date: string;
+    icon?: string;
+    type?: string;
 }

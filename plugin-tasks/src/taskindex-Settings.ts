@@ -15,4 +15,7 @@ export const DEFAULT_SETTINGS: TaskIndexSettings = {
     validTypes: ["quest", "area", "project", "demesne"],
 
     purposeTags: ["#me/🎯/🤓", "#me/🧬/creativity/curiosity"],
+
+    excludeYears: [],
+    workSummaryPattern: "chronicles/work/YYYY/YYYY-MM-DD_work.md",
 };
