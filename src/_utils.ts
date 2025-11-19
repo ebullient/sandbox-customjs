@@ -14,6 +14,7 @@ export interface NoteContext {
     date?: string;
     isDaily: boolean;
     isWeekly: boolean;
+    isAssets: boolean;
     asTask: boolean;
 }
 
@@ -813,6 +814,25 @@ export class Utils {
     };
 
     /**
+     * Sorts files by the embedded note date in descending order (most recent first).
+     * Falls back to the default sort when no date is present.
+     */
+    sortTFileByNoteDateDesc = (a: TFile, b: TFile): number => {
+        const d1 = this.getNoteDate(a.path);
+        const d2 = this.getNoteDate(b.path);
+
+        if (d1 && d2) {
+            const diff = d2.localeCompare(d1); // reverse order (newest first)
+            return diff === 0 ? this.sortTFileByName(a, b) : diff;
+        }
+        if (d1 || d2) {
+            // Place dated files ahead of undated ones
+            return d1 ? -1 : 1;
+        }
+        return this.sortTFile(a, b);
+    };
+
+    /**
      * Compares by file name.
      * If a 'sort' field is present in the frontmatter, it is prepended to the filename
      * @param {TFile} a The first file to compare.
@@ -995,7 +1015,7 @@ export class Utils {
                 );
             },
             false,
-            (a, b) => b.name.localeCompare(a.name),
+            this.sortTFileByNoteDateDesc,
         )
             .map((f) => f.path)
             .slice(0, 5);
@@ -1020,6 +1040,7 @@ export class Utils {
                     : false;
             },
             false,
+            this.sortTFileByNoteDateDesc,
         ).map((f) => f.path);
 
         return [...weeklyFiles, ...files];
@@ -1049,6 +1070,7 @@ export class Utils {
     getNoteContext = (path: string): NoteContext => {
         const date = this.getNoteDate(path);
         const isDaily = Boolean(date);
+        const isAssets = path.includes("assets/");
         const isWeekly = path.endsWith("_week.md");
         const asTask = !isDaily || isWeekly;
 
@@ -1056,6 +1078,7 @@ export class Utils {
             path,
             date,
             isDaily,
+            isAssets,
             isWeekly,
             asTask,
         };

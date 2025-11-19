@@ -246,9 +246,10 @@ export class PushText {
         let processedText = originalText;
 
         if (type === "Tasks item") {
-            const from = target.isDaily
-                ? ""
-                : ` from [${source.pretty}](${lineInfo.path})`;
+            const from =
+                target.isDaily || target.isAssets
+                    ? ""
+                    : ` from [${source.pretty}](${lineInfo.path})`;
             processedText = processedText.replace(
                 /^(\s*)-\s*(?:\[.\]\s*)?(.+)$/gm,
                 `$1- [ ] $2${from}`,
@@ -259,9 +260,10 @@ export class PushText {
             );
         } else {
             const task = target.asTask ? "[x] " : "";
-            const from = source.fromDaily
-                ? ""
-                : `[${source.pretty}](${lineInfo.path}): `;
+            const from =
+                source.fromDaily || source.fromAssets
+                    ? ""
+                    : `[${source.pretty}](${lineInfo.path}): `;
 
             if (task) {
                 // Only add completion date if line doesn't already have one
@@ -647,17 +649,19 @@ export class PushText {
         pretty: string;
         fromDaily: boolean;
         fromReminders: boolean;
+        fromAssets: boolean;
         date: string;
     } => {
         const pathDate = this.getCachedPathDate(path);
         const fromDaily = Boolean(pathDate);
-        const fromReminders = path.contains("Reminders.md");
-        const pretty = path.contains("conversations")
+        const fromReminders = path.includes("Reminders.md");
+        const fromAssets = path.includes("assets") || path.endsWith("_gh.md");
+        const pretty = path.includes("conversations")
             ? `**${title}**`
             : `_${title}_`;
         const date = pathDate || window.moment().format("YYYY-MM-DD");
 
-        return { pretty, fromDaily, fromReminders, date };
+        return { pretty, fromDaily, fromReminders, fromAssets, date };
     };
 
     /**
