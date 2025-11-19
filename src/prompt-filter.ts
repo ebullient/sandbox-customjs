@@ -1,5 +1,5 @@
 import type { App } from "obsidian";
-import type { FilterFn } from "./@types/journal-reflect.types";
+import type { FilterFn } from "./@types/prompt-flow.types";
 
 interface TierFilterConfig {
     familyCheckin: Record<string, string>;

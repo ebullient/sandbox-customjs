@@ -1,7 +1,7 @@
 import type { Calendarium } from "./@types/calendarium.types";
 import type { CustomJSType } from "./@types/customjs.types";
 import type { DiceRoller } from "./@types/diceroller.types";
-import type { FilterFn } from "./@types/journal-reflect.types";
+import type { FilterFn } from "./@types/prompt-flow.types";
 import type { TaskIndex } from "./@types/taskIndex.types";
 
 declare global {
