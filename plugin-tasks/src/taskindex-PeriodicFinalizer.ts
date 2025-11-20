@@ -82,6 +82,7 @@ export class PeriodicFinalizer {
         // Remove template text, consolidate empty lines
         let revised = lines
             .join("\n")
+            .replace(/\[tier\]\([^)]+?tier-system[^)]*\)/gi, "tier")
             .replace(/%% agenda %%(([\s\S]*?)%% agenda %%)?/g, "")
             .replace(/\n%%\n- 🎉[\s\S]*?\n%%\n/, "")
             .replace(/\n%% %%\n/g, "\n")
@@ -179,13 +180,13 @@ export class PeriodicFinalizer {
 
     /**
      * Clean up unwanted links:
+     * - remove tier system links
      * - Convert tag links back to plain tags: [#next](index.html#next) -> #next
      * - Remove app://obsidian.md links (replace with empty string)
      */
     private cleanupLinks(lines: string[]): string[] {
         return lines.map((line) => {
             return line
-                .replace(/\[tier\]\([^)]+?\/tier-system.md\)/, "tier")
                 .replace(/\[(#[^\]]+)\]\(index\.html#[^)]+\)/g, "$1")
                 .replace(/app:\/\/obsidian\.md/g, "");
         });
