@@ -1023,7 +1023,7 @@ export class Utils {
         const files = this.filesMatchingCondition(
             current,
             (file) => {
-                if (file.path.match(/(archive|assets)/)) {
+                if (file.path.match(/^\/?(assets|[^/]*?archives)\//)) {
                     return false;
                 }
                 if (file.path.contains("conversations/")) {
