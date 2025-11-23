@@ -9,15 +9,6 @@ import type {
 } from "obsidian";
 import type { EngineAPI } from "./@types/jsengine.types";
 
-export interface NoteContext {
-    path: string;
-    date?: string;
-    isDaily: boolean;
-    isWeekly: boolean;
-    isAssets: boolean;
-    asTask: boolean;
-}
-
 export type CompareFn = () => number;
 export type Conditions = string | string[];
 export type FileCompareFn = (a: TFile, b: TFile) => number;
@@ -36,6 +27,16 @@ interface CleanLink {
     link: string;
     text?: string;
     anchor?: string;
+}
+
+export interface NoteContext {
+    path: string;
+    date?: string;
+    isAssets: boolean;
+    isDaily: boolean;
+    isWeekly: boolean;
+    isYearly: boolean;
+    asTask: boolean;
 }
 
 export class Utils {
@@ -1069,17 +1070,19 @@ export class Utils {
      */
     getNoteContext = (path: string): NoteContext => {
         const date = this.getNoteDate(path);
-        const isDaily = Boolean(date);
         const isAssets = path.includes("assets/");
+        const isDaily = Boolean(date);
         const isWeekly = path.endsWith("_week.md");
+        const isYearly = path.match(/\/\d{4}\.md$/) !== null;
         const asTask = !isDaily || isWeekly;
 
         return {
             path,
             date,
-            isDaily,
             isAssets,
+            isDaily,
             isWeekly,
+            isYearly,
             asTask,
         };
     };
