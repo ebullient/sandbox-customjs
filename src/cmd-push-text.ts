@@ -18,6 +18,15 @@ interface DatedConfig {
     excludeYears: number[];
 }
 
+interface SourceAtttribution {
+    pretty: string;
+    fromAssets: boolean;
+    fromDaily: boolean;
+    fromYearly: boolean;
+    fromReminders: boolean;
+    date: string;
+}
+
 export class PushText {
     app: App;
     configFile = "assets/config/open-dated-config.yaml";
@@ -32,6 +41,7 @@ export class PushText {
         dated: /^.*?(\d{4}-\d{2}-\d{2}).*$/,
         completed: /.*\((\d{4}-\d{2}-\d{2})\)\s*$/,
         dailyNote: /(\d{4}-\d{2}-\d{2})\.md/,
+        yearlyNote: /(\d{4})\.md/,
         listItem: /^\s*-\s*(?:\[.\]\s*)?(.*)$/,
         heading: /^#+\s*/,
         // Task-specific patterns
@@ -73,6 +83,111 @@ export class PushText {
     }
 
     /**
+     * Ensure we're in source mode, preserving selection if possible.
+     * If in reading mode with text selected, capture it and re-select after switching.
+     */
+    private async ensureSourceMode(): Promise<void> {
+        const activeView = this.app.workspace.getActiveViewOfType(
+            window.customJS.obsidian.MarkdownView,
+        );
+        if (!activeView) {
+            console.log("ensureSourceMode: No active view");
+            return;
+        }
+
+        const leaf = activeView.leaf;
+        const viewState = leaf.getViewState();
+        const currentMode = viewState.state?.mode;
+
+        console.log("ensureSourceMode: Current mode:", currentMode);
+
+        // Already in source mode
+        if (currentMode === "source") {
+            console.log("ensureSourceMode: Already in source mode");
+            return;
+        }
+
+        // In reading mode (preview) - try to preserve selection
+        let selectedText = "";
+        const domSelection = window.getSelection();
+        if (domSelection && domSelection.rangeCount > 0) {
+            selectedText = domSelection.toString().trim();
+            console.log(
+                "ensureSourceMode: Captured selection:",
+                `"${selectedText.substring(0, 50)}${selectedText.length > 50 ? "..." : ""}"`,
+                `(${selectedText.length} chars)`,
+            );
+        } else {
+            console.log("ensureSourceMode: No selection to preserve");
+        }
+
+        // Switch to source mode
+        console.log("ensureSourceMode: Switching to source mode...");
+        await leaf.setViewState({
+            ...viewState,
+            state: { ...viewState.state, mode: "source" },
+        });
+
+        // Show notice to user
+        new window.customJS.obsidian.Notice("Switching to edit mode...");
+
+        // Try to restore selection if we had one
+        if (selectedText) {
+            const activeView = this.app.workspace.getActiveViewOfType(
+                window.customJS.obsidian.MarkdownView,
+            );
+            if (!activeView?.editor) {
+                console.warn(
+                    "ensureSourceMode: No editor available after mode switch",
+                );
+                return;
+            }
+
+            const content = activeView.editor.getValue();
+            const index = content.indexOf(selectedText);
+
+            if (index === -1) {
+                console.warn(
+                    "ensureSourceMode: Could not find selected text in editor content",
+                );
+                return;
+            }
+
+            console.log(
+                "ensureSourceMode: Found text at index",
+                index,
+                "- restoring selection",
+            );
+
+            // Convert character index to line/ch positions
+            const lines = content.substring(0, index).split("\n");
+            const startLine = lines.length - 1;
+            const startCh = lines[lines.length - 1].length;
+
+            const selectedLines = selectedText.split("\n");
+            const endLine = startLine + selectedLines.length - 1;
+            const endCh =
+                selectedLines.length === 1
+                    ? startCh + selectedText.length
+                    : selectedLines[selectedLines.length - 1].length;
+
+            console.log(
+                "ensureSourceMode: Setting selection from",
+                `L${startLine}:${startCh}`,
+                "to",
+                `L${endLine}:${endCh}`,
+            );
+
+            activeView.editor.setSelection(
+                { line: startLine, ch: startCh },
+                { line: endLine, ch: endCh },
+            );
+
+            console.log("ensureSourceMode: Selection restored");
+        }
+    }
+
+    /**
      * Push text from current location to target file
      */
     async invoke(): Promise<void> {
@@ -82,6 +197,9 @@ export class PushText {
             console.log("No active file");
             return;
         }
+
+        // Switch to source mode if needed, preserving selection
+        await this.ensureSourceMode();
 
         try {
             // Get cached push target files
@@ -95,9 +213,6 @@ export class PushText {
                 return;
             }
 
-            // Get current selection/text
-            const selection = this.utils().getActiveSelection();
-
             // Show file suggester
             const choice = await this.utils().showFileSuggester(
                 files,
@@ -107,10 +222,13 @@ export class PushText {
             if (!choice) {
                 return; // User cancelled
             }
-
-            // Analyze the current line/selection
-            const lineInfo = await this.findLine(activeFile, selection);
             const targetContext = this.getPushContext(choice);
+
+            // Get current selection/text
+            // Analyze the current line/selection
+            const selection = this.utils().getActiveSelection();
+            const lineInfo = await this.findLine(activeFile, selection);
+
             // Check for weekly file involvement (either source or target)
             const isWeeklyInvolved =
                 lineInfo.context.isWeekly || targetContext.isWeekly;
@@ -118,14 +236,19 @@ export class PushText {
             // Perform the appropriate push operation based on context
             if (lineInfo.selectedLines && lineInfo.selectedLines.length > 1) {
                 await this.pushMultipleLinesAsBlob(targetContext, lineInfo);
-            } else {
-                if (lineInfo.heading) {
-                    await this.pushHeader(targetContext, lineInfo);
-                } else if (isWeeklyInvolved) {
+            } else if (lineInfo.heading) {
+                await this.pushHeader(targetContext, lineInfo);
+            } else if (lineInfo.text) {
+                if (isWeeklyInvolved) {
                     await this.pushWeeklyTask(targetContext, lineInfo);
                 } else {
                     await this.pushText(targetContext, lineInfo);
                 }
+            } else {
+                console.warn(
+                    "No content to push - no heading, text, or selection found",
+                );
+                new window.customJS.obsidian.Notice("No content to push");
             }
         } catch (error) {
             console.error("Error in PushText:", error);
@@ -247,7 +370,7 @@ export class PushText {
 
         if (type === "Tasks item") {
             const from =
-                target.isDaily || target.isAssets
+                target.isDaily || source.fromAssets || source.fromYearly
                     ? ""
                     : ` from [${source.pretty}](${lineInfo.path})`;
             processedText = processedText.replace(
@@ -261,7 +384,7 @@ export class PushText {
         } else {
             const task = target.asTask ? "[x] " : "";
             const from =
-                source.fromDaily || source.fromAssets
+                source.fromDaily || source.fromAssets || source.fromYearly
                     ? ""
                     : `[${source.pretty}](${lineInfo.path}): `;
 
@@ -534,9 +657,10 @@ export class PushText {
         } else {
             // Create log entry (completed if going to project file)
             const task = targetContext.asTask ? "[x] " : "";
-            const from = source.fromDaily
-                ? ""
-                : `[${source.pretty}](${lineInfo.path}): `;
+            const from =
+                source.fromDaily || source.fromAssets || source.fromYearly
+                    ? ""
+                    : `[${source.pretty}](${lineInfo.path}): `;
             const text = source.fromDaily
                 ? lineInfo.text.replace(
                       / #(self|work|home|community|family)/g,
@@ -645,15 +769,10 @@ export class PushText {
     private getSourceAttribution = (
         path: string,
         title: string,
-    ): {
-        pretty: string;
-        fromDaily: boolean;
-        fromReminders: boolean;
-        fromAssets: boolean;
-        date: string;
-    } => {
+    ): SourceAtttribution => {
         const pathDate = this.getCachedPathDate(path);
         const fromDaily = Boolean(pathDate);
+        const fromYearly = !fromDaily && path.match(/\/\d{4}\.md$/) !== null;
         const fromReminders = path.includes("Reminders.md");
         const fromAssets = path.includes("assets") || path.endsWith("_gh.md");
         const pretty = path.includes("conversations")
@@ -661,7 +780,14 @@ export class PushText {
             : `_${title}_`;
         const date = pathDate || window.moment().format("YYYY-MM-DD");
 
-        return { pretty, fromDaily, fromReminders, fromAssets, date };
+        return {
+            pretty,
+            fromAssets,
+            fromDaily,
+            fromReminders,
+            fromYearly,
+            date,
+        };
     };
 
     /**
