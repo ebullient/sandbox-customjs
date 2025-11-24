@@ -16,8 +16,8 @@ importers:
         specifier: 2.3.2
         version: 2.3.2
       '@types/codemirror':
-        specifier: 5.60.16
-        version: 5.60.16
+        specifier: 5.60.17
+        version: 5.60.17
       '@types/node':
         specifier: ^24.7.2
         version: 24.7.2
@@ -263,8 +263,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@types/codemirror@5.60.16':
-    resolution: {integrity: sha512-V/yHdamffSS075jit+fDxaOAmdP2liok8NSNJnAZfDJErzOheuygHZEhAJrfmk5TEyM32MhkZjwo/idX791yxw==}
+  '@types/codemirror@5.60.17':
+    resolution: {integrity: sha512-AZq2FIsUHVMlp7VSe2hTfl5w4pcUkoFkM3zVsRKsn1ca8CXRDYvnin04+HP2REkwsxemuHqvDofdlhUWNpbwfw==}
 
   '@types/codemirror@5.60.8':
     resolution: {integrity: sha512-VjFgDF/eB+Aklcy15TtOTLQeMjTo07k7KAjql8OK5Dirr7a6sJY4T1uVBDuTVG9VEmn1uUsohOpYnVfgC6/jyw==}
@@ -460,7 +460,7 @@ snapshots:
   '@esbuild/win32-x64@0.25.10':
     optional: true
 
-  '@types/codemirror@5.60.16':
+  '@types/codemirror@5.60.17':
     dependencies:
       '@types/tern': 0.23.9
 
