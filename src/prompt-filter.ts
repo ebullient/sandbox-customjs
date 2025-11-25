@@ -396,6 +396,11 @@ export class PromptFilter {
             (health["stand ring"] === this.yes ? 12 : 0);
         const breaks = breakCount > 0 ? `${this.yes} (${breakCount})` : this.no;
 
+        // 🎉 Intention-outcome alignment: landed the intended task
+        const completionCount = content.match(/🎉/g)?.length ?? 0;
+        const completion =
+            completionCount > 0 ? `${this.yes} (${completionCount})` : this.no;
+
         // ☄️ Executive function challenges: hyperfocus
         const hyperfocusPattern =
             /(😵‍💫|☄️|\bhyperfocus(?:ed)?\b|\blost track of time\b)/gi;
@@ -414,6 +419,7 @@ export class PromptFilter {
 
         return {
             "breaks taken": breaks,
+            "completed intended task": completion,
             hyperfocus,
             distracted,
         };
