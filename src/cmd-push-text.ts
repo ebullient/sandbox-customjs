@@ -420,11 +420,15 @@ export class PushText {
             }
         }
 
-        await this.addToSection(
-            targetFile,
-            type === "Tasks item" ? "Tasks" : "Log",
-            processedText,
-        );
+        if (target.isDaily) {
+            await this.appendToDailyNote(targetFile, processedText);
+        } else {
+            await this.addToSection(
+                targetFile,
+                type === "Tasks item" ? "Tasks" : "Log",
+                processedText,
+            );
+        }
     }
 
     /**
@@ -497,7 +501,12 @@ export class PushText {
 
             const addThis = `- ${task}${prefix}${lineText}${completed}`;
             console.log("pushHeader: Log", addThis);
-            await this.addToSection(targetFile, "Log", addThis);
+
+            if (targetContext.isDaily) {
+                await this.appendToDailyNote(targetFile, addThis);
+            } else {
+                await this.addToSection(targetFile, "Log", addThis);
+            }
         }
     }
 
