@@ -167,6 +167,12 @@ export class Missing {
                     this.ignoreUnreferencedPath.every((y) => !x.startsWith(y)),
                 )
                 .filter((x) => {
+                    if (!x.includes("/attachments/")) {
+                        return false; // exclude PDFs/images outside attachments
+                    }
+                    return true; // include everything else
+                })
+                .filter((x) => {
                     if (x.contains("excalidraw")) {
                         const file =
                             this.app.metadataCache.getFirstLinkpathDest(
@@ -275,7 +281,8 @@ export class Missing {
             let match = /.*(\d{4}-\d{2}-\d{2})(?:_\w+)?\.md/.exec(target);
             if (match != null) {
                 const filedate = window.moment(match[1]);
-                if (filedate.isAfter(now)) {
+                const nowYMD = now.format("YYYY-MM-DD");
+                if (filedate.isAfter(now) || match[1] === nowYMD) {
                     return;
                 }
             }
@@ -356,10 +363,10 @@ export class Missing {
 
                 const tgtHeading = tgtFileCache.headings
                     ? tgtFileCache.headings.find(
-                          (x) =>
-                              normalizedAnchor ===
-                              decodeAndNormalize(x.heading),
-                      )
+                        (x) =>
+                            normalizedAnchor ===
+                            decodeAndNormalize(x.heading),
+                    )
                     : "";
                 if (!tgtHeading) {
                     console.log(
