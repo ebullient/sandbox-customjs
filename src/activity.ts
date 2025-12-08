@@ -279,17 +279,20 @@ export class Activity {
      */
     createReport = async (_: EngineAPI): Promise<HTMLElement> => {
         const current = window.moment();
-        const monday = current.clone().day(1);
+        const monday = current.clone().isoWeekday(1);
         const lastMonday = monday.clone().subtract(1, "weeks");
         const prev4 = monday.clone().subtract(4, "weeks");
         const prev12 = monday.clone().subtract(12, "weeks");
         const prev48 = monday.clone().subtract(48, "weeks");
 
-        const dataWeek = await this.countTags(monday, monday.clone().day(7));
+        const dataWeek = await this.countTags(
+            monday,
+            monday.clone().isoWeekday(7),
+        );
         console.debug("this week", dataWeek);
         const lastWeek = await this.countTags(
             lastMonday,
-            lastMonday.clone().day(7),
+            lastMonday.clone().isoWeekday(7),
         );
         const last4 = await this.countTags(prev4, monday);
         const last12 = await this.countTags(prev12, monday);
