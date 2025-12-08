@@ -363,10 +363,10 @@ export class Missing {
 
                 const tgtHeading = tgtFileCache.headings
                     ? tgtFileCache.headings.find(
-                        (x) =>
-                            normalizedAnchor ===
-                            decodeAndNormalize(x.heading),
-                    )
+                          (x) =>
+                              normalizedAnchor ===
+                              decodeAndNormalize(x.heading),
+                      )
                     : "";
                 if (!tgtHeading) {
                     console.log(

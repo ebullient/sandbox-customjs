@@ -352,6 +352,7 @@ export class PromptFilter {
             "#me/✅/🧺",
             "#me/✅/🪣",
             "#me/✅/🪏",
+            "#me/✅/🥘",
         ])
             ? this.yes
             : this.no;
