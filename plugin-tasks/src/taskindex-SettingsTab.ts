@@ -7,16 +7,17 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
     constructor(app: App, plugin: TaskIndexPlugin) {
         super(app, plugin);
         this.plugin = plugin;
+        this.icon = "table-of-contents";
     }
 
     display(): void {
         const { containerEl } = this;
 
         containerEl.empty();
-        containerEl.createEl("h2", { text: "Task Index Settings" });
 
-        // Sphere configuration
-        containerEl.createEl("h3", { text: "Spheres" });
+        new Setting(containerEl)
+            .setName("Spheres")
+            .setHeading();
 
         new Setting(containerEl)
             .setName("Valid spheres")
@@ -36,8 +37,9 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
                     }),
             );
 
-        // Review thresholds
-        containerEl.createEl("h3", { text: "Review Thresholds" });
+        new Setting(containerEl)
+            .setName("Review thresholds")
+            .setHeading();
 
         new Setting(containerEl)
             .setName("Stale project weeks")
@@ -72,7 +74,9 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
             );
 
         // Archive thresholds
-        containerEl.createEl("h3", { text: "Archive Thresholds" });
+        new Setting(containerEl)
+            .setName("Archive thresholds")
+            .setHeading();
 
         new Setting(containerEl)
             .setName("Minimum archive lines")
@@ -92,8 +96,10 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
                     }),
             );
 
-        // Quest folders
-        containerEl.createEl("h3", { text: "File Locations" });
+        // Archive thresholds
+        new Setting(containerEl)
+            .setName("Task locations and markers")
+            .setHeading();
 
         new Setting(containerEl)
             .setName("Quest folders")
@@ -130,9 +136,6 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     }),
             );
-
-        // Purpose tags
-        containerEl.createEl("h3", { text: "Purpose Tags" });
 
         new Setting(containerEl)
             .setName("Purpose tags")
