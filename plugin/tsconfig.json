@@ -3,7 +3,6 @@
   "compilerOptions": {
     "outDir": "../dist/plugin",
     "rootDir": "./src",
-    "baseUrl": "./src",
     "paths": {
       "@types/*": [
         "./@types/*"

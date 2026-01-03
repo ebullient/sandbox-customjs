@@ -15,9 +15,7 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
 
         containerEl.empty();
 
-        new Setting(containerEl)
-            .setName("Spheres")
-            .setHeading();
+        new Setting(containerEl).setName("Spheres").setHeading();
 
         new Setting(containerEl)
             .setName("Valid spheres")
@@ -37,9 +35,7 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
                     }),
             );
 
-        new Setting(containerEl)
-            .setName("Review thresholds")
-            .setHeading();
+        new Setting(containerEl).setName("Review thresholds").setHeading();
 
         new Setting(containerEl)
             .setName("Stale project weeks")
@@ -74,9 +70,7 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
             );
 
         // Archive thresholds
-        new Setting(containerEl)
-            .setName("Archive thresholds")
-            .setHeading();
+        new Setting(containerEl).setName("Archive thresholds").setHeading();
 
         new Setting(containerEl)
             .setName("Minimum archive lines")

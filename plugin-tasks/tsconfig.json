@@ -1,9 +1,8 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "outDir": "../dist/plugin-tasks",
     "rootDir": "./src",
-    "baseUrl": "./src",
+    "outDir": "../dist/plugin-tasks",
     "paths": {
       "@types/*": [
         "./@types/*"

@@ -1,13 +1,12 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "rootDir": "src",
     "outDir": "dist",
     "sourceMap": false,
-    "module": "ESNext",
-    "target": "es2017",
+    "module": "nodenext",
+    "target": "es2022",
     "allowJs": true,
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
     "esModuleInterop": true,
     "importHelpers": true,
     "lib": [
