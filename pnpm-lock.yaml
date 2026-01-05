@@ -37,13 +37,13 @@ importers:
         specifier: ^2.30.1
         version: 2.30.1
       obsidian:
-        specifier: ^1.10.3
-        version: 1.10.3(@codemirror/state@6.4.1)(@codemirror/view@6.34.1)
+        specifier: ^1.11.0
+        version: 1.11.0(@codemirror/state@6.4.1)(@codemirror/view@6.34.1)
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
       typescript:
-        specifier: 5.9.3
+        specifier: ^5.9.3
         version: 5.9.3
 
 packages:
@@ -306,8 +306,8 @@ packages:
   moment@2.30.1:
     resolution: {integrity: sha512-uEmtNhbDOrWPFS+hdjFCBfy9f2YoyzRpwcl+DqpC6taX21FzsTLQVbMV/W7PzNSX6x/bhC1zA3c2UQ5NzH6how==}
 
-  obsidian@1.10.3:
-    resolution: {integrity: sha512-VP+ZSxNMG7y6Z+sU9WqLvJAskCfkFrTz2kFHWmmzis+C+4+ELjk/sazwcTHrHXNZlgCeo8YOlM6SOrAFCynNew==}
+  obsidian@1.11.0:
+    resolution: {integrity: sha512-lVqN9AmDWHzhNATi2tDnjqVgI6WUYKeT+lIsAycAyLt4XCC6zRsWzb+tFCiB7Rn3PpttefjoovilhYwvS4Iqxw==}
     peerDependencies:
       '@codemirror/state': 6.5.0
       '@codemirror/view': 6.38.6
@@ -524,7 +524,7 @@ snapshots:
 
   moment@2.30.1: {}
 
-  obsidian@1.10.3(@codemirror/state@6.4.1)(@codemirror/view@6.34.1):
+  obsidian@1.11.0(@codemirror/state@6.4.1)(@codemirror/view@6.34.1):
     dependencies:
       '@codemirror/state': 6.4.1
       '@codemirror/view': 6.34.1
