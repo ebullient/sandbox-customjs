@@ -3,10 +3,10 @@
     "rootDir": "src",
     "outDir": "dist",
     "sourceMap": false,
-    "module": "nodenext",
+    "module": "es2022",
     "target": "es2022",
     "allowJs": true,
-    "moduleResolution": "nodenext",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "importHelpers": true,
     "lib": [
