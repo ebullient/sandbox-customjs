@@ -571,7 +571,13 @@ export class PushText {
                 return;
             }
 
-            const cleanText = lineInfo.text.replace(/^\[.*?\]\(.*?\):\s*/, "");
+            // Strip project prefix if it links to the target file
+            // Matches: [any alias](path/to/target.md): or [any alias](path/to/target):
+            const targetBasePath = targetContext.path.replace(/\.md$/, "");
+            const prefixPattern = new RegExp(
+                `^\\[.*?\\]\\(${this.escapeRegex(targetBasePath)}(\\.md)?\\):\\s*`,
+            );
+            const cleanText = lineInfo.text.replace(prefixPattern, "");
             const isCompleted = this.isTaskCompleted(lineInfo.mark);
             const hasDate = this.hasCompletionDate(cleanText);
 
@@ -865,6 +871,13 @@ export class PushText {
      */
     private isTaskCompleted = (mark: string): boolean => {
         return this.patterns.completedMark.test(mark);
+    };
+
+    /**
+     * Escape special regex characters in a string
+     */
+    private escapeRegex = (str: string): string => {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     };
 
     /**
