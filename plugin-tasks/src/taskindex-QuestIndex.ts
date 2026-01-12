@@ -38,15 +38,7 @@ export class QuestIndex {
         if (!(file instanceof TFile)) {
             return false;
         }
-
-        if (file.extension !== "md") {
-            return false;
-        }
-
-        // Check if file is in a quest folder
-        return this.settings
-            .current()
-            .questFolders.some((folder) => file.path.startsWith(folder));
+        return this.settings.shouldIndexFile(file);
     }
 
     /**

@@ -28,6 +28,9 @@ export interface TaskIndexSettings {
     // Exclude years when opening dated files
     excludeYears: number[];
     workSummaryPattern?: string;
+
+    // Last modified tracking
+    trackLastModified: boolean; // Update last_modified frontmatter on editor changes
 }
 
 /**
@@ -53,6 +56,7 @@ export type TaskTag = "next" | "waiting" | "someday";
 
 export interface CurrentSettings {
     current(): TaskIndexSettings;
+    shouldIndexFile(file: TFile): boolean;
 }
 
 /**

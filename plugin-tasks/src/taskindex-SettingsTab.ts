@@ -147,5 +147,21 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
                 text.inputEl.rows = 8;
                 text.inputEl.cols = 50;
             });
+
+        new Setting(containerEl).setName("Frontmatter tracking").setHeading();
+
+        new Setting(containerEl)
+            .setName("Track last modified")
+            .setDesc(
+                "Update last_modified frontmatter field when editing quest/area files",
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.trackLastModified)
+                    .onChange(async (value) => {
+                        this.plugin.settings.trackLastModified = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
     }
 }

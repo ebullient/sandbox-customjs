@@ -1,9 +1,16 @@
-import { debounce, Notice, Plugin, type TAbstractFile } from "obsidian";
+import {
+    debounce,
+    Notice,
+    Plugin,
+    type TAbstractFile,
+    type TFile,
+} from "obsidian";
 import type { CurrentSettings, ReviewItem, TaskIndexSettings } from "./@types";
 import { AllTasksCommand } from "./commands/taskindex-AllTasksCommand";
 import { TaskIndexAPI } from "./taskindex-Api";
 import { DatedFileModal } from "./taskindex-DatedFileModal";
 import { FileUpdater } from "./taskindex-FileUpdater";
+import { LastModifiedTracker } from "./taskindex-LastModifiedTracker";
 import { PeriodicFinalizer } from "./taskindex-PeriodicFinalizer";
 import { QuestIndex } from "./taskindex-QuestIndex";
 import { ReviewDetector } from "./taskindex-ReviewDetector";
@@ -20,10 +27,23 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
     detector: ReviewDetector;
     updater: FileUpdater;
     taskEngine: TaskEngine;
+    lastModifiedTracker: LastModifiedTracker;
     api: TaskIndexAPI;
 
     current(): TaskIndexSettings {
         return this.settings;
+    }
+
+    /**
+     * Check if a file should be indexed (quest/area file)
+     */
+    shouldIndexFile(file: TFile): boolean {
+        if (file.extension !== "md") {
+            return false;
+        }
+        return this.settings.questFolders.some((folder) =>
+            file.path.startsWith(folder),
+        );
     }
 
     async onload(): Promise<void> {
@@ -36,6 +56,7 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
         this.detector = new ReviewDetector(this.app, this);
         this.updater = new FileUpdater(this.app);
         this.taskEngine = new TaskEngine(this.app);
+        this.lastModifiedTracker = new LastModifiedTracker(this.app, this);
 
         // Add settings tab
         this.addSettingTab(new TaskIndexSettingsTab(this.app, this));
@@ -167,6 +188,16 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
                 this.app.vault.on("rename", (file, oldPath) => {
                     this.index.removeFile(oldPath);
                     this.index.indexFile(file);
+                }),
+            );
+
+            // Track editor changes for last_modified updates
+            this.registerEvent(
+                this.app.workspace.on("editor-change", (_editor, info) => {
+                    const file = info.file;
+                    if (file) {
+                        this.lastModifiedTracker.onEditorChange(file);
+                    }
                 }),
             );
         });
