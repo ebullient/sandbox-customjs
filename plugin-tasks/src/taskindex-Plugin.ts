@@ -58,6 +58,14 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
         this.taskEngine = new TaskEngine(this.app);
         this.lastModifiedTracker = new LastModifiedTracker(this.app, this);
 
+        // Initialize API with TaskEngine and expose to window
+        this.api = new TaskIndexAPI(this.index, this, this.taskEngine);
+
+        if (!window.taskIndex) {
+            window.taskIndex = {};
+        }
+        window.taskIndex.api = this.api;
+
         // Add settings tab
         this.addSettingTab(new TaskIndexSettingsTab(this.app, this));
 
@@ -149,13 +157,6 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
         this.app.workspace.onLayoutReady(() => {
             this.index.rebuildIndex();
 
-            // Initialize API with TaskEngine and expose to window
-            this.api = new TaskIndexAPI(this.index, this, this.taskEngine);
-
-            if (!window.taskIndex) {
-                window.taskIndex = {};
-            }
-            window.taskIndex.api = this.api;
             console.log(window.taskIndex);
 
             // Register file events
