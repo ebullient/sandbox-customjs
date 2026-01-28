@@ -1,4 +1,4 @@
-import type { App } from "obsidian";
+import { type App, getAllTags } from "obsidian";
 import type {
     CurrentSettings,
     QuestFile,
@@ -22,14 +22,19 @@ export class ReviewDetector {
         const reasons: ReviewReason[] = [];
         let priority = 0;
 
+        const cache = this.app.metadataCache.getCache(quest.path);
+
         // Check for missing sphere
         if (!quest.sphere) {
             reasons.push("no-sphere");
             priority += 10; // High priority - required field
         }
 
+        const monitored = getAllTags(cache).contains("#project");
+
         // Check for no #next tasks (but skip if current week links to this project)
         if (
+            monitored &&
             !quest.hasNextTasks &&
             quest.tasks.length > 0 &&
             !this.isLinkedFromCurrentWeek(quest.path)
@@ -39,20 +44,23 @@ export class ReviewDetector {
         }
 
         // Check for overdue tasks (high priority)
-        if (quest.hasOverdueTasks) {
+        if (monitored && quest.hasOverdueTasks) {
             reasons.push("overdue-tasks");
             priority += 8;
         }
 
         // Check for stale project (not modified in X weeks)
         const weeksSinceModified = this.getWeeksSinceModified(quest);
-        if (weeksSinceModified >= this.settings.current().staleProjectWeeks) {
+        if (
+            monitored &&
+            weeksSinceModified >= this.settings.current().staleProjectWeeks
+        ) {
             reasons.push("stale-project");
             priority += 3;
         }
 
         // Check for long-waiting tasks (future feature)
-        if (quest.hasWaitingTasks && quest.oldestWaitingDate) {
+        if (monitored && quest.hasWaitingTasks && quest.oldestWaitingDate) {
             const daysSinceWaiting = this.getDaysSince(quest.oldestWaitingDate);
             if (daysSinceWaiting >= this.settings.current().waitingTaskDays) {
                 reasons.push("long-waiting");

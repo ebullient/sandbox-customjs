@@ -1,4 +1,5 @@
 import { type App, Notice } from "obsidian";
+import * as LogParser from "../taskindex-LogParser";
 import type { TaskEngine } from "../taskindex-TaskEngine";
 
 /**
@@ -25,11 +26,12 @@ export class AllTasksCommand {
             return;
         }
 
-        // Get all projects with task sections
-        const projects = this.taskEngine.getProjectsWithTaskSections(
-            this.includePaths,
-            [this.targetFile],
-        );
+        // Get all notes with Tasks sections tagged with #project
+        const projects = this.taskEngine
+            .getProjectsWithTaskSections(this.includePaths, [this.targetFile])
+            .filter((fci) =>
+                LogParser.fileMatchesTag(this.app, fci.file, "#project", false),
+            );
 
         // Generate markdown
         const markdown = this.taskEngine.generateAllTasksMarkdown(projects);

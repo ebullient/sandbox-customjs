@@ -193,7 +193,7 @@ export class TaskEngine {
                 );
 
                 parts.push(
-                    `\n#### <span class="project-status">[${role}](${linkPath})</span> ${title}\n\n![invisible-embed](${linkPath})\n`,
+                    `\n#### <span class="project-status">${window.taskIndex.api.getRoleVisual(role)}</span> ${title}\n\n![invisible-embed](${linkPath})\n`,
                 );
             }
         }
