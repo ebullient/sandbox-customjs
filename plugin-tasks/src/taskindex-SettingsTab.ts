@@ -148,6 +148,28 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
                 text.inputEl.cols = 50;
             });
 
+        new Setting(containerEl).setName("Push targets").setHeading();
+
+        new Setting(containerEl)
+            .setName("Exclude years")
+            .setDesc(
+                "Comma-separated list of years to exclude from push targets (e.g., 2020, 2021)",
+            )
+            .addText((text) =>
+                text
+                    .setPlaceholder("2020, 2021")
+                    .setValue(this.plugin.settings.excludeYears.join(", "))
+                    .onChange(async (value) => {
+                        this.plugin.settings.excludeYears = value
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter((s) => s.length > 0)
+                            .map((s) => Number.parseInt(s, 10))
+                            .filter((n) => !Number.isNaN(n));
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
         new Setting(containerEl).setName("Frontmatter tracking").setHeading();
 
         new Setting(containerEl)

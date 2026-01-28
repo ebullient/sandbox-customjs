@@ -27,7 +27,8 @@ export interface TaskIndexSettings {
 
     // Exclude years when opening dated files
     excludeYears: number[];
-    workSummaryPattern?: string;
+    workSummaryPattern: string;
+    journalFormat: string;
 
     // Last modified tracking
     trackLastModified: boolean; // Update last_modified frontmatter on editor changes

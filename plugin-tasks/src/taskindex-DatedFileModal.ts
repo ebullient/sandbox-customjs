@@ -1,23 +1,60 @@
 import { type FuzzyMatch, FuzzySuggestModal, type TFile } from "obsidian";
-import type { DatedFileEntry } from "./@types";
+import type { DatedFileEntry, TaskIndexSettings } from "./@types";
 import type { TaskIndexPlugin } from "./taskindex-Plugin";
+
+/**
+ * Configuration for a dated file pattern
+ */
+interface PatternConfig {
+    pattern: RegExp;
+    icon: string;
+    type: string;
+    /** Transform the matched date to a sortable format (e.g., "2024-01" → "2024-01-01") */
+    normalizeDateForSort?: (date: string) => string;
+}
 
 /**
  * Modal for selecting dated files (daily, weekly, monthly, yearly notes)
  * Provides quick access to recent dated files and a full list
  */
 export class DatedFileModal extends FuzzySuggestModal<DatedFileEntry> {
-    // Regex patterns for identifying dated files
-    patterns = {
-        daily: /^chronicles\/(\d{4})\/(\d{4}-\d{2}-\d{2})\.md$/,
-        weekly: /^chronicles\/(\d{4})\/(\d{4}-\d{2}-\d{2})_week\.md$/,
-        monthly: /^chronicles\/(\d{4})\/(\d{4}-\d{2})_month\.md$/,
-        yearly: /^chronicles\/(\d{4})\/(\d{4})\.md$/,
-        journalDaily:
-            /^chronicles\/journal\/(\d{4})\/journal-(\d{4}-\d{2}-\d{2})\.md$/,
-        journalWeekly:
-            /^chronicles\/journal\/(\d{4})\/journal-(\d{4}-\d{2}-\d{2})_week\.md$/,
-    };
+    // Pattern configurations for dated file matching
+    private readonly patternConfigs: PatternConfig[] = [
+        {
+            pattern: /^chronicles\/(\d{4})\/(\d{4}-\d{2}-\d{2})\.md$/,
+            icon: "📅",
+            type: "daily",
+        },
+        {
+            pattern: /^chronicles\/(\d{4})\/(\d{4}-\d{2}-\d{2})_week\.md$/,
+            icon: "🗓️",
+            type: "weekly",
+        },
+        {
+            pattern: /^chronicles\/(\d{4})\/(\d{4}-\d{2})_month\.md$/,
+            icon: "🗓️",
+            type: "monthly",
+            normalizeDateForSort: (date) => `${date}-01`,
+        },
+        {
+            pattern: /^chronicles\/(\d{4})\/(\d{4})\.md$/,
+            icon: "🗓️",
+            type: "yearly",
+            normalizeDateForSort: (date) => `${date}-01-01`,
+        },
+        {
+            pattern:
+                /^chronicles\/journal\/(\d{4})\/journal-(\d{4}-\d{2}-\d{2})\.md$/,
+            icon: "✍️",
+            type: "journal",
+        },
+        {
+            pattern:
+                /^chronicles\/journal\/(\d{4})\/journal-(\d{4}-\d{2}-\d{2})_week\.md$/,
+            icon: "📖",
+            type: "weekly journal",
+        },
+    ];
 
     constructor(private plugin: TaskIndexPlugin) {
         super(plugin.app);
@@ -107,7 +144,7 @@ export class DatedFileModal extends FuzzySuggestModal<DatedFileEntry> {
 
         // Today (journal)
         const todayJournalPath = formatPath(
-            "[chronicles/journal/]YYYY/[journal-]YYYY-MM-DD[.md]",
+            this.plugin.settings.journalFormat,
             today,
         );
         const todayJournalFile = this.app.vault.getFileByPath(todayJournalPath);
@@ -139,7 +176,7 @@ export class DatedFileModal extends FuzzySuggestModal<DatedFileEntry> {
 
         // Yesterday (journal)
         const yesterdayJournalPath = formatPath(
-            "[chronicles/journal/]YYYY/[journal-]YYYY-MM-DD[.md]",
+            this.plugin.settings.journalFormat,
             yesterday,
         );
         const yesterdayJournalFile =
@@ -245,89 +282,28 @@ export class DatedFileModal extends FuzzySuggestModal<DatedFileEntry> {
     private matchDatedFile(file: TFile): DatedFileEntry | undefined {
         const path = file.path;
 
-        // Daily note
-        let match = this.patterns.daily.exec(path);
-        if (match) {
-            const date = match[2];
-            return {
-                displayText: date,
-                file,
-                date,
-                icon: "📅",
-                type: "daily",
-            };
+        // Try each pattern configuration
+        for (const config of this.patternConfigs) {
+            const match = config.pattern.exec(path);
+            if (match) {
+                const rawDate = match[2];
+                return {
+                    displayText: rawDate,
+                    file,
+                    date: config.normalizeDateForSort
+                        ? config.normalizeDateForSort(rawDate)
+                        : rawDate,
+                    icon: config.icon,
+                    type: config.type,
+                };
+            }
         }
 
-        // Weekly note
-        match = this.patterns.weekly.exec(path);
-        if (match) {
-            const date = match[2];
-            return {
-                displayText: date,
-                file,
-                date,
-                icon: "🗓️",
-                type: "weekly",
-            };
-        }
-
-        // Monthly note
-        match = this.patterns.monthly.exec(path);
-        if (match) {
-            const date = match[2];
-            return {
-                displayText: date,
-                file,
-                date: `${date}-01`,
-                icon: "🗓️",
-                type: "monthly",
-            };
-        }
-
-        // Yearly note
-        match = this.patterns.yearly.exec(path);
-        if (match) {
-            const date = match[2];
-            return {
-                displayText: date,
-                file,
-                date: `${date}-01-01`,
-                icon: "🗓️",
-                type: "yearly",
-            };
-        }
-
-        // Daily journal
-        match = this.patterns.journalDaily.exec(path);
-        if (match) {
-            const date = match[2];
-            return {
-                displayText: date,
-                file,
-                date,
-                icon: "✍️",
-                type: "journal",
-            };
-        }
-
-        // Weekly journal
-        match = this.patterns.journalWeekly.exec(path);
-        if (match) {
-            const date = match[2];
-            return {
-                displayText: date,
-                file,
-                date,
-                icon: "📖",
-                type: "weekly journal",
-            };
-        }
-
-        // Work summary - build pattern from config
+        // Work summary - build pattern from config (dynamic, not in patternConfigs)
         const workPattern = this.buildWorkSummaryPattern();
-        match = workPattern.exec(path);
-        if (match) {
-            const date = match[2];
+        const workMatch = workPattern.exec(path);
+        if (workMatch) {
+            const date = workMatch[2];
             return {
                 displayText: date,
                 file,

@@ -1,5 +1,11 @@
 import type { App, TFile } from "obsidian";
 import { getAllTags } from "obsidian";
+import {
+    COMPLETED_DATE_REGEX,
+    COMPLETED_MARK_REGEX,
+    TASK_REGEX,
+} from "./taskindex-CommonPatterns";
+import { getFileTitle } from "./taskindex-NoteUtils";
 
 /**
  * Utilities for parsing completed tasks from quest/area Log sections
@@ -13,9 +19,6 @@ export interface CompletedTask {
     text: string;
     completedDate: string; // YYYY-MM-DD
 }
-
-const TASK_REGEX = /^(\s*)-\s*\[(.)\]\s*(.*)$/;
-const COMPLETED_DATE_REGEX = /\((\d{4}-\d{2}-\d{2})\)/;
 
 /**
  * Parse a single completed task line
@@ -36,7 +39,7 @@ export function parseCompletedTask(
     const text = taskMatch[3];
 
     // Only process completed tasks (x) or cancelled tasks (-)
-    if (!mark.match(/[x-]/)) {
+    if (!COMPLETED_MARK_REGEX.test(mark)) {
         return null;
     }
 
@@ -65,7 +68,7 @@ export async function parseCompletedTasksFromFile(
 ): Promise<CompletedTask[]> {
     const tasks: CompletedTask[] = [];
     const sphere = getFileSphere(app, file);
-    const name = getFileName(app, file);
+    const name = getFileTitle(app, file);
     const content = await app.vault.cachedRead(file);
     const lines = content.split("\n");
 
@@ -98,18 +101,6 @@ export function filterTasksByDateRange(
 export function getFileSphere(app: App, file: TFile): string {
     const cache = app.metadataCache.getFileCache(file);
     return cache?.frontmatter?.sphere || "(no sphere)";
-}
-
-/**
- * Get file name (first alias with fallback to basename)
- */
-export function getFileName(app: App, file: TFile): string {
-    const cache = app.metadataCache.getFileCache(file);
-    const aliases = cache?.frontmatter?.aliases;
-    if (aliases && Array.isArray(aliases) && aliases.length > 0) {
-        return aliases[0];
-    }
-    return file.basename;
 }
 
 /**

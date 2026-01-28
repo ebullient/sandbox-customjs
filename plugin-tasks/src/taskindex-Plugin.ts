@@ -1,5 +1,6 @@
 import {
     debounce,
+    MarkdownView,
     Notice,
     Plugin,
     type TAbstractFile,
@@ -7,6 +8,8 @@ import {
 } from "obsidian";
 import type { CurrentSettings, ReviewItem, TaskIndexSettings } from "./@types";
 import { AllTasksCommand } from "./commands/taskindex-AllTasksCommand";
+import { ConversationCommand } from "./commands/taskindex-ConversationCommand";
+import { PushTextCommand } from "./commands/taskindex-PushTextCommand";
 import { TaskIndexAPI } from "./taskindex-Api";
 import { DatedFileModal } from "./taskindex-DatedFileModal";
 import { FileUpdater } from "./taskindex-FileUpdater";
@@ -150,6 +153,30 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
             name: "(TI) Open Dated File",
             callback: () => {
                 new DatedFileModal(this).open();
+            },
+        });
+
+        this.addCommand({
+            id: "open-journal",
+            name: "(TI) Open Journal",
+            callback: () => this.openTodayJournal(),
+        });
+
+        this.addCommand({
+            id: "create-conversation-entry",
+            name: "(TI) Create conversation entry",
+            callback: async () => {
+                const command = new ConversationCommand(this.app);
+                await command.execute();
+            },
+        });
+
+        this.addCommand({
+            id: "push-text",
+            name: "(TI) Push text to file",
+            callback: async () => {
+                const command = new PushTextCommand(this.app);
+                await command.execute();
             },
         });
 
@@ -306,6 +333,47 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
             reviewItem.reasons,
         );
         modal.open();
+    }
+
+    /**
+     * Open today's journal file, creating it if needed.
+     * Reuses existing leaf if already open, positions cursor at end.
+     */
+    private async openTodayJournal(): Promise<void> {
+        const today = window.moment();
+        const journalPath = today.format(this.settings.journalFormat);
+
+        // Check if already open in a markdown leaf
+        const markdownLeaves = this.app.workspace.getLeavesOfType("markdown");
+        let found = false;
+        for (const leaf of markdownLeaves) {
+            const viewState = leaf.getViewState();
+            if (viewState.state?.file === journalPath) {
+                this.app.workspace.setActiveLeaf(leaf, { focus: true });
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            // Create if doesn't exist
+            let journalFile = this.app.vault.getAbstractFileByPath(journalPath);
+            if (!journalFile) {
+                journalFile = await this.app.vault.create(journalPath, "");
+            }
+
+            // Open in new leaf in source mode
+            await this.app.workspace.openLinkText(journalPath, "", true, {
+                state: { mode: "source" },
+            });
+        }
+
+        // Position cursor at end of file
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (view?.editor) {
+            const lastLine = view.editor.lastLine();
+            view.editor.setCursor(lastLine);
+        }
     }
 
     private showWeeklyPlanning(): void {

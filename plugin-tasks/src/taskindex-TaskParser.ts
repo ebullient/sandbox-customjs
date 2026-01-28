@@ -1,13 +1,10 @@
 import type { CachedMetadata } from "obsidian";
 import type { SectionBoundaries, Task, TaskStatus, TaskTag } from "./@types";
-
-/**
- * Utilities for parsing tasks from markdown
- */
-
-const TASK_REGEX = /^(\s*)-\s*\[(.)\]\s*(.*)$/;
-const TAG_REGEX = /#(next|waiting|someday)/g;
-const DUE_DATE_REGEX = /\{(\d{4}-\d{2}-\d{2})\}/;
+import {
+    DUE_DATE_REGEX,
+    GTD_TAG_REGEX,
+    TASK_REGEX,
+} from "./taskindex-CommonPatterns";
 
 /**
  * Parse a single task line
@@ -24,7 +21,7 @@ export function parseTask(line: string, lineNumber: number): Task | null {
 
     // Extract tags
     const tags: TaskTag[] = [];
-    const tagMatches = text.matchAll(TAG_REGEX);
+    const tagMatches = text.matchAll(GTD_TAG_REGEX);
     for (const tagMatch of tagMatches) {
         tags.push(tagMatch[1] as TaskTag);
     }

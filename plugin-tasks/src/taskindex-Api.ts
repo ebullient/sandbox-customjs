@@ -165,4 +165,30 @@ export class TaskIndexAPI {
             all,
         );
     };
+
+    // ============================================================
+    // Push Target Methods
+    // ============================================================
+
+    /**
+     * Get all indexed quest/area file paths for push targets.
+     * These are files that have been validated as having the correct
+     * frontmatter type and are in the configured quest folders.
+     * @returns {string[]} Array of quest file paths sorted by title
+     */
+    getQuestPaths = (): string[] => {
+        return this.index
+            .getAllQuests()
+            .sort((a, b) => a.title.localeCompare(b.title))
+            .map((q) => q.path);
+    };
+
+    /**
+     * Get excluded years from settings.
+     * Used to filter out old files from push targets.
+     * @returns {number[]} Array of years to exclude
+     */
+    getExcludeYears = (): number[] => {
+        return this.settings.current().excludeYears;
+    };
 }
