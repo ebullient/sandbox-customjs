@@ -1,5 +1,5 @@
 import { type FuzzyMatch, FuzzySuggestModal, type TFile } from "obsidian";
-import type { DatedFileEntry, TaskIndexSettings } from "./@types";
+import type { DatedFileEntry } from "./@types";
 import type { TaskIndexPlugin } from "./taskindex-Plugin";
 
 /**
