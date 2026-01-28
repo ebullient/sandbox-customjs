@@ -575,12 +575,23 @@ export class PushTextCommand {
                 source.fromDaily || source.fromAssets || source.fromYearly
                     ? ""
                     : `[${source.pretty}](${lineInfo.path}): `;
+
+            // Strip leading link to target project (daily → project workflow)
+            const targetBasePath = targetContext.path.replace(/\.md$/, "");
+            const prefixPattern = new RegExp(
+                `^\\[.*?\\]\\(${this.escapeRegex(targetBasePath)}(\\.md)?\\):\\s*`,
+            );
+            const strippedText = (lineInfo.text || "").replace(
+                prefixPattern,
+                "",
+            );
+
             const text = source.fromDaily
-                ? (lineInfo.text || "").replace(
+                ? strippedText.replace(
                       / #(self|work|home|community|family)/g,
                       "",
                   )
-                : lineInfo.text;
+                : strippedText;
             const hasDate = hasCompletionDate(text || "");
             const completed = task && !hasDate ? ` (${date})` : "";
 
