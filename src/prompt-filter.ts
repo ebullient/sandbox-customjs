@@ -171,6 +171,7 @@ export class PromptFilter {
 
     private extractMetrics(content: string) {
         const health = this.extractHealthTags(content);
+        const filteredWords = this.contentFilter(content.trim()).split(/\s+/);
         return {
             iteration: this.extractIteration(content),
             health,
@@ -178,6 +179,7 @@ export class PromptFilter {
             work: this.extractWorkPatterns(content, health),
             familyMentions: this.extractFamilyMentions(content),
             dateRange: this.extractDateRange(content),
+            shortEntry: filteredWords.length < 50,
             completedProjects: this.extractCompletedProjects(content),
         };
     }
@@ -190,10 +192,15 @@ export class PromptFilter {
         const dailyJournal = !content.includes("# ✍️ Week of ");
 
         // Iteration info
-        lines.push(`Iteration: ${metrics.iteration.current} of 4`);
-        lines.push(
-            `Can ask more questions: ${metrics.iteration.canAskMore ? "yes" : "no"}`,
-        );
+        if (metrics.shortEntry) {
+            lines.push(`Short entry: ${this.yes} - use lightweight check-in`);
+            lines.push(`Can ask more questions: no`);
+        } else {
+            lines.push(`Iteration: ${metrics.iteration.current} of 4`);
+            lines.push(
+                `Can ask more questions: ${metrics.iteration.canAskMore ? "yes" : "no"}`,
+            );
+        }
         if (dailyJournal) {
             if (metrics.health.tierTag) {
                 lines.push(`Self-assessment: ${metrics.health.tierTag}`);
