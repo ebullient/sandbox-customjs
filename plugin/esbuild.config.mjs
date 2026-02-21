@@ -20,11 +20,14 @@ const pluginDir = path.dirname(new URL(import.meta.url).pathname);
 const srcDir = path.join(pluginDir, "src");
 const outDir = "./dist/plugin";
 
+const tsconfigPath = path.resolve(pluginDir, "./tsconfig.json");
+
 const parameters = {
     banner: {
         js: banner,
     },
     entryPoints: [path.join(srcDir, "main.ts")],
+    tsconfig: tsconfigPath,
     bundle: true,
     external: [
         "obsidian",
@@ -45,7 +48,7 @@ const parameters = {
     outdir: outDir,
     plugins: [
         esbuildPluginTsc({
-            tsconfigPath: path.resolve(pluginDir, "./tsconfig.json"),
+            tsconfigPath,
         }),
         {
             name: "resolve-ts-paths",
