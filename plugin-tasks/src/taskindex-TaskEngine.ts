@@ -183,8 +183,6 @@ export class TaskEngine {
         // Generate text with sphere headings
         const parts: string[] = [];
         for (const [sphere, sphereProjects] of bySphere) {
-            parts.push(`\n### ${sphere}\n`);
-
             for (const info of sphereProjects) {
                 const role = info.role;
                 const title = this.getFileTitle(info.file);
@@ -198,7 +196,7 @@ export class TaskEngine {
                     : "";
 
                 parts.push(
-                    `\n#### <span class="project-status">${window.taskIndex.api.getRoleVisual(role)}</span> ${title}\n${modified}\n![invisible-embed](${linkPath})\n`,
+                    `\n##<span class="project-status">${window.taskIndex.api.getRoleVisual(role)}</span> ${title}\n${modified}\n![invisible-embed](${linkPath})\n\n---\n`,
                 );
             }
         }
