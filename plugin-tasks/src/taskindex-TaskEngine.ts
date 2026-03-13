@@ -13,6 +13,7 @@ interface FileCacheInfo {
     taskHeading: HeadingCache | undefined;
     sphere: string;
     role: string;
+    lastModified: string | undefined;
 }
 
 export class TaskEngine {
@@ -192,8 +193,12 @@ export class TaskEngine {
                     info.taskHeading?.heading || "Tasks",
                 );
 
+                const modified = info.lastModified
+                    ? `\n<span class="last-modified">last modified: ${info.lastModified}</span>\n`
+                    : "";
+
                 parts.push(
-                    `\n#### <span class="project-status">${window.taskIndex.api.getRoleVisual(role)}</span> ${title}\n\n![invisible-embed](${linkPath})\n`,
+                    `\n#### <span class="project-status">${window.taskIndex.api.getRoleVisual(role)}</span> ${title}\n${modified}\n![invisible-embed](${linkPath})\n`,
                 );
             }
         }
@@ -215,6 +220,7 @@ export class TaskEngine {
             ),
             sphere: frontmatter.sphere || "(no sphere)",
             role: frontmatter.role || "??",
+            lastModified: frontmatter.last_modified,
         };
     }
 
