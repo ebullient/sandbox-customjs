@@ -191,12 +191,13 @@ export class TaskEngine {
                     info.taskHeading?.heading || "Tasks",
                 );
 
+                const taskSphere = `\n<span class="sphere">sphere: ${sphere}</span>`;
                 const modified = info.lastModified
                     ? `\n<span class="last-modified">last modified: ${info.lastModified}</span>\n`
                     : "";
 
                 parts.push(
-                    `\n##<span class="project-status">${window.taskIndex.api.getRoleVisual(role)}</span> ${title}\n${modified}\n![invisible-embed](${linkPath})\n\n---\n`,
+                    `\n##<span class="project-status">${window.taskIndex.api.getRoleVisual(role)}</span> ${title}\n${taskSphere}${modified}\n![invisible-embed](${linkPath})\n\n---\n`,
                 );
             }
         }
