@@ -142,7 +142,9 @@ export class PlanningFilter {
         const allTasksContent = entries.get("all-tasks.md");
         if (!allTasksContent) return [];
 
-        const HEADING_RE = /^## (\S+)\s+<span[^>]*>[^<]*<\/span>\s+(.+)$/;
+        const HEADING_RE =
+            /^## <span class="project-status">[^<]*<\/span>\s+(.+)$/;
+        const SPHERE_RE = /<span class="sphere">sphere:\s*([^<]+)<\/span>/;
         const LAST_MODIFIED_RE =
             /<span class="last-modified">last modified:\s*(\d{4}-\d{2}-\d{2})<\/span>/;
         const EMBED_RE = /!\[.*?\]\(([^)]+)\)/;
@@ -154,14 +156,20 @@ export class PlanningFilter {
             const headingMatch = HEADING_RE.exec(line);
             if (headingMatch) {
                 current = {
-                    sphere: headingMatch[1].trim(),
-                    name: headingMatch[2].trim(),
+                    name: headingMatch[1].trim(),
+                    sphere: "(no sphere)",
                     lastModified: null,
                 };
                 continue;
             }
 
             if (!current) continue;
+
+            const sphereMatch = SPHERE_RE.exec(line);
+            if (sphereMatch) {
+                current.sphere = sphereMatch[1].trim();
+                continue;
+            }
 
             const modMatch = LAST_MODIFIED_RE.exec(line);
             if (modMatch) {

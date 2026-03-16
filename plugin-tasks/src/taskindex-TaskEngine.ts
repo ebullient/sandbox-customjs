@@ -197,7 +197,7 @@ export class TaskEngine {
                     : "";
 
                 parts.push(
-                    `\n##<span class="project-status">${window.taskIndex.api.getRoleVisual(role)}</span> ${title}\n${taskSphere}${modified}\n![invisible-embed](${linkPath})\n\n---\n`,
+                    `\n## <span class="project-status">${window.taskIndex.api.getRoleVisual(role)}</span> ${title}\n${taskSphere}${modified}\n![invisible-embed](${linkPath})\n\n---\n`,
                 );
             }
         }
