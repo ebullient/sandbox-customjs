@@ -9,10 +9,10 @@ declare global {
         Calendarium: Calendarium;
 
         forceLoadCustomJS?: () => Promise<void>;
-        cJS?: (
+        cJS: (
             moduleOrCallback?: string | ((customJS: CustomJSType) => void),
         ) => Promise<CustomJSType>;
-        customJS?: CustomJSType;
+        customJS: CustomJSType;
 
         DiceRoller: DiceRoller;
 
@@ -20,10 +20,7 @@ declare global {
             api: TaskIndex;
         };
 
-        journal?: {
-            filters?: Record<string, FilterFn>;
-        };
-        promptFlow?: {
+        promptFlow: {
             filters?: Record<string, FilterFn>;
         };
     }

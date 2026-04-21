@@ -22,6 +22,10 @@ export class PlanningFilter {
         window.promptFlow.filters.weeklyPlanFilter = this.weeklyPlanFilter;
     }
 
+    deconstructor() {
+        delete window.promptFlow.filters?.weeklyPlanFilter;
+    }
+
     weeklyPlanFilter: FilterFn = (content) => {
         const todayStr = new Date().toISOString().split("T")[0];
         const dayName = [

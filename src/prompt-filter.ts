@@ -29,11 +29,8 @@ export class PromptFilter {
     }
 
     deconstructor() {
-        window.promptFlow.filters.tierFilter = undefined;
-        window.promptFlow.filters.contentFilter = undefined;
-
-        window.journal.filters.tierFilter = undefined;
-        window.journal.filters.contentFilter = undefined;
+        delete window.promptFlow.filters?.tierFilter;
+        delete window.promptFlow.filters?.contentFilter;
     }
 
     /**

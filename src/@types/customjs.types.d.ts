@@ -8,9 +8,9 @@ import type { Reference } from "../reference";
 // Note: Partial CustomJS API
 
 export type CustomJSType = {
-    obsidian?: typeof obsidian;
-    app?: obsidian.App;
-    state?: Record<string, unknown>;
+    obsidian: typeof obsidian;
+    app: obsidian.App;
+    state: Record<string, unknown>;
     [scriptName: string]: unknown;
     AreaRelated: AreaRelated;
     Campaign: Campaign;
