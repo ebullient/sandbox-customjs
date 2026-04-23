@@ -1,5 +1,4 @@
-import type { Moment } from "moment";
-import type { App, HeadingCache, TFile } from "obsidian";
+import type { App, HeadingCache, moment, TFile } from "obsidian";
 import * as CommonPatterns from "./taskindex-CommonPatterns";
 import * as LogParser from "./taskindex-LogParser";
 
@@ -43,8 +42,8 @@ export class TaskEngine {
      * Groups by sphere and returns formatted markdown
      */
     async findCompletedTasksInRange(
-        begin: Moment,
-        end: Moment,
+        begin: moment.Moment,
+        end: moment.Moment,
         tagFilter?: string | string[],
         matchAll = false,
         removeTriageTags = false,
@@ -112,7 +111,7 @@ export class TaskEngine {
      */
     async generateWeeklyTasks(current: TFile): Promise<string> {
         const titledate = current.name.replace(".md", "").replace("_week", "");
-        const begin = window.moment(titledate).day(1); // Monday
+        const begin = moment(titledate).day(1); // Monday
         const end = begin.clone().add(6, "d");
 
         return this.findCompletedTasksInRange(
@@ -135,7 +134,7 @@ export class TaskEngine {
         tag?: string | string[],
         all = false,
     ): Promise<string> {
-        const begin = window.moment(startDate); // exact day
+        const begin = moment(startDate); // exact day
         const end = begin.clone().add(6, "d");
 
         return this.findCompletedTasksInRange(

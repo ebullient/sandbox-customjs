@@ -1,5 +1,5 @@
-import type { Moment } from "moment";
 import type { App, HeadingCache, TFile } from "obsidian";
+import { moment } from "obsidian";
 import * as CommonPatterns from "./taskindex-CommonPatterns";
 
 /**
@@ -21,7 +21,7 @@ export interface ValidationIssue {
 type ProcessLogFn = (
     file: TFile,
     logHeading: HeadingCache,
-    monthMoment: Moment,
+    monthMoment: moment.Moment,
 ) => Promise<void>;
 
 /**
@@ -50,7 +50,7 @@ export class TaskArchiver {
 
     async iterateAllQuests(logFn: ProcessLogFn): Promise<void> {
         console.log("Cleaning up old tasks in quest/area files");
-        const monthMoment = window.moment().startOf("month");
+        const monthMoment = moment().startOf("month");
 
         console.log(
             "Cleaning up tasks before",
@@ -151,9 +151,9 @@ export class TaskArchiver {
     private async cleanupQuestLog(
         file: TFile,
         logHeading: HeadingCache,
-        monthMoment: Moment,
+        monthMoment: moment.Moment,
     ): Promise<void> {
-        const now = window.moment();
+        const now = moment();
         const currentYear = now.year();
         const shouldArchive = now.month() >= 1; // February or later
         const areaName = this.extractAreaName(file);
@@ -206,7 +206,7 @@ export class TaskArchiver {
                     completionDate &&
                     CommonPatterns.extractYear(completionDate);
                 const completedMoment =
-                    completionDate && window.moment(completionDate);
+                    completionDate && moment(completionDate);
 
                 // Track first previous-year task for archiving, even if already denatured
                 if (shouldArchive && year && year < currentYearString) {
@@ -295,7 +295,7 @@ export class TaskArchiver {
     private async validateQuestLog(
         file: TFile,
         logHeading: HeadingCache,
-        _monthMoment: Moment,
+        _monthMoment: moment.Moment,
     ): Promise<void> {
         const content = await this.app.vault.read(file);
         const lines = content.split("\n");

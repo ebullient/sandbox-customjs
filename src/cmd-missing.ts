@@ -1,4 +1,5 @@
 import type { App, LinkCache, TFile } from "obsidian";
+import { moment } from "obsidian";
 import type { RenderFn, Utils } from "./_utils";
 
 type FileReferences = Record<string, number>;
@@ -258,7 +259,7 @@ export class Missing {
         anchors: string[][],
         fileMap: FileReferences,
     ): Promise<void> => {
-        const now = window.moment();
+        const now = moment();
         const cleanLink = this.utils().cleanLinkTarget(lc);
         const target = cleanLink.link;
 
@@ -280,7 +281,7 @@ export class Missing {
             // Match: YYYY-MM-DD with optional suffix like _week, _20, etc.
             let match = /.*(\d{4}-\d{2}-\d{2})(?:_\w+)?\.md/.exec(target);
             if (match != null) {
-                const filedate = window.moment(match[1]);
+                const filedate = moment(match[1]);
                 const nowYMD = now.format("YYYY-MM-DD");
                 if (filedate.isAfter(now) || match[1] === nowYMD) {
                     return;
@@ -289,7 +290,7 @@ export class Missing {
             // Match: YYYY-MM with _month or other suffix
             match = /.*(\d{4}-\d{2})_\w+\.md/.exec(target);
             if (match != null) {
-                const filedate = window.moment(`${match[1]}-01`);
+                const filedate = moment(`${match[1]}-01`);
                 if (filedate.isAfter(now)) {
                     return;
                 }
@@ -297,7 +298,7 @@ export class Missing {
             // Match: YYYY.md (year files)
             match = /.*(\d{4})\.md/.exec(target);
             if (match != null) {
-                const filedate = window.moment(`${match[1]}-01-01`);
+                const filedate = moment(`${match[1]}-01-01`);
                 if (filedate.isAfter(now)) {
                     return;
                 }

@@ -1,4 +1,3 @@
-import type { Moment } from "moment";
 import type {
     App,
     FrontMatterCache,
@@ -7,6 +6,7 @@ import type {
     TFile,
     TFolder,
 } from "obsidian";
+import { moment } from "obsidian";
 import type { EngineAPI } from "./@types/jsengine.types";
 
 export type CompareFn = () => number;
@@ -876,7 +876,10 @@ export class Utils {
      * @param {Moment} end The ending date (inclusive).
      * @returns {Array} A list of tags found in daily notes for the date range.
      */
-    tagsForDates = async (begin: Moment, end: Moment): Promise<string[]> => {
+    tagsForDates = async (
+        begin: moment.Moment,
+        end: moment.Moment,
+    ): Promise<string[]> => {
         const tagsByFile = this.tagsForDatesByFile(begin, end, []);
         return Array.from(tagsByFile.values()).flat();
     };
@@ -889,8 +892,8 @@ export class Utils {
      * @returns {Map<TFile, string[]>} A map of TFile to tags for that file.
      */
     tagsForDatesByFile = (
-        begin: Moment,
-        end: Moment,
+        begin: moment.Moment,
+        end: moment.Moment,
         _conditions: string | string[],
     ): Map<TFile, string[]> => {
         const result = new Map<TFile, string[]>();
@@ -904,7 +907,7 @@ export class Utils {
                     return false;
                 }
 
-                const day = window.moment(dateMatch[1]);
+                const day = moment(dateMatch[1]);
                 return (
                     day.isSameOrAfter(begin, "day") &&
                     day.isSameOrBefore(end, "day")

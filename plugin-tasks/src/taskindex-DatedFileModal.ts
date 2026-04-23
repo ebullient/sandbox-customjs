@@ -62,7 +62,7 @@ export class DatedFileModal extends FuzzySuggestModal<DatedFileEntry> {
     }
 
     getItems(): DatedFileEntry[] {
-        const today = window.moment();
+        const today = moment();
 
         // Build quick access entries
         const quickAccess = this.buildQuickAccessEntries(today);

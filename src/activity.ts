@@ -1,5 +1,5 @@
-import type { Moment } from "moment";
 import type { App } from "obsidian";
+import { moment } from "obsidian";
 import type { EngineAPI } from "./@types/jsengine.types";
 import type { Utils } from "./_utils";
 
@@ -91,7 +91,10 @@ export class Activity {
      *      the count for each activity found between the starting and ending dates.
      * @see utils.tagsForDates
      */
-    countTags = async (begin: Moment, end: Moment): Promise<ActivityResult> => {
+    countTags = async (
+        begin: moment.Moment,
+        end: moment.Moment,
+    ): Promise<ActivityResult> => {
         const keys = Object.keys(this.activities);
         const count = keys.map(() => 0);
         const prefix = "me/✅/";
@@ -278,7 +281,7 @@ export class Activity {
      * @returns {Promise<HTMLElement>} A promise that resolves to an HTML element containing the report.
      */
     createReport = async (_: EngineAPI): Promise<HTMLElement> => {
-        const current = window.moment();
+        const current = moment();
         const monday = current.clone().isoWeekday(1);
         const lastMonday = monday.clone().subtract(1, "weeks");
         const prev4 = monday.clone().subtract(4, "weeks");

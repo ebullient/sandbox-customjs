@@ -34,7 +34,7 @@ export class LastModifiedTracker {
      */
     private async updateLastModified(file: TFile): Promise<void> {
         try {
-            const today = window.moment().format("YYYY-MM-DD");
+            const today = moment().format("YYYY-MM-DD");
 
             await this.app.fileManager.processFrontMatter(
                 file,

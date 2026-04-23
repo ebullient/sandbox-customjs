@@ -662,7 +662,7 @@ export class PushTextCommand {
         const pretty = path.includes("conversations")
             ? `**${title}**`
             : `_${title}_`;
-        const date = pathDate || window.moment().format("YYYY-MM-DD");
+        const date = pathDate || moment().format("YYYY-MM-DD");
 
         return {
             pretty,
@@ -691,7 +691,7 @@ export class PushTextCommand {
             return sourceDate;
         }
 
-        return window.moment().format("YYYY-MM-DD");
+        return moment().format("YYYY-MM-DD");
     }
 
     /**

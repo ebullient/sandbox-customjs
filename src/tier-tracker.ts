@@ -1,4 +1,5 @@
 import type { App } from "obsidian";
+import { moment } from "obsidian";
 import type { EngineAPI } from "./@types/jsengine.types";
 import type { Utils } from "./_utils";
 
@@ -38,7 +39,7 @@ export class TierTracker {
         actualStartDate: string;
     }> => {
         const tierData = new Map<string, TierData>();
-        const current = window.moment();
+        const current = moment();
 
         // Calculate 52 weeks back from the end of current week (Sunday)
         const endOfWeek = current.clone().day(7); // Sunday
@@ -181,11 +182,11 @@ export class TierTracker {
 			gap: 2px;
 		`;
 
-        const current = window.moment();
+        const current = moment();
         const endOfWeek = current.clone().day(7); // Sunday
 
         // Adjust start date to nearest Monday (beginning of week)
-        const startDate = window.moment(startDateStr);
+        const startDate = moment(startDateStr);
         const startDayOfWeek = startDate.day(); // 0 = Sunday, 1 = Monday, etc.
         if (startDayOfWeek !== 1) {
             // If not Monday, go back to the previous Monday
@@ -195,7 +196,7 @@ export class TierTracker {
         }
 
         // Iterate through each day from Monday of first week to end of current week
-        const iterDate = window.moment(startDate);
+        const iterDate = moment(startDate);
         while (iterDate.isSameOrBefore(endOfWeek)) {
             const dateStr = iterDate.format("YYYY-MM-DD");
             const data = tierData.get(dateStr);

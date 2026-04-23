@@ -1,5 +1,5 @@
-import type { Moment } from "moment";
 import type { App, TFile } from "obsidian";
+import { moment } from "obsidian";
 
 interface Birthdays {
     [padMonth: string]: BirthdayDate[];
@@ -26,7 +26,7 @@ interface MonthlyDates {
     lastMonthFile: string;
     nextMonth: string;
     nextMonthFile: string;
-    firstMonday: Moment;
+    firstMonday: moment.Moment;
 }
 
 interface MonthInfo {
@@ -41,12 +41,12 @@ interface MonthOfYear {
 }
 
 interface ParsedDates {
-    day: Moment;
-    nextWorkDay: Moment;
+    day: moment.Moment;
+    nextWorkDay: moment.Moment;
     nextWorkDayName: string;
-    lastMonday: Moment;
-    monday: Moment;
-    nextMonday: Moment;
+    lastMonday: moment.Moment;
+    monday: moment.Moment;
+    nextMonday: moment.Moment;
 }
 
 interface WeekInfo {
@@ -89,7 +89,7 @@ export class Dated {
     parseDate = (filename: string): ParsedDates => {
         const titledate =
             filename.match(/(\d{4}-\d{2}-\d{2})/)?.[1] || filename;
-        const day = window.moment(titledate);
+        const day = moment(titledate);
         const dayOfWeek = day.isoWeekday();
 
         let theMonday = day.clone().day(1);
@@ -113,7 +113,7 @@ export class Dated {
         };
     };
 
-    dateOfWeek = (monday: Moment, dayOfWeek: number): string => {
+    dateOfWeek = (monday: moment.Moment, dayOfWeek: number): string => {
         return monday.clone().day(dayOfWeek).format("YYYY-MM-DD");
     };
 
@@ -123,7 +123,7 @@ export class Dated {
      * @param {number} dayOfWeek The day of the week (1 for Monday, 7 for Sunday).
      * @returns {string} The file path for the specified day of the week.
      */
-    dayOfWeekFile = (monday: Moment, dayOfWeek: number): string => {
+    dayOfWeekFile = (monday: moment.Moment, dayOfWeek: number): string => {
         return this.dailyFile(monday.clone().day(dayOfWeek));
     };
 
@@ -132,7 +132,7 @@ export class Dated {
      * @param {Moment} target The date to generate the file path for.
      * @returns {string} The file path for the specified date.
      */
-    dailyFile = (target: Moment): string => {
+    dailyFile = (target: moment.Moment): string => {
         return target.format("[chronicles]/YYYY/YYYY-MM-DD[.md]");
     };
 
@@ -141,7 +141,7 @@ export class Dated {
      * @param {Moment} target The date to generate the file path for.
      * @returns {string} The file path for the specified date.
      */
-    dailyJournalFile = (target: Moment): string => {
+    dailyJournalFile = (target: moment.Moment): string => {
         return target.format(
             "[chronicles/journal]/YYYY/[journal-]YYYY-MM-DD[.md]",
         );
@@ -152,7 +152,7 @@ export class Dated {
      * @param {Moment} monday The Monday to generate the file path for.
      * @returns {string} The file path for the specified Monday.
      */
-    weeklyFile = (monday: Moment): string => {
+    weeklyFile = (monday: moment.Moment): string => {
         return monday.format("[chronicles]/YYYY/YYYY-MM-DD[_week.md]");
     };
 
@@ -161,21 +161,21 @@ export class Dated {
      * @param {Moment} monday The Monday to generate the file path for.
      * @returns {string} The file path for the specified Monday.
      */
-    weeklyJournalFile = (monday: Moment): string => {
+    weeklyJournalFile = (monday: moment.Moment): string => {
         return monday.format(
             "[chronicles/journal]/YYYY/[journal-]YYYY-MM-DD[_week.md]",
         );
     };
 
-    weeklyWorkReportDay = (fileName: string): Moment | undefined => {
+    weeklyWorkReportDay = (fileName: string): moment.Moment | undefined => {
         const dateString =
             fileName.match(/(\d{4}-\d{2}-\d{2})/)?.[1] || undefined;
         if (dateString) {
-            return window.moment(dateString);
+            return moment(dateString);
         }
     };
 
-    weeklyWorkReportFile = (friday: Moment): string => {
+    weeklyWorkReportFile = (friday: moment.Moment): string => {
         return friday
             ? friday.format("[chronicles/work/ibm-]YYYY/[ibm-]YYYY-MM-DD[.md]")
             : "";
@@ -186,7 +186,7 @@ export class Dated {
      * @param {Moment} monday The Monday to generate the file path for.
      * @returns {string} The file path for the specified Monday.
      */
-    weeklyWorkReport = (monday: Moment): string => {
+    weeklyWorkReport = (monday: moment.Moment): string => {
         const ibmStart = monday.clone().subtract(3, "d");
         const ibmEnd = ibmStart.clone().add(6, "d");
         const ibmReportBegin = ibmStart
@@ -204,7 +204,7 @@ export class Dated {
      * @param {Moment} target The date to generate the file path for.
      * @returns {string} The file path for the specified month.
      */
-    monthlyFile = (target: Moment): string => {
+    monthlyFile = (target: moment.Moment): string => {
         return target.format("[chronicles]/YYYY/YYYY-MM[_month.md]");
     };
 
@@ -213,7 +213,7 @@ export class Dated {
      * @param {Moment} target The date to generate the file path for.
      * @returns {string} The file path for the specified year.
      */
-    yearlyFile = (target: Moment): string => {
+    yearlyFile = (target: moment.Moment): string => {
         return target.format("[chronicles]/YYYY/YYYY[.md]");
     };
 
@@ -315,7 +315,7 @@ return engine.markdown.create(
      */
     monthlyDates = (fileName: string): MonthlyDates => {
         const dateString = fileName.replace(".md", "").replace("_month", "-01");
-        const date = window.moment(dateString);
+        const date = moment(dateString);
         const lastMonth = date.clone().add(-1, "month");
         const nextMonth = date.clone().add(1, "month");
 
@@ -366,7 +366,7 @@ return engine.markdown.create(
         const dateString = `${filename.replace(".md", "")}-01-01`;
         console.log(this.birthdayFile, dateString);
 
-        const date = window.moment(dateString);
+        const date = moment(dateString);
         const year = date.format("YYYY");
         const yearFile = this.yearlyFile(date);
         const lastYear = date.clone().add(-1, "year");
@@ -414,7 +414,7 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
      * @returns {Object} An object containing the month name and month file path.
      */
     monthOfYear = (year: number, i: number): MonthOfYear => {
-        const month = window.moment([year, i, 1]);
+        const month = moment([year, i, 1]);
         return {
             month: month.format("MMMM"),
             monthFile: this.monthlyFile(month),
@@ -459,12 +459,12 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
             );
 
             // Calculate the date range we care about for this specific year file
-            const yearStart = window.moment([year, 0, 1]); // Jan 1 of year
-            const yearEnd = window.moment([year, 11, 31]); // Dec 31 of year
+            const yearStart = moment([year, 0, 1]); // Jan 1 of year
+            const yearEnd = moment([year, 11, 31]); // Dec 31 of year
 
             // Look for dates within the year AND within our two-week range
-            const searchStart = window.moment.max(dates.monday, yearStart);
-            const searchEnd = window.moment.min(
+            const searchStart = moment.max(dates.monday, yearStart);
+            const searchEnd = moment.min(
                 twoWeeksFromMonday.clone().subtract(1, "day"),
                 yearEnd,
             );
@@ -494,7 +494,7 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
                     /^## (January|February|March|April|May|June|July|August|September|October|November|December)$/,
                 );
                 if (monthMatch) {
-                    currentMonth = window.moment(monthMatch[1], "MMMM").month();
+                    currentMonth = moment(monthMatch[1], "MMMM").month();
                     inTargetMonth =
                         currentMonth >= searchStartMonth &&
                         currentMonth <= searchEndMonth;
@@ -512,11 +512,7 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
                     const dayMatch = trimmedLine.match(/^- (\d{1,2})/);
                     if (dayMatch) {
                         const day = Number.parseInt(dayMatch[1], 10);
-                        const entryDate = window.moment([
-                            year,
-                            currentMonth,
-                            day,
-                        ]);
+                        const entryDate = moment([year, currentMonth, day]);
 
                         // Check if this date falls within this week
                         if (

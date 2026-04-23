@@ -7,7 +7,7 @@
     "target": "es2022",
     "allowJs": true,
     "moduleResolution": "bundler",
-    "esModuleInterop": true,
+    "esModuleInterop": false,
     "importHelpers": true,
     "lib": [
       "dom",

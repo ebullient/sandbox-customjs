@@ -340,7 +340,7 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
      * Reuses existing leaf if already open, positions cursor at end.
      */
     private async openTodayJournal(): Promise<void> {
-        const today = window.moment();
+        const today = moment();
         const journalPath = today.format(this.settings.journalFormat);
 
         // Check if already open in a markdown leaf

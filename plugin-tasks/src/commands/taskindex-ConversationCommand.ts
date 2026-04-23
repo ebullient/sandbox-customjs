@@ -34,7 +34,7 @@ export class ConversationCommand {
             const sourceContext = getNoteContext(activeFile.path);
             const day =
                 sourceContext.date ||
-                window.moment(activeFile.basename).format("YYYY-MM-DD");
+                moment(activeFile.basename).format("YYYY-MM-DD");
             console.log("[Conversation] Source context:", sourceContext);
             console.log("[Conversation] Day:", day);
 

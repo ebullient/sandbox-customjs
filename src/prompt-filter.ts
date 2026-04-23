@@ -1,4 +1,5 @@
 import type { App } from "obsidian";
+import { moment } from "obsidian";
 import type { FilterFn } from "./@types/prompt-flow.types";
 
 interface TierFilterConfig {
@@ -318,7 +319,7 @@ export class PromptFilter {
         }
 
         const dateStr = linkMatch[1]; // e.g., "2025-11-03"
-        const date = window.moment(dateStr);
+        const date = moment(dateStr);
 
         // Get week boundaries starting on Monday
         const weekStart = date.clone().startOf("isoWeek");
