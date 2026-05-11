@@ -24,7 +24,7 @@
   },
   "keywords": [],
   "devDependencies": {
-    "@biomejs/biome": "2.4.8",
+    "@biomejs/biome": "2.4.11",
     "@types/codemirror": "5.60.17",
     "@types/moment": "^2.11.29",
     "@types/node": "^25.5.0",
