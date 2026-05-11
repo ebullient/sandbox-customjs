@@ -17,7 +17,12 @@ function copyFileAndMap(fileName, target) {
 
     console.log(`🖨️  copy ${fileName} to ${tgtFile}`);
     // We have to clean up the generated file: some content doesn't work w/ customJS
-    const content = readFileSync(srcFile, "utf-8").replace(
+    const content = readFileSync(srcFile, "utf-8")
+        .replace(
+            /import { moment } from "obsidian";/,
+            ""
+        )
+        .replace(
         /export class/,
         "class",
     );

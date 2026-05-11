@@ -169,7 +169,7 @@ export class TierTracker {
 			`;
 
             const label = item.createEl("span");
-            label.setText(`Tier ${tier}`);
+            label.setText(`T${tier}`);
         }
 
         // Create grid container (on the right)
