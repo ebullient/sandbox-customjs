@@ -16,7 +16,7 @@ export class Scratch {
         const activeView = this.app.workspace.getActiveViewOfType(
             window.customJS.obsidian.MarkdownView,
         );
-        if (!activeView || !activeView.editor) {
+        if (!activeView?.editor) {
             console.log("No active editor found");
             return;
         }
