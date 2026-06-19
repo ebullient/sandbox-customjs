@@ -141,44 +141,13 @@ export class TierTracker {
 			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 		`;
 
-        // Create legend first (on the left)
-        const legend = container.createEl("div");
-        legend.style.cssText = `
-			display: flex;
-			flex-direction: column;
-			gap: 8px;
-			font-size: 12px;
-		`;
-
-        // Add legend items for each tier
-        for (let tier = 1; tier <= 4; tier++) {
-            const item = legend.createEl("div");
-            item.style.cssText = `
-				display: flex;
-				align-items: center;
-				gap: 8px;
-			`;
-
-            const colorBox = item.createEl("div");
-            const color = this.tierColors[tier as keyof typeof this.tierColors];
-            colorBox.style.cssText = `
-				width: 16px;
-				height: 16px;
-				border-radius: 2px;
-				background-color: rgb(${color});
-			`;
-
-            const label = item.createEl("span");
-            label.setText(`T${tier}`);
-        }
-
-        // Create grid container (on the right)
+        // Create grid container (on the left)
         const grid = container.createEl("div");
         grid.style.cssText = `
 			display: grid;
-			grid-template-rows: repeat(7, 12px);
+			grid-template-rows: repeat(7, 10px);
 			grid-auto-flow: column;
-			grid-auto-columns: 12px;
+			grid-auto-columns: 10px;
 			gap: 2px;
 		`;
 
@@ -203,8 +172,8 @@ export class TierTracker {
 
             const cell = grid.createEl("div");
             cell.style.cssText = `
-				width: 12px;
-				height: 12px;
+				width: 10px;
+				height: 10px;
 				border-radius: 2px;
 				cursor: pointer;
 			`;
@@ -239,7 +208,7 @@ export class TierTracker {
                 if (data?.isError) {
                     cell.style.color = "#ff0000";
                     cell.style.fontSize = "8px";
-                    cell.style.lineHeight = "12px";
+                    cell.style.lineHeight = "10px";
                     cell.style.textAlign = "center";
                     cell.setText("!");
                 }
