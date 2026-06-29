@@ -113,14 +113,6 @@ export class TierTracker {
             actualStartDate = dates[0];
         }
 
-        console.debug(
-            "Actual tier data range:",
-            actualStartDate,
-            "to",
-            endOfWeek.format("YYYY-MM-DD"),
-            `(${tierData.size} days)`,
-        );
-
         return { tierData, actualStartDate };
     };
 
