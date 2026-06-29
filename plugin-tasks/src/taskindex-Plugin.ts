@@ -58,7 +58,7 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
         this.index = new QuestIndex(this.app, this);
         this.detector = new ReviewDetector(this.app, this);
         this.updater = new FileUpdater(this.app);
-        this.taskEngine = new TaskEngine(this.app);
+        this.taskEngine = new TaskEngine(this.app, this);
         this.lastModifiedTracker = new LastModifiedTracker(this.app, this);
 
         // Initialize API with TaskEngine and expose to window

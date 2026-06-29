@@ -11,7 +11,7 @@ export const DEFAULT_SETTINGS: TaskIndexSettings = {
 
     minArchiveLines: 50,
 
-    questFolders: ["areas", "projects"],
+    questFolders: ["areas", "quests", "queue"],
     validTypes: ["quest", "area", "project", "demesne"],
 
     purposeTags: ["#me/🎯/🤓", "#me/🧬/creativity/curiosity"],

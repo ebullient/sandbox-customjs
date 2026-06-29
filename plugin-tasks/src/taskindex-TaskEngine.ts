@@ -1,4 +1,5 @@
 import type { App, HeadingCache, moment, TFile } from "obsidian";
+import type { CurrentSettings } from "./@types";
 import * as CommonPatterns from "./taskindex-CommonPatterns";
 import * as LogParser from "./taskindex-LogParser";
 
@@ -16,9 +17,27 @@ interface FileCacheInfo {
 }
 
 export class TaskEngine {
-    private taskPaths = ["demesne/", "quests/"];
+    private taskPaths: string[];
+    private validTypes: string[];
 
-    constructor(private app: App) {}
+    constructor(
+        private app: App,
+        settings?: CurrentSettings,
+    ) {
+        const questFolders = settings?.current().questFolders ?? [
+            "demesne/",
+            "quests/",
+        ];
+        this.taskPaths = questFolders.map((f) =>
+            f.endsWith("/") ? f : `${f}/`,
+        );
+        this.validTypes = settings?.current().validTypes ?? [
+            "quest",
+            "area",
+            "project",
+            "demesne",
+        ];
+    }
 
     /**
      * Get tasks from a specific file
@@ -66,7 +85,11 @@ export class TaskEngine {
                 ) {
                     return false;
                 }
-                return this.taskPaths.some((p) => f.path.startsWith(p));
+                if (!this.taskPaths.some((p) => f.path.startsWith(p))) {
+                    return false;
+                }
+                const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
+                return fm?.type && this.validTypes.includes(fm.type);
             })
             .filter((f) => {
                 return tagFilter
@@ -78,6 +101,11 @@ export class TaskEngine {
                       )
                     : true;
             });
+
+        console.log(
+            "[TaskEngine] matched files:",
+            files.map((f) => f.path),
+        );
 
         // Parse all completed tasks from all files
         const allTasks: LogParser.CompletedTask[] = [];
