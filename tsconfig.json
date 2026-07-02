@@ -7,8 +7,8 @@
     "target": "es2022",
     "allowJs": true,
     "moduleResolution": "bundler",
-    "esModuleInterop": false,
     "importHelpers": true,
+    "types": ["node"],
     "lib": [
       "dom",
       "es5",
