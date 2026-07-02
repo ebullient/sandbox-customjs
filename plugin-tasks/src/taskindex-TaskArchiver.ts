@@ -1,5 +1,6 @@
 import type { App, HeadingCache, TFile } from "obsidian";
 import { moment } from "obsidian";
+import * as ArchiveRules from "./taskindex-ArchiveRules";
 import * as CommonPatterns from "./taskindex-CommonPatterns";
 
 /**
@@ -96,6 +97,16 @@ export class TaskArchiver {
     }
 
     /**
+     * Extract the archiveInterval override from the file's frontmatter
+     */
+    private extractArchiveInterval(file: TFile): ArchiveRules.ArchiveInterval {
+        const cache = this.app.metadataCache.getFileCache(file);
+        return ArchiveRules.parseArchiveInterval(
+            cache?.frontmatter?.archiveInterval,
+        );
+    }
+
+    /**
      * Create or update an archive file with log entries from a specific year
      */
     private async createOrUpdateArchive(
@@ -157,6 +168,20 @@ export class TaskArchiver {
         const currentYear = now.year();
         const shouldArchive = now.month() >= 1; // February or later
         const areaName = this.extractAreaName(file);
+        const interval = this.extractArchiveInterval(file);
+        const weekMoment = moment().startOf("isoWeek");
+        const denatureCutoff = ArchiveRules.resolveDenatureCutoff(
+            interval,
+            monthMoment,
+            weekMoment,
+        );
+        const archiveCutoff = ArchiveRules.resolveArchiveCutoff(
+            interval,
+            monthMoment,
+            weekMoment,
+            now.clone().startOf("year"),
+            shouldArchive,
+        );
 
         let archiveParams: {
             year: string;
@@ -205,14 +230,23 @@ export class TaskArchiver {
                 const year =
                     completionDate &&
                     CommonPatterns.extractYear(completionDate);
-                const completedMoment =
-                    completionDate && moment(completionDate);
+                const completedMoment = completionDate
+                    ? moment(completionDate)
+                    : null;
 
-                // Track first previous-year task for archiving, even if already denatured
-                if (shouldArchive && year && year < currentYearString) {
+                // Track first archive-eligible task, even if already denatured
+                // (previous-year entries by default, or anything before the
+                // cutoff when a per-file archiveInterval override is set)
+                if (
+                    ArchiveRules.shouldArchiveEntry(
+                        completedMoment,
+                        archiveCutoff,
+                    )
+                ) {
                     if (!archiving) {
                         archiveStart = i;
-                        archiveYear = year;
+                        archiveYear =
+                            interval === "yearly" ? year : currentYearString;
                         archiving = true;
                     }
                     archiveEnd = i;
@@ -221,9 +255,9 @@ export class TaskArchiver {
                     break;
                 }
 
-                // Convert checkbox tasks older than current month to emoji entries
+                // Convert checkbox tasks older than the cutoff to emoji entries
                 if (
-                    completedMoment?.isBefore(monthMoment) &&
+                    completedMoment?.isBefore(denatureCutoff) &&
                     CommonPatterns.isTaskLine(line)
                 ) {
                     const parsed = CommonPatterns.parseTaskLine(line);
@@ -250,7 +284,12 @@ export class TaskArchiver {
                 const logEntries = split.slice(archiveStart, archiveEnd + 1);
 
                 // Check threshold BEFORE modifying the file
-                if (logEntries.length <= this.minArchiveLines) {
+                // (archiveInterval overrides the threshold - the point is to
+                // keep sweeping a chatty log out on a tight cadence)
+                if (
+                    !ArchiveRules.bypassesMinLines(interval) &&
+                    logEntries.length <= this.minArchiveLines
+                ) {
                     console.log(
                         "QuestArchiver: skip archive (below threshold)",
                         file.path,

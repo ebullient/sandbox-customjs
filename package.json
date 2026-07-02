@@ -20,7 +20,7 @@
     "dev:plugin-tasks": "node ./plugin-tasks/esbuild.config.mjs",
     "dev": "npm run dev:plugin & npm run dev:plugin-tasks & node ./build/build-dev.mjs dev",
     "push": "node ./build/build-dev.mjs",
-    "test": "npx tsc --project test/tsconfig.json && node dist/test/test/testPrefilter.js"
+    "test": "vitest run"
   },
   "keywords": [],
   "devDependencies": {
@@ -32,6 +32,7 @@
     "esbuild": "^0.28.0",
     "obsidian": "^1.12.3",
     "tslib": "^2.8.1",
-    "typescript": "^6.0.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.9"
   }
 }
