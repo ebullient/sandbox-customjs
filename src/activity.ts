@@ -1,5 +1,4 @@
 import type { App } from "obsidian";
-import { moment } from "obsidian";
 import type { EngineAPI } from "./@types/jsengine.types";
 import type { Utils } from "./_utils";
 
@@ -281,7 +280,7 @@ export class Activity {
      * @returns {Promise<HTMLElement>} A promise that resolves to an HTML element containing the report.
      */
     createReport = async (_: EngineAPI): Promise<HTMLElement> => {
-        const current = moment();
+        const current = this.utils().momentFn();
         const monday = current.clone().isoWeekday(1);
         const lastMonday = monday.clone().subtract(1, "weeks");
         const prev4 = monday.clone().subtract(4, "weeks");

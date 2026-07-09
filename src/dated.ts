@@ -1,5 +1,6 @@
 import type { App, TFile } from "obsidian";
 import { moment } from "obsidian";
+import type { Utils } from "./_utils";
 
 interface Birthdays {
     [padMonth: string]: BirthdayDate[];
@@ -80,6 +81,8 @@ export class Dated {
         );
     }
 
+    utils = (): Utils => window.customJS.Utils;
+
     /**
      * Parse the date from a filename and calculate related dates.
      * @param {string} filename The filename to parse.
@@ -89,7 +92,7 @@ export class Dated {
     parseDate = (filename: string): ParsedDates => {
         const titledate =
             filename.match(/(\d{4}-\d{2}-\d{2})/)?.[1] || filename;
-        const day = moment(titledate);
+        const day = this.utils().momentFn(titledate);
         const dayOfWeek = day.isoWeekday();
 
         let theMonday = day.clone().day(1);
@@ -171,7 +174,7 @@ export class Dated {
         const dateString =
             fileName.match(/(\d{4}-\d{2}-\d{2})/)?.[1] || undefined;
         if (dateString) {
-            return moment(dateString);
+            return this.utils().momentFn(dateString);
         }
     };
 
@@ -315,7 +318,7 @@ return engine.markdown.create(
      */
     monthlyDates = (fileName: string): MonthlyDates => {
         const dateString = fileName.replace(".md", "").replace("_month", "-01");
-        const date = moment(dateString);
+        const date = this.utils().momentFn(dateString);
         const lastMonth = date.clone().add(-1, "month");
         const nextMonth = date.clone().add(1, "month");
 
@@ -366,7 +369,7 @@ return engine.markdown.create(
         const dateString = `${filename.replace(".md", "")}-01-01`;
         console.log(this.birthdayFile, dateString);
 
-        const date = moment(dateString);
+        const date = this.utils().momentFn(dateString);
         const year = date.format("YYYY");
         const yearFile = this.yearlyFile(date);
         const lastYear = date.clone().add(-1, "year");
@@ -414,7 +417,7 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
      * @returns {Object} An object containing the month name and month file path.
      */
     monthOfYear = (year: number, i: number): MonthOfYear => {
-        const month = moment([year, i, 1]);
+        const month = this.utils().momentFn([year, i, 1]);
         return {
             month: month.format("MMMM"),
             monthFile: this.monthlyFile(month),
@@ -459,8 +462,8 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
             );
 
             // Calculate the date range we care about for this specific year file
-            const yearStart = moment([year, 0, 1]); // Jan 1 of year
-            const yearEnd = moment([year, 11, 31]); // Dec 31 of year
+            const yearStart = this.utils().momentFn([year, 0, 1]); // Jan 1 of year
+            const yearEnd = this.utils().momentFn([year, 11, 31]); // Dec 31 of year
 
             // Look for dates within the year AND within our two-week range
             const searchStart = moment.max(dates.monday, yearStart);
@@ -494,7 +497,9 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
                     /^## (January|February|March|April|May|June|July|August|September|October|November|December)$/,
                 );
                 if (monthMatch) {
-                    currentMonth = moment(monthMatch[1], "MMMM").month();
+                    currentMonth = this.utils()
+                        .momentFn(monthMatch[1], "MMMM")
+                        .month();
                     inTargetMonth =
                         currentMonth >= searchStartMonth &&
                         currentMonth <= searchEndMonth;
@@ -512,7 +517,11 @@ return Utils.listFilesWithPath(engine, /chronicles\\/${year}\\/${year}-\\d{2}-\\
                     const dayMatch = trimmedLine.match(/^- (\d{1,2})/);
                     if (dayMatch) {
                         const day = Number.parseInt(dayMatch[1], 10);
-                        const entryDate = moment([year, currentMonth, day]);
+                        const entryDate = this.utils().momentFn([
+                            year,
+                            currentMonth,
+                            day,
+                        ]);
 
                         // Check if this date falls within this week
                         if (

@@ -60,6 +60,22 @@ export class Utils {
         console.log("loaded Utils");
     }
 
+    /**
+     * TypeScript 6.0 loses the callable signature of `moment` when it is
+     * re-exported by obsidian.d.ts as `typeof Moment`. Cast through
+     * `unknown` to recover it, checking for the `default` interop shape.
+     * @param {...unknown[]} args Arguments to pass to moment().
+     * @returns {moment.Moment} The resulting Moment instance.
+     */
+    momentFn = (...args: unknown[]): moment.Moment => {
+        type MomentFn = (...a: unknown[]) => moment.Moment;
+        const fn =
+            "default" in moment
+                ? (moment as unknown as { default: MomentFn }).default
+                : (moment as unknown as MomentFn);
+        return fn(...args);
+    };
+
     allTags = (): string[] => {
         // use a set to avoid duplicates
         const allTags = new Set<string>();
@@ -204,7 +220,7 @@ export class Utils {
         if (!cache) {
             return [];
         }
-        const tags = [];
+        const tags: string[] = [];
 
         const normalizeTag = (t: TagCache | string) => {
             if (t != null) {
@@ -907,7 +923,7 @@ export class Utils {
                     return false;
                 }
 
-                const day = moment(dateMatch[1]);
+                const day = this.momentFn(dateMatch[1]);
                 return (
                     day.isSameOrAfter(begin, "day") &&
                     day.isSameOrBefore(end, "day")

@@ -8,6 +8,8 @@
     "allowJs": true,
     "moduleResolution": "bundler",
     "importHelpers": true,
+    "strictNullChecks": false,
+    "skipLibCheck": true,
     "types": ["node"],
     "lib": [
       "dom",
