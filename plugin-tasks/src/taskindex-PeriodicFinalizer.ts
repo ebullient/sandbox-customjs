@@ -87,7 +87,15 @@ export class PeriodicFinalizer {
             .replace(/\n%%\n- 🎉[\s\S]*?\n%%\n/, "")
             .replace(/\n%% %%\n/g, "\n")
             .replace(/\n- \.\n/g, "")
-            .replace(/\n\d\. \.\n/g, "");
+            .replace(/\n\d\. \.\n/g, "")
+            .replace(
+                /> - \*Name one small thing to look forward to today:\*\n/g,
+                "> - N/A\n",
+            )
+            .replace(/> - \*Affirmation of the day\*\n/g, "")
+            .replace(/> - \*Today's highlight\*\n/g, "")
+            .replace(/> - \*Insight of today\*\n/g, "")
+            .replace(/%% tier goes here %%\n/, "");
 
         // Collapse empty Day Planner sections
         revised = revised.replace(
