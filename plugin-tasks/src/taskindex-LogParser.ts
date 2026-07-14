@@ -1,8 +1,8 @@
 import type { App, TFile } from "obsidian";
 import { getAllTags } from "obsidian";
 import {
-    COMPLETED_DATE_REGEX,
     COMPLETED_MARK_REGEX,
+    extractCompletionDate,
     TASK_REGEX,
 } from "./taskindex-CommonPatterns";
 import { getFileTitle } from "./taskindex-NoteUtils";
@@ -44,8 +44,8 @@ export function parseCompletedTask(
     }
 
     // Extract completion date
-    const dateMatch = COMPLETED_DATE_REGEX.exec(text);
-    if (!dateMatch) {
+    const completedDate = extractCompletionDate(text);
+    if (!completedDate) {
         return null;
     }
 
@@ -55,7 +55,7 @@ export function parseCompletedTask(
         name,
         mark,
         text,
-        completedDate: dateMatch[1],
+        completedDate,
     };
 }
 

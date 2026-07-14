@@ -19,7 +19,7 @@ export const YEARLY_NOTE_REGEX = /\/\d{4}\.md$/;
  * Task line patterns
  */
 export const TASK_REGEX = /^(\s*)-\s*\[(.)\]\s*(.*)$/;
-export const COMPLETED_DATE_REGEX = /\((\d{4}-\d{2}-\d{2})\)/;
+export const COMPLETED_DATE_REGEX = /\((\d{4}-\d{2}-\d{2})\)\s*$/;
 export const COMPLETED_MARK_REGEX = /[x-]/;
 
 /**
