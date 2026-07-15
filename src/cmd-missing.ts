@@ -6,6 +6,7 @@ type FileReferences = Record<string, number>;
 interface MissingConfig {
     ignoreAnchors: string[];
     ignoreFiles: string[];
+    ignorePaths: string[];
     ignoreUnreferencedPath: string[];
 }
 
@@ -31,6 +32,8 @@ export class Missing {
     ];
 
     ignoreFiles: string[] = [this.targetFile];
+
+    ignorePaths: string[] = ["agents/"];
 
     ignoreUnreferencedPath: string[] = ["compendium/5e"];
 
@@ -66,6 +69,9 @@ export class Missing {
                 // Always include the target file
                 this.ignoreFiles = [this.targetFile, ...config.ignoreFiles];
             }
+            if (config.ignorePaths) {
+                this.ignorePaths = config.ignorePaths;
+            }
             if (config.ignoreUnreferencedPath) {
                 this.ignoreUnreferencedPath = config.ignoreUnreferencedPath;
             }
@@ -98,6 +104,9 @@ export class Missing {
         const fileMap: FileReferences = {};
 
         for (const file of this.app.vault.getFiles()) {
+            if (this.ignorePaths.some((p) => file.path.startsWith(p))) {
+                continue;
+            }
             if (
                 file.path.endsWith(".canvas") ||
                 file.path.endsWith(".md") ||
@@ -115,7 +124,8 @@ export class Missing {
         // Find all markdown files that are not in the ignore list
         const files = this.app.vault
             .getMarkdownFiles()
-            .filter((x) => !this.ignoreFiles.includes(x.path));
+            .filter((x) => !this.ignoreFiles.includes(x.path))
+            .filter((x) => !this.ignorePaths.some((p) => x.path.startsWith(p)));
 
         console.log("Finding lost things: reading files");
 
@@ -271,16 +281,22 @@ export class Missing {
                 target.startsWith("http") ||
                 target.startsWith("mailto") ||
                 target.startsWith("view-source") ||
-                this.ignoreFiles.includes(target)
+                this.ignoreFiles.includes(target) ||
+                this.ignorePaths.some((p) => target.startsWith(p))
             ) {
                 return;
             }
 
             // ignore missing links for periodic notes in the future
             // Match: YYYY-MM-DD with optional suffix like _week, _20, etc.
-            let match = /.*(\d{4}-\d{2}-\d{2})(?:_\w+)?\.md/.exec(target);
+            let match = /.*(\d{4}-\d{2}-\d{2})(?:_(\w+))?\.md/.exec(target);
             if (match != null) {
                 const filedate = this.utils().momentFn(match[1]);
+                if (match[2] === "week") {
+                    // weekly notes are dated Monday but may not be
+                    // created until the end of the week (Sunday)
+                    filedate.add(6, "days");
+                }
                 const nowYMD = now.format("YYYY-MM-DD");
                 if (filedate.isAfter(now) || match[1] === nowYMD) {
                     return;
