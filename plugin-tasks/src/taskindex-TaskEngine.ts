@@ -67,6 +67,7 @@ export class TaskEngine {
         matchAll = false,
         removeTriageTags = false,
         excludeFile?: TFile,
+        excludeCancelled = false,
     ): Promise<string> {
         const startDate = begin.format("YYYY-MM-DD");
         const endDate = end.format("YYYY-MM-DD");
@@ -114,7 +115,11 @@ export class TaskEngine {
                 this.app,
                 file,
             );
-            allTasks.push(...tasks);
+            allTasks.push(
+                ...(excludeCancelled
+                    ? tasks.filter((t) => t.mark !== "-")
+                    : tasks),
+            );
         }
 
         // Filter by date range
@@ -149,6 +154,7 @@ export class TaskEngine {
             false,
             false,
             current,
+            true, // Exclude cancelled tasks from weekly planning view
         );
     }
 
