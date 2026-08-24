@@ -125,22 +125,22 @@ export class TierTracker {
     ): HTMLElement => {
         const container = createEl("div");
         container.style.cssText = `
-			display: flex;
-			align-items: center;
-			gap: 20px;
-			padding: 20px;
-			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-		`;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        `;
 
         // Create grid container (on the left)
         const grid = container.createEl("div");
         grid.style.cssText = `
-			display: grid;
-			grid-template-rows: repeat(7, 10px);
-			grid-auto-flow: column;
-			grid-auto-columns: 10px;
-			gap: 2px;
-		`;
+            display: grid;
+            grid-template-rows: repeat(7, 10px);
+            grid-auto-flow: column;
+            grid-auto-columns: 10px;
+            gap: 2px;
+        `;
 
         const current = this.utils().momentFn();
         const endOfWeek = current.clone().day(7); // Sunday
@@ -155,76 +155,88 @@ export class TierTracker {
             startDate.subtract(daysToSubtract, "days");
         }
 
-        // Iterate through each day from Monday of first week to end of current week
-        const iterDate = this.utils().momentFn(startDate);
-        while (iterDate.isSameOrBefore(endOfWeek)) {
-            const dateStr = iterDate.format("YYYY-MM-DD");
-            const data = tierData.get(dateStr);
+        // Iterate week by week from most recent to oldest (columns left-to-right).
+        // Within each week, days go Monday to Sunday (rows top-to-bottom).
+        const weekStart = this.utils().momentFn(endOfWeek).subtract(6, "days");
+        while (weekStart.isSameOrAfter(startDate)) {
+            const iterDate = this.utils().momentFn(weekStart);
+            for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+                const dateStr = iterDate.format("YYYY-MM-DD");
+                const data = tierData.get(dateStr);
 
-            const cell = grid.createEl("div");
-            cell.style.cssText = `
-				width: 10px;
-				height: 10px;
-				border-radius: 2px;
-				cursor: pointer;
-			`;
+                const cell = grid.createEl("div");
+                cell.style.cssText = `
+                width: 10px;
+                height: 10px;
+                border-radius: 2px;
+                cursor: pointer;
+            `;
 
-            // Build tooltip text
-            let tooltipText = dateStr;
-            if (iterDate.isAfter(current)) {
-                tooltipText += " • Future";
-            } else if (!data) {
-                tooltipText += " • No tier data";
-            } else if (data.isError) {
-                tooltipText += " • Error: 3+ tier tags";
-            } else if (data.tier1 !== null && data.tier2 !== null) {
-                tooltipText += ` • Tier ${data.tier1}/${data.tier2}`;
-            } else if (data.tier1 !== null) {
-                tooltipText += ` • Tier ${data.tier1}`;
-            } else {
-                tooltipText += " • No tier data";
-            }
-
-            // Set tooltip (aria-label for Obsidian's tooltip system)
-            cell.setAttribute("aria-label", tooltipText);
-
-            // Determine cell styling based on tier data
-            if (iterDate.isAfter(current)) {
-                // Future date: transparent
-                cell.style.backgroundColor = "transparent";
-            } else if (!data || data.isError) {
-                // Error or missing data: gray with optional error indicator
-                cell.style.backgroundColor = "rgba(128, 128, 128, 0.2)";
-                cell.style.border = "1px solid rgba(128, 128, 128, 0.3)";
-                if (data?.isError) {
-                    cell.style.color = "#ff0000";
-                    cell.style.fontSize = "8px";
-                    cell.style.lineHeight = "10px";
-                    cell.style.textAlign = "center";
-                    cell.setText("!");
+                // Build tooltip text
+                let tooltipText = dateStr;
+                if (iterDate.isAfter(current)) {
+                    tooltipText += " • Future";
+                } else if (!data) {
+                    tooltipText += " • No tier data";
+                } else if (data.isError) {
+                    tooltipText += " • Error: 3+ tier tags";
+                } else if (data.tier1 !== null && data.tier2 !== null) {
+                    tooltipText += ` • Tier ${data.tier1}/${data.tier2}`;
+                } else if (data.tier1 !== null) {
+                    tooltipText += ` • Tier ${data.tier1}`;
+                } else {
+                    tooltipText += " • No tier data";
                 }
-            } else if (data.tier1 !== null && data.tier2 !== null) {
-                // Split cell: two tiers (gradient left-to-right)
-                const color1 =
-                    this.tierColors[data.tier1 as keyof typeof this.tierColors];
-                const color2 =
-                    this.tierColors[data.tier2 as keyof typeof this.tierColors];
-                cell.style.background = `linear-gradient(90deg, rgb(${color1}) 50%, rgb(${color2}) 50%)`;
-            } else if (data.tier1 !== null) {
-                // Single tier: solid color
-                const color =
-                    this.tierColors[data.tier1 as keyof typeof this.tierColors];
-                cell.style.backgroundColor = `rgb(${color})`;
-            } else {
-                // No tier data for past date: gray
-                cell.style.backgroundColor = "rgba(128, 128, 128, 0.2)";
-                cell.style.border = "1px solid rgba(128, 128, 128, 0.3)";
+
+                // Set tooltip (aria-label for Obsidian's tooltip system)
+                cell.setAttribute("aria-label", tooltipText);
+
+                // Determine cell styling based on tier data
+                if (iterDate.isAfter(current)) {
+                    // Future date: transparent
+                    cell.style.backgroundColor = "transparent";
+                } else if (!data || data.isError) {
+                    // Error or missing data: gray with optional error indicator
+                    cell.style.backgroundColor = "rgba(128, 128, 128, 0.2)";
+                    cell.style.border = "1px solid rgba(128, 128, 128, 0.3)";
+                    if (data?.isError) {
+                        cell.style.color = "#ff0000";
+                        cell.style.fontSize = "8px";
+                        cell.style.lineHeight = "10px";
+                        cell.style.textAlign = "center";
+                        cell.setText("!");
+                    }
+                } else if (data.tier1 !== null && data.tier2 !== null) {
+                    // Split cell: two tiers (gradient left-to-right)
+                    const color1 =
+                        this.tierColors[
+                        data.tier1 as keyof typeof this.tierColors
+                        ];
+                    const color2 =
+                        this.tierColors[
+                        data.tier2 as keyof typeof this.tierColors
+                        ];
+                    cell.style.background = `linear-gradient(90deg, rgb(${color1}) 50%, rgb(${color2}) 50%)`;
+                } else if (data.tier1 !== null) {
+                    // Single tier: solid color
+                    const color =
+                        this.tierColors[
+                        data.tier1 as keyof typeof this.tierColors
+                        ];
+                    cell.style.backgroundColor = `rgb(${color})`;
+                } else {
+                    // No tier data for past date: gray
+                    cell.style.backgroundColor = "rgba(128, 128, 128, 0.2)";
+                    cell.style.border = "1px solid rgba(128, 128, 128, 0.3)";
+                }
+
+                // Store date for future interactivity (clicks)
+                cell.setAttribute("data-date", dateStr);
+
+                iterDate.add(1, "days");
             }
 
-            // Store date for future interactivity (clicks)
-            cell.setAttribute("data-date", dateStr);
-
-            iterDate.add(1, "days");
+            weekStart.subtract(7, "days");
         }
 
         return container;
