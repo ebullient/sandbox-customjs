@@ -20,9 +20,6 @@ export class LastModifiedTracker {
             if (!this.settings.current().trackLastModified) {
                 return;
             }
-            if (!this.settings.shouldIndexFile(file)) {
-                return;
-            }
             this.updateLastModified(file);
         },
         5000,
