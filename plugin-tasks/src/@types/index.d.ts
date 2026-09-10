@@ -32,6 +32,7 @@ export interface TaskIndexSettings {
 
     // Last modified tracking
     trackLastModified: boolean; // Update last_modified frontmatter on editor changes
+    trackLastModifiedExcludePaths: string[]; // Path prefixes to exclude from last_modified tracking
 }
 
 /**

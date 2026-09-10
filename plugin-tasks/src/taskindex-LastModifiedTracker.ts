@@ -17,7 +17,15 @@ export class LastModifiedTracker {
      */
     readonly onEditorChange = debounce(
         (file: TFile) => {
-            if (!this.settings.current().trackLastModified) {
+            const settings = this.settings.current();
+            if (!settings.trackLastModified) {
+                return;
+            }
+            if (
+                settings.trackLastModifiedExcludePaths.some((prefix) =>
+                    file.path.startsWith(prefix),
+                )
+            ) {
                 return;
             }
             this.updateLastModified(file);

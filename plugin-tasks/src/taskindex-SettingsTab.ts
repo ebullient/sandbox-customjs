@@ -185,5 +185,28 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     }),
             );
+
+        new Setting(containerEl)
+            .setName("Exclude paths from last modified tracking")
+            .setDesc(
+                "Comma-separated list of path prefixes to exclude (e.g., chronicles/journal, templates)",
+            )
+            .addText((text) =>
+                text
+                    .setPlaceholder("chronicles/journal, templates")
+                    .setValue(
+                        this.plugin.settings.trackLastModifiedExcludePaths.join(
+                            ", ",
+                        ),
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.trackLastModifiedExcludePaths =
+                            value
+                                .split(",")
+                                .map((s) => s.trim())
+                                .filter((s) => s.length > 0);
+                        await this.plugin.saveSettings();
+                    }),
+            );
     }
 }

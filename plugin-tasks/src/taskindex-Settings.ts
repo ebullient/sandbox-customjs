@@ -21,4 +21,5 @@ export const DEFAULT_SETTINGS: TaskIndexSettings = {
     journalFormat: "[chronicles/journal/]YYYY[/journal-]YYYY-MM-DD[.md]",
 
     trackLastModified: true,
+    trackLastModifiedExcludePaths: [],
 };
