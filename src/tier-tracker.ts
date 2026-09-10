@@ -210,18 +210,18 @@ export class TierTracker {
                     // Split cell: two tiers (gradient left-to-right)
                     const color1 =
                         this.tierColors[
-                        data.tier1 as keyof typeof this.tierColors
+                            data.tier1 as keyof typeof this.tierColors
                         ];
                     const color2 =
                         this.tierColors[
-                        data.tier2 as keyof typeof this.tierColors
+                            data.tier2 as keyof typeof this.tierColors
                         ];
                     cell.style.background = `linear-gradient(90deg, rgb(${color1}) 50%, rgb(${color2}) 50%)`;
                 } else if (data.tier1 !== null) {
                     // Single tier: solid color
                     const color =
                         this.tierColors[
-                        data.tier1 as keyof typeof this.tierColors
+                            data.tier1 as keyof typeof this.tierColors
                         ];
                     cell.style.backgroundColor = `rgb(${color})`;
                 } else {
