@@ -150,6 +150,7 @@ export class PeriodicFinalizer {
             /^- \[[x ]\]\s+\d+:\d+\s+.* to the bus$/,
             /^- \[[x ]\]\s+\d+:\d+\s+Meditation.*$/,
             /^- \[[x ]\]\s+\d+:\d+\s+(Planning|Lunch|Email|Reflection|Preview).*$/,
+            /^- \[[x ]\]\s+\d+:\d+\s+\S+\s+(Household|Dinner|Chris time).*$/,
             /^- \[[x ]\]\s+\d+:\d+\s+END.*$/,
         ];
 
