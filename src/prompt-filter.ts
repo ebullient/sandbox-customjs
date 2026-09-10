@@ -346,9 +346,7 @@ export class PromptFilter {
         const movementRing = hasTag(["#me/✅/🔴"]) ? this.yes : this.no;
         const standRing = hasTag(["#me/✅/🔵"]) ? this.yes : this.no;
         const exerciseRing = hasTag(["#me/✅/🟢"]) ? this.yes : this.no;
-        const extraGreens = hasTag(["#me/✅/☘️", "#me/✅/🍀"])
-            ? this.yes
-            : this.no;
+        const extraGreens = hasTag(["#me/✅/🌱"]) ? this.yes : this.no;
         const vitamins =
             extraGreens || hasTag(["#me/✅/✨"]) ? this.yes : this.no;
         const water = vitamins || hasTag(["#me/✅/💧"]) ? this.yes : this.no;
