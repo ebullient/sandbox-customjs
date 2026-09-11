@@ -19,6 +19,9 @@ export const DEFAULT_SETTINGS: TaskIndexSettings = {
     excludeYears: [],
     workSummaryPattern: "chronicles/work/YYYY/YYYY-MM-DD_work.md",
     journalFormat: "[chronicles/journal/]YYYY[/journal-]YYYY-MM-DD[.md]",
+    dailyNoteFormat: "[chronicles/]YYYY/YYYY-MM-DD[.md]",
+
+    dailyTags: [],
 
     trackLastModified: true,
     trackLastModifiedExcludePaths: [],

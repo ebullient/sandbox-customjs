@@ -29,6 +29,10 @@ export interface TaskIndexSettings {
     excludeYears: number[];
     workSummaryPattern: string;
     journalFormat: string;
+    dailyNoteFormat: string;
+
+    // Tagline (daily note Log section tags)
+    dailyTags: string[]; // Full tags, one per line (e.g. "#me/mood/anxiety")
 
     // Last modified tracking
     trackLastModified: boolean; // Update last_modified frontmatter on editor changes

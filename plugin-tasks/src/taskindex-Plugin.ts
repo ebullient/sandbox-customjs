@@ -10,6 +10,7 @@ import type { CurrentSettings, ReviewItem, TaskIndexSettings } from "./@types";
 import { AllTasksCommand } from "./commands/taskindex-AllTasksCommand";
 import { ConversationCommand } from "./commands/taskindex-ConversationCommand";
 import { PushTextCommand } from "./commands/taskindex-PushTextCommand";
+import { TaglineCommand } from "./commands/taskindex-TaglineCommand";
 import { TaskIndexAPI } from "./taskindex-Api";
 import { DatedFileModal } from "./taskindex-DatedFileModal";
 import { FileUpdater } from "./taskindex-FileUpdater";
@@ -176,6 +177,15 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
             name: "(TI) Push text to file",
             callback: async () => {
                 const command = new PushTextCommand(this.app);
+                await command.execute();
+            },
+        });
+
+        this.addCommand({
+            id: "tagline",
+            name: "(TI) Tagline",
+            callback: async () => {
+                const command = new TaglineCommand(this.app, this.settings);
                 await command.execute();
             },
         });

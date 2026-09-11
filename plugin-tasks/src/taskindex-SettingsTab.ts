@@ -199,6 +199,44 @@ export class TaskIndexSettingsTab extends PluginSettingTab {
             },
             {
                 type: "group",
+                heading: "Tagline",
+                items: [
+                    {
+                        name: "Daily note format",
+                        desc: "Moment format string (with path) for today's daily note, e.g. YYYY-MM-DD[.md]",
+                        control: {
+                            type: "text",
+                            key: "dailyNoteFormat",
+                            placeholder: "YYYY-MM-DD[.md]",
+                        },
+                    },
+                    {
+                        name: "Daily tags",
+                        desc: "One tag per line (e.g. #me/something)",
+                        render: (setting: Setting) => {
+                            setting.addTextArea((text) => {
+                                text.setPlaceholder("#me/thing1\n#me/thing2")
+                                    .setValue(
+                                        this.plugin.settings.dailyTags.join(
+                                            "\n",
+                                        ),
+                                    )
+                                    .onChange(async (value) => {
+                                        this.plugin.settings.dailyTags = value
+                                            .split("\n")
+                                            .map((s) => s.trim())
+                                            .filter((s) => s.length > 0);
+                                        await this.plugin.saveSettings();
+                                    });
+                                text.inputEl.rows = 8;
+                                text.inputEl.cols = 50;
+                            });
+                        },
+                    },
+                ],
+            },
+            {
+                type: "group",
                 heading: "Frontmatter tracking",
                 items: [
                     {
