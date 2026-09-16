@@ -95,7 +95,8 @@ export class PeriodicFinalizer {
             .replace(/> - \*Affirmation of the day\*\n/g, "")
             .replace(/> - \*Today's highlight\*\n/g, "")
             .replace(/> - \*Insight of today\*\n/g, "")
-            .replace(/%% tier goes here %%\n/, "");
+            .replace(/%% tier goes here %%\n/, "")
+            .replace(/```deck-notes\n[\s\S]*?```\n/, "");
 
         // Collapse empty Day Planner sections
         revised = revised.replace(
