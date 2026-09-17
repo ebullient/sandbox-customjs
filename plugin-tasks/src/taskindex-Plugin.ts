@@ -150,6 +150,29 @@ export class TaskIndexPlugin extends Plugin implements CurrentSettings {
         });
 
         this.addCommand({
+            id: "sort-log-active-file",
+            name: "(TI) Sort log in current file",
+            callback: async () => {
+                const file = this.app.workspace.getActiveFile();
+                if (!file) {
+                    new Notice("No active file");
+                    return;
+                }
+
+                const archiver = new TaskArchiver(
+                    this.app,
+                    this.settings.minArchiveLines,
+                );
+                const sorted = await archiver.sortActiveFileLog(file);
+                new Notice(
+                    sorted
+                        ? "Log sorted"
+                        : "No Log section or archive body found",
+                );
+            },
+        });
+
+        this.addCommand({
             id: "open-dated-file",
             name: "(TI) Open Dated File",
             callback: () => {

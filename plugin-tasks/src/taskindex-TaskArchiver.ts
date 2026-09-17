@@ -49,6 +49,162 @@ export class TaskArchiver {
         return await this.iterateAllQuests(this.validateQuestLog.bind(this));
     }
 
+    /**
+     * Sort the log entries of the active file into descending date order.
+     * - If the file is an archive (type: archive), the whole body after the
+     *   H1 is treated as the entry list.
+     * - Otherwise, the section under the heading ending in "Log" is used,
+     *   stopping at the next heading, frontmatter, or archive link - same
+     *   scope cleanupQuestLog/validateQuestLog operate on.
+     */
+    async sortActiveFileLog(file: TFile): Promise<boolean> {
+        const cache = this.app.metadataCache.getFileCache(file);
+        const isArchive = cache?.frontmatter?.type === "archive";
+
+        if (isArchive) {
+            return await this.sortArchiveFile(file);
+        }
+
+        const logHeading = cache?.headings?.find((h) =>
+            h.heading.endsWith("Log"),
+        );
+        if (!logHeading) {
+            return false;
+        }
+
+        return await this.sortQuestLog(file, logHeading);
+    }
+
+    /**
+     * Sort entries in an archive file's body (after the H1 heading).
+     */
+    private async sortArchiveFile(file: TFile): Promise<boolean> {
+        let sorted = false;
+
+        await this.app.vault.process(file, (source) => {
+            const split = source.split("\n");
+            const h1Index = split.findIndex((line) => line.startsWith("# "));
+            if (h1Index === -1) {
+                return source;
+            }
+
+            const start = h1Index + 1;
+            let end = split.length - 1;
+            while (end >= start && !split[end].trim()) {
+                end--;
+            }
+
+            const sortedLines = this.sortLogEntries(
+                split.slice(start, end + 1),
+            );
+            split.splice(start, end - start + 1, ...sortedLines);
+            sorted = true;
+            return split.join("\n");
+        });
+
+        return sorted;
+    }
+
+    /**
+     * Sort entries in a quest/area file's Log section.
+     */
+    private async sortQuestLog(
+        file: TFile,
+        logHeading: HeadingCache,
+    ): Promise<boolean> {
+        let sorted = false;
+
+        await this.app.vault.process(file, (source) => {
+            const split = source.split("\n");
+            const start = logHeading.position.start.line + 1;
+            let end = start;
+
+            for (; end < split.length; end++) {
+                const line = split[end];
+                if (line.startsWith("#") || line === "---") {
+                    break;
+                }
+                if (CommonPatterns.isArchiveLink(line)) {
+                    break;
+                }
+            }
+
+            let lastContent = end - 1;
+            while (lastContent >= start && !split[lastContent].trim()) {
+                lastContent--;
+            }
+
+            if (lastContent < start) {
+                return source;
+            }
+
+            const sortedLines = this.sortLogEntries(
+                split.slice(start, lastContent + 1),
+            );
+            split.splice(start, lastContent - start + 1, ...sortedLines);
+            sorted = true;
+            return split.join("\n");
+        });
+
+        return sorted;
+    }
+
+    /**
+     * Group lines into top-level entries (a "- " line plus any indented
+     * lines beneath it, until the next top-level line), then stable-sort
+     * those groups by completion date, descending. Entries without a
+     * completion date keep their original relative position.
+     */
+    private sortLogEntries(lines: string[]): string[] {
+        interface Entry {
+            date: string | null;
+            lines: string[];
+            index: number;
+        }
+
+        const entries: Entry[] = [];
+        for (const line of lines) {
+            if (
+                CommonPatterns.LIST_ITEM_REGEX.test(line) &&
+                !line.match(/^\s+- /)
+            ) {
+                entries.push({
+                    date: CommonPatterns.extractCompletionDate(line),
+                    lines: [line],
+                    index: entries.length,
+                });
+            } else if (entries.length > 0) {
+                entries[entries.length - 1].lines.push(line);
+            } else {
+                // Leading content before any top-level entry - keep as its
+                // own unsortable, undated entry to preserve position
+                entries.push({
+                    date: null,
+                    lines: [line],
+                    index: entries.length,
+                });
+            }
+        }
+
+        const sorted = [...entries].sort((a, b) => {
+            if (a.date && b.date) {
+                if (a.date === b.date) {
+                    return a.index - b.index;
+                }
+                return a.date > b.date ? -1 : 1;
+            }
+            if (a.date && !b.date) {
+                return 1;
+            }
+            if (!a.date && b.date) {
+                return -1;
+            }
+            return a.index - b.index;
+        });
+
+        return sorted.flatMap((entry) => entry.lines);
+    }
+
     async iterateAllQuests(logFn: ProcessLogFn): Promise<void> {
         console.log("Cleaning up old tasks in quest/area files");
         const monthMoment = moment().startOf("month");
