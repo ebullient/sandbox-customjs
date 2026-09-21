@@ -347,9 +347,15 @@ export class PromptFilter {
         const standRing = hasTag(["#me/✅/🔵"]) ? this.yes : this.no;
         const exerciseRing = hasTag(["#me/✅/🟢"]) ? this.yes : this.no;
         const extraGreens = hasTag(["#me/✅/🌱"]) ? this.yes : this.no;
+        // Each tag implies the next: greens -> vitamins -> water.
+        // Compare against this.yes: this.yes and this.no are both non-empty
+        // strings, so both are truthy.
         const vitamins =
-            extraGreens || hasTag(["#me/✅/✨"]) ? this.yes : this.no;
-        const water = vitamins || hasTag(["#me/✅/💧"]) ? this.yes : this.no;
+            extraGreens === this.yes || hasTag(["#me/✅/✨"])
+                ? this.yes
+                : this.no;
+        const water =
+            vitamins === this.yes || hasTag(["#me/✅/💧"]) ? this.yes : this.no;
         const chores = hasTag([
             "#me/✅/🧼",
             "#me/✅/🧽",

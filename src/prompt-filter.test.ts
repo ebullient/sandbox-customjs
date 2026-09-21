@@ -61,6 +61,44 @@ describe("tierFilter", () => {
     });
 });
 
+describe("self-care tags (via tierFilter output)", () => {
+    it("reports vitamins and water absent when no tags are present", () => {
+        const filter = new PromptFilter();
+        const result = filter.tierFilter("Just a plain note with no tags.");
+
+        expect(result).toContain("extra greens: ✗");
+        expect(result).toContain("vitamins: ✗");
+        expect(result).toContain("water: ✗");
+    });
+
+    it("reports only water when only the water tag is present", () => {
+        const filter = new PromptFilter();
+        const result = filter.tierFilter("Drank plenty. #me/✅/💧");
+
+        expect(result).toContain("water: ✔️");
+        expect(result).toContain("vitamins: ✗");
+        expect(result).toContain("extra greens: ✗");
+    });
+
+    it("counts vitamins as also covering water", () => {
+        const filter = new PromptFilter();
+        const result = filter.tierFilter("Took them. #me/✅/✨");
+
+        expect(result).toContain("vitamins: ✔️");
+        expect(result).toContain("water: ✔️");
+        expect(result).toContain("extra greens: ✗");
+    });
+
+    it("counts extra greens as also covering vitamins and water", () => {
+        const filter = new PromptFilter();
+        const result = filter.tierFilter("Ate greens. #me/✅/🌱");
+
+        expect(result).toContain("extra greens: ✔️");
+        expect(result).toContain("vitamins: ✔️");
+        expect(result).toContain("water: ✔️");
+    });
+});
+
 describe("extractWorkday (via tierFilter output)", () => {
     it("flags PTO/vacation mentions as not a workday", () => {
         const filter = new PromptFilter();
