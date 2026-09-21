@@ -47,10 +47,6 @@ export class TaglineCommand {
         }
 
         const result = await showTaglineModal(this.app, addableTags);
-        if (!result) {
-            return;
-        }
-
         const missing = addableTags.filter((tag) => result.has(tag));
         if (missing.length === 0) {
             return;

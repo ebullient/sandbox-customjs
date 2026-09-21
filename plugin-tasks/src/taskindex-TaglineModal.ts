@@ -1,21 +1,20 @@
-import { type App, Modal, Setting, setIcon } from "obsidian";
+import { type App, Modal, Setting } from "obsidian";
 
 /**
  * Modal presenting a checklist of addable daily tags (tags already present
  * in the note's tagline are expected to be filtered out by the caller).
  *
  * Matches Obsidian's settings-modal behavior: there are no OK/Cancel
- * buttons. Closing via background click or Esc submits the checked tags;
- * only the top-right X button cancels.
+ * buttons. Dismissing the modal — via the close button, Esc, or a
+ * background click — submits the checked tags.
  */
 export class TaglineModal extends Modal {
     private checked = new Set<string>();
-    private cancelled = false;
 
     constructor(
         app: App,
         private tags: string[],
-        private onSubmit: (result: Set<string> | null) => void,
+        private onSubmit: (result: Set<string>) => void,
     ) {
         super(app);
         this.containerEl.id = "tagline-modal";
@@ -23,15 +22,6 @@ export class TaglineModal extends Modal {
 
     onOpen() {
         const { contentEl } = this;
-
-        const cancelBtn = this.titleEl.createEl("button", {
-            cls: "clickable-icon tagline-cancel",
-        });
-        setIcon(cancelBtn, "x");
-        cancelBtn.addEventListener("click", () => {
-            this.cancelled = true;
-            this.close();
-        });
 
         contentEl.createEl("h2", { text: "Tagline" });
 
@@ -50,18 +40,18 @@ export class TaglineModal extends Modal {
 
     onClose() {
         this.contentEl.empty();
-        this.onSubmit(this.cancelled ? null : this.checked);
+        this.onSubmit(this.checked);
     }
 }
 
 /**
  * Show the tagline checklist modal for the given addable tags.
- * Returns the set of checked tags, or null if cancelled.
+ * Returns the set of checked tags (empty if none were checked).
  */
 export function showTaglineModal(
     app: App,
     tags: string[],
-): Promise<Set<string> | null> {
+): Promise<Set<string>> {
     return new Promise((resolve) => {
         new TaglineModal(app, tags, resolve).open();
     });
