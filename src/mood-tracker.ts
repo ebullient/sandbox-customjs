@@ -52,6 +52,7 @@ export class MoodTracker {
     // Keep this list in sync with demesne/self/mood/mood-markers.md
     markers: string[] = [
         "anxiety",
+        "expansive",
         "rejection-fear",
         "irritability",
         "fixated-circles",
