@@ -206,8 +206,9 @@ export class PromptFilter {
                 lines.push(`Self-assessment: ${metrics.health.tierTag}`);
             }
             lines.push(`Workday: ${metrics.workday.display}`);
-            // } else {
-            //     lines.push(`Date range: ${metrics.dateRange}`);
+        } else {
+            lines.push(`Date range: ${metrics.dateRange}`);
+            lines.push(`Tier tags this week: ${metrics.health.tierTag}`);
         }
 
         // Health metrics
